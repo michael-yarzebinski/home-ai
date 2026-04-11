@@ -1,0 +1,59 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug NestJS (ts-node) — recommended",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-r", "reflect-metadata", "-r", "ts-node/register"],
+      "program": "${workspaceFolder}/apps/server/src/main.ts",
+      "cwd": "${workspaceFolder}/apps/server",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/apps/server/node_modules/**"],
+      "envFile": "${workspaceFolder}/apps/server/.env",
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug NestJS (ts-node, server is workspace root)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-r", "reflect-metadata", "-r", "ts-node/register"],
+      "program": "${workspaceFolder}/src/main.ts",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "envFile": "${workspaceFolder}/.env",
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to nest --debug (port 9229, repo root)",
+      "address": "127.0.0.1",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}/apps/server",
+      "remoteRoot": "${workspaceFolder}/apps/server",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/apps/server/dist/**/*.js"]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to nest --debug (port 9229, server folder)",
+      "address": "127.0.0.1",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+    }
+  ]
+}
