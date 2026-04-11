@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KnexModule } from '../common/database/knex.module';
-import { AiToolsService } from './ai-tools.service';
+import { AIToolsService } from './ai-tools.service';
 import { DetectTaskTool } from './detect-task.tool';
 import { PermissionTool } from './permission.tool';
 import { ExecutionRouter } from './execution.router';
@@ -11,11 +11,12 @@ import { FactsTool } from './facts.tool';
 import { SummaryTool } from './summary.tool';
 import { NotificationTool } from './notification.tool';
 import { AuditTool } from './audit.tool';
+import { DeviceTool } from './device.tool';
 
 @Module({
   imports: [KnexModule],
   providers: [
-    AiToolsService,
+    AIToolsService,
     DetectTaskTool,
     PermissionTool,
     ExecutionRouter,
@@ -25,9 +26,10 @@ import { AuditTool } from './audit.tool';
     SummaryTool,
     NotificationTool,
     AuditTool,
+    DeviceTool,
   ],
   exports: [
-    AiToolsService,
+    AIToolsService,
     DetectTaskTool,
     PermissionTool,
     ExecutionRouter,
@@ -37,6 +39,7 @@ import { AuditTool } from './audit.tool';
     SummaryTool,
     NotificationTool,
     AuditTool,
+    DeviceTool,
   ],
 })
 export class AiToolsModule {}

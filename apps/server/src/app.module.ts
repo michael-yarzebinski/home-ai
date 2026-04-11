@@ -11,6 +11,8 @@ import { AuditModule } from './modules/audit/audit.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { HealthModule } from './modules/health/health.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { ConversationStatesModule } from './modules/conversation-states/conversation-states.module';
+import { DevicesModule } from './modules/devices/devices.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { ChatModule } from './modules/chat/chat.module';
     NotificationsModule,
     AuditModule,
     WebhookModule,
+    ConversationStatesModule,
+    DevicesModule,
 
     ChatModule,
   ],

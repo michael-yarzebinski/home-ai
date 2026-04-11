@@ -1,9 +1,9 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { AiToolsService } from '../../tools/ai-tools.service';
+import { AIToolsService } from '../../tools/ai-tools.service';
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly aiToolsService: AiToolsService) {}
+  constructor(private readonly aiToolsService: AIToolsService) {}
 
   @Post()
   async chat(@Body() body: { message: string; user_id?: string }) {

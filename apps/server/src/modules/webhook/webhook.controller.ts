@@ -33,4 +33,24 @@ export class WebhookController {
       };
     }
   }
+
+  // NEW ENDPOINT for BlueBubbles iMessage webhooks
+  @Post('imessage')
+  @HttpCode(HttpStatus.OK)
+  async handleIMessage(@Body() payload: any) {
+    try {
+      const result = await this.webhookService.handleBlueBubblesMessage(payload);
+      return {
+        success: true,
+        message: 'iMessage processed successfully',
+        result,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: 'Failed to process iMessage',
+        error: error.message,
+      };
+    }
+  }
 }

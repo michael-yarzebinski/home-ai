@@ -47,7 +47,7 @@ export async function seed(knex: Knex): Promise<void> {
     { key: 'webhook_secret', value: 'change_this_to_a_strong_secret_please', description: 'Secret for device webhooks' },
   ]);
 
-  // 4. Core Tasks (with your requested roles)
+  // 4. Core Tasks
   await knex('tasks').insert([
     // Grocery / Checklist Tasks
     {
@@ -155,6 +155,24 @@ export async function seed(knex: Knex): Promise<void> {
       execute_roles: 'parent,admin',
       notify_roles: '',
       action_type: 'read_pending',
+      enabled: true,
+    },
+
+    // === NEW: Device Management ===
+    {
+      task_name: 'add_device',
+      description: 'Add a new device to the ai-home system (Litter-Robot, washer, sensor, etc.)',
+      request_roles: 'parent,admin',
+      execute_roles: 'admin',                    // Only admin can actually add devices for security
+      notify_roles: 'parent,admin',
+      action_type: 'add_device',
+      parameters_schema: JSON.stringify({
+        device_id_slug: 'string',                // e.g. "litter_robot_main"
+        device_type: 'string',                   // e.g. "litter_robot"
+        friendly_name: 'string',
+        ha_entity_id: 'string?',                 // optional
+        notification_guidance: 'object?'         // optional initial rules
+      }),
       enabled: true,
     },
   ]);

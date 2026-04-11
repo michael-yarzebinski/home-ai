@@ -3,6 +3,7 @@ import { AppleNotesTool } from './apple-notes.tool';
 import { CalendarTool } from './calendar.tool';
 import { FactsTool } from './facts.tool';
 import { SummaryTool } from './summary.tool';
+import { DeviceTool } from './device.tool';
 
 @Injectable()
 export class ExecutionRouter {
@@ -11,6 +12,7 @@ export class ExecutionRouter {
     private readonly calendarTool: CalendarTool,
     private readonly factsTool: FactsTool,
     private readonly summaryTool: SummaryTool,
+    private readonly deviceTool: DeviceTool,
   ) {}
 
   /**
@@ -65,6 +67,10 @@ export class ExecutionRouter {
 
     if (taskName === 'weekly_recap') {
       return this.summaryTool.weeklyRecap(parameters, user);
+    }
+
+    if (taskName === 'add_device') {
+      return this.deviceTool.addDevice(parameters, user.id);
     }
 
     // Default fallback
