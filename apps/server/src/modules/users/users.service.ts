@@ -43,33 +43,26 @@ export class UsersService {
       .first<UserRecord>();
   }
 
+  /**
+   * Resolve a caller-supplied string that may be either `users.user_id` or `users.messaging_id` (exact match on either).
+   */
+  async findByUserIdOrHandle(value: string): Promise<UserRecord | null> {
+    if (!value?.trim()) return null;
+
+    const v = value.trim();
+
+    return this.knex('users')
+      .where((qb) => {
+        qb.where('user_id', v).orWhere('messaging_id', v);
+      })
+      .first<UserRecord>();
+  }
+
   async updateUser(user_id: string, updates: Partial<UserRecord>): Promise<UserRecord | null> {
     const [user] = await this.knex('users')
       .where('user_id', user_id)
       .update(updates)
       .returning('*');
-
-    return user || null;
-  }
-
-  /**
-   * Lookup user by messaging handle (BlueBubbles handle / phone / email)
-   * Used by webhook to map incoming iMessage to a user_id
-   */
-  async findByMessagingHandle(handle: string): Promise<UserRecord | null> {
-    if (!handle) return null;
-
-    // Exact match first (most common case)
-    let user = await this.knex('users')
-      .where('messaging_id', handle)
-      .first<UserRecord>();
-
-    // Fallback: case-insensitive partial match (helpful during testing/setup)
-    if (!user) {
-      user = await this.knex('users')
-        .whereILike('messaging_id', `%${handle}%`)
-        .first<UserRecord>();
-    }
 
     return user || null;
   }

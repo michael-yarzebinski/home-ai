@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NotificationTool } from '../../tools/notification.tool';
+import { NotificationTool } from '../../ai/tools/utility-tools/notification.tool';
 import { KnexModule } from '../../common/database/knex.module';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';

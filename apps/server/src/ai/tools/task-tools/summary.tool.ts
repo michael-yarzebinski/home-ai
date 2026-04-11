@@ -1,43 +1,63 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Knex } from 'knex';
 import { CalendarTool } from './calendar.tool';
 import { AppleNotesTool } from './apple-notes.tool';
+import { ToolBase } from '../tool.base';
+import type { ToolRequest } from '../../tools/interfaces/tool-request';
+import type { ToolResult } from '../../tools/interfaces/tool-result';
 
 @Injectable()
-export class SummaryTool {
+export class SummaryTool extends ToolBase {
+  readonly taskNames = ['daily_summary', 'weekly_recap'] as const;
+
   constructor(
-    @Inject('KNEX_CONNECTION') private readonly knex: Knex,
     private readonly configService: ConfigService,
     private readonly calendarTool: CalendarTool,
     private readonly appleNotesTool: AppleNotesTool,
-  ) {}
+  ) {
+    super();
+  }
+
+  canHandle(taskName: string): boolean {
+    return this.taskNames.includes(taskName as any);
+  }
+
+  async execute(request: ToolRequest): Promise<ToolResult> {
+    const { parameters: params, task } = request.request;
+    const taskName = task.task_name || 'daily_summary';
+    if (taskName === 'weekly_recap') {
+      return this.weeklyRecap(params);
+    }
+    return this.dailySummary(params);
+  }
 
   /**
    * Daily Summary: Weather + Calendar + Short Term List
    */
-  async dailySummary(
-    parameters: any,
-    user: any | null
-  ): Promise<{
-    success: boolean;
-    message: string;
-    reply: string;
-    data?: any;
-  }> {
-    const zipCode = this.configService.get<string>('WEATHER_ZIP_CODE') || '90210';
+  private async dailySummary(parameters: any): Promise<ToolResult> {
+    const zipCode = this.configService.get<string>('WEATHER_ZIP_CODE') || '80227';
 
     try {
       // 1. Get weather (using wttr.in - simple and no API key)
       const weatherRes = await fetch(`https://wttr.in/${zipCode}?format=%C+%t+%w`);
       const weatherText = await weatherRes.text();
 
-      // 2. Get today's calendar events
-      const calendarResult = await this.calendarTool.readEvents({ date: 'today' }, user);
+      // 2. Get today's calendar events using proper ToolRequest shape
+      const calendarRequest: ToolRequest = {
+        request: {
+          task: { task_name: 'read_calendar' } as any,
+          user: {} as any,
+          permission: { canRequest: true, canExecute: true },
+          parameters: { date: 'today' },
+          sourceType: 'ai',
+        },
+        taskRequestId: 0,
+      };
 
-      // 3. Get Short Term List items (read the note)
-      // For simplicity, we'll simulate reading the note. In production, add a readNote method to AppleNotesTool
-      const shortTermItems = "• Fold laundry\n• Buy milk\n• Schedule dentist";
+      const calendarResult = await this.calendarTool.execute(calendarRequest);
+
+      // 3. Short Term List - currently hardcoded (AppleNotesTool only supports writing)
+      const shortTermItems = '• Fold laundry\n• Buy milk\n• Schedule dentist';
 
       const summary = `
 Today's Summary:
@@ -57,11 +77,11 @@ ${shortTermItems}
         reply: summary,
         data: {
           weather: weatherText.trim(),
-          calendar: calendarResult.data?.events || [],
+          calendar: calendarResult.data || [],
           shortTerm: shortTermItems,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Daily summary error:', error);
       return {
         success: false,
@@ -74,14 +94,7 @@ ${shortTermItems}
   /**
    * Weekly Recap (basic version)
    */
-  async weeklyRecap(
-    parameters: any,
-    user: any | null
-  ): Promise<{
-    success: boolean;
-    message: string;
-    reply: string;
-  }> {
+  private async weeklyRecap(parameters: any): Promise<ToolResult> {
     try {
       const recap = `
 Weekly Recap:
@@ -102,7 +115,7 @@ Weekly Recap:
         message: 'Weekly recap generated',
         reply: recap,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Weekly recap error:', error);
       return {
         success: false,
@@ -111,4 +124,5 @@ Weekly Recap:
       };
     }
   }
+
 }

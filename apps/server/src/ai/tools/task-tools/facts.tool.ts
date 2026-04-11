@@ -1,23 +1,33 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { ToolBase } from '../tool.base';
+import type { ToolRequest } from '../../tools/interfaces/tool-request';
+import type { ToolResult } from '../../tools/interfaces/tool-result';
+import { FactsService } from '../../../modules/facts/facts.service';
 
 @Injectable()
-export class FactsTool {
-  constructor(@Inject('KNEX_CONNECTION') private readonly knex: Knex) {}
+export class FactsTool extends ToolBase {
+  readonly taskNames = ['store_fact', 'retrieve_fact'] as const;
+
+  constructor(private readonly factsService: FactsService) {
+    super();
+  }
+
+  canHandle(taskName: string): boolean {
+    return this.taskNames.includes(taskName as any);
+  }
 
   /**
    * Store a new fact / preference
    */
-  async storeFact(
-    parameters: any,
-    user: any | null
-  ): Promise<{
-    success: boolean;
-    message: string;
-    reply: string;
-  }> {
-    const key = parameters.key || parameters.fact || parameters.name;
-    const value = parameters.value || parameters.details || parameters.text;
+  async execute(request: ToolRequest): Promise<ToolResult> {
+    const { parameters: params, task } = request.request;
+    const taskName = task.task_name;
+    if (taskName === 'retrieve_fact') {
+      return this.retrieveFact(params);
+    }
+
+    const key = params.key || params.fact || params.name;
+    const value = params.value || params.details || params.text;
 
     if (!key || !value) {
       return {
@@ -28,15 +38,11 @@ export class FactsTool {
     }
 
     try {
-      await this.knex('facts')
-        .insert({
-          key: key.toLowerCase().trim(),
-          value: value.trim(),
-          owner_user_id: user?.user_id || null,
-          visibility_roles: 'parent,child', // default visibility
-        })
-        .onConflict('key')
-        .merge(); // update if key already exists
+      await this.factsService.storeFact(
+        key,
+        value,
+        params.user?.user_id || null
+      );
 
       return {
         success: true,
@@ -56,15 +62,7 @@ export class FactsTool {
   /**
    * Retrieve a stored fact by key
    */
-  async retrieveFact(
-    parameters: any,
-    user: any | null
-  ): Promise<{
-    success: boolean;
-    message: string;
-    reply: string;
-    data?: any;
-  }> {
+  private async retrieveFact(parameters: any): Promise<ToolResult> {
     const key = parameters.key || parameters.fact || parameters.name;
 
     if (!key) {
@@ -76,9 +74,7 @@ export class FactsTool {
     }
 
     try {
-      const fact = await this.knex('facts')
-        .where('key', key.toLowerCase().trim())
-        .first();
+      const fact = await this.factsService.retrieveFact(key);
 
       if (!fact) {
         return {
@@ -103,4 +99,5 @@ export class FactsTool {
       };
     }
   }
+
 }

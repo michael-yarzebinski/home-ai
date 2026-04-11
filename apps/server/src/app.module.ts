@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { KnexModule } from './common/database/knex.module';
-import { AiToolsModule } from './tools/ai-tools.module';
+import { AiToolsModule } from './ai/ai-tools.module';
 
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -13,6 +13,7 @@ import { HealthModule } from './modules/health/health.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { ConversationStatesModule } from './modules/conversation-states/conversation-states.module';
 import { DevicesModule } from './modules/devices/devices.module';
+import { FactsModule } from './modules/facts/facts.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { DevicesModule } from './modules/devices/devices.module';
     WebhookModule,
     ConversationStatesModule,
     DevicesModule,
+    FactsModule,
 
     ChatModule,
   ],

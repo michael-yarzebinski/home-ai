@@ -1,12 +1,13 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { AIToolsService } from '../../tools/ai-tools.service';
+import { MessageSource } from '../../ai/ai-tools-service/interfaces/message-request';
+import { AIToolsServiceBase } from 'src/ai/ai-tools-service/ai-tools.service.base';
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly aiToolsService: AIToolsService) {}
+  constructor(private readonly aiToolsService: AIToolsServiceBase) {}
 
   @Post()
-  async chat(@Body() body: { message: string; user_id?: string }) {
+  async chat(@Body() body: { message: string; user_id: string }) {
     const { message, user_id } = body;
 
     if (!message) {
@@ -17,10 +18,11 @@ export class ChatController {
     }
 
     try {
-      const result = await this.aiToolsService.processMessage(
-        message,
-        user_id || null,
-      );
+      const result = await this.aiToolsService.processMessage({
+        messageText: message,
+        source: MessageSource.CHAT,
+        userIdentifier: user_id,
+      });
 
       return {
         success: true,

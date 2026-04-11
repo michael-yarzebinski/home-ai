@@ -1,31 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { DevicesService } from '../modules/devices/devices.service';
-import { TaskRequestsService } from '../modules/task-requests/task-requests.service';
+import { DevicesService } from '../../../modules/devices/devices.service';
+import { TaskRequestsService } from '../../../modules/task-requests/task-requests.service';
+import { ToolBase } from '../tool.base';
+import type { ToolRequest } from '../../tools/interfaces/tool-request';
+import type { ToolResult } from '../../tools/interfaces/tool-result';
 
 @Injectable()
-export class DeviceTool {
+export class DeviceTool extends ToolBase {
+  readonly taskNames = ['add_device'] as const;
+
   constructor(
     private readonly devicesService: DevicesService,
-    private readonly taskRequestsService: TaskRequestsService,
-  ) {}
+  ) {
+    super();
+  }
+
+  canHandle(taskName: string): boolean {
+    return this.taskNames.includes(taskName as any);
+  }
 
   /**
-   * Add a new device to the system
-   * This matches the style of your other tools
+   * Add a new device to the system. Note that task_request creation is now
+   * handled by the router (per security invariant). This method focuses on
+   * the device logic only.
    */
-  async addDevice(parameters: any, userId: string): Promise<{
-    success: boolean;
-    message: string;
-    device?: any;
-  }> {
+  async execute(request: ToolRequest): Promise<ToolResult> {
     try {
+      const { parameters: params, user: contextUser, taskRequestId } = request.request;
       const {
         device_id_slug,
         device_type,
         friendly_name,
         ha_entity_id,
         notification_guidance = {},
-      } = parameters;
+      } = params;
+
+      const userId = contextUser?.user_id || params.userId || 'unknown';
 
       if (!device_id_slug || !device_type || !friendly_name) {
         return {
@@ -47,30 +57,22 @@ export class DeviceTool {
         enabled: true,
       });
 
-      // Log the action in task_requests for audit
-      await this.taskRequestsService.create({
-        task_name: 'add_device',
-        requester_user_id: userId,
-        executor_user_id: userId,
-        parameters,
-        status: 'executed',
-        source_type: 'user',
-        device_id_slug,
-        device_metadata: { ha_entity_id },
-      });
 
       return {
         success: true,
         message: `Successfully added device "${friendly_name}" (${device_id_slug}).`,
-        device: newDevice,
+        data: newDevice,
+        notify: true,
+        taskRequestId,
       };
 
     } catch (error: any) {
-      console.error('Error in DeviceTool.addDevice:', error);
+      console.error('Error in DeviceTool.execute:', error);
       return {
         success: false,
         message: `Failed to add device: ${error.message}`,
       };
     }
   }
+
 }

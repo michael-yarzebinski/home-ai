@@ -25,13 +25,13 @@ export class TasksService {
   }
 
   /**
-   * NEW: Get only enabled tasks with minimal fields needed for AI decision
+   * Enabled tasks for the AI pipeline (full rows: model metadata + role columns for permission checks).
    */
-  async findEnabledForAI() {
+  async findEnabledForAI(): Promise<TaskRecord[]> {
     return this.knex('tasks')
       .where('enabled', true)
-      .select('task_name', 'description', 'parameters_schema')
-      .orderBy('task_name');
+      .orderBy('task_name')
+      .select('*');
   }
 
   async findOne(task_name: string) {
