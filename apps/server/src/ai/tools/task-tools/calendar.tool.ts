@@ -17,7 +17,7 @@ export class CalendarTool extends ToolBase {
 
   async execute(request: ToolRequest): Promise<ToolResult> {
     const { task } = request.request;
-    const taskName = task.task_name;
+    const taskName = task.taskName;
     if (taskName === 'read_calendar') {
       return this.readEvents(request);  // Pass full request for consistency with other tools
     }

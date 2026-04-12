@@ -2,17 +2,19 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';   // ← Built-in NestJS ConfigService
 import * as dotenv from 'dotenv';
-import { GlobalValidationPipe } from './common/global-validation.pipe';
-import { AllExceptionsFilter } from './common/exceptions.filter';
-import { BackgroundNotificationService } from './modules/notifications/background-notification.service';
+import { GlobalValidationPipe } from './core/global-validation.pipe';
+import { AllExceptionsFilter } from './core/exceptions.filter';
+import { BackgroundNotificationService } from './core/notifications/background-notification.service';
+import { AppConfigService } from './core/app-config/app-config.service';
 
 async function bootstrap() {
   dotenv.config();
 
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);   // ← Built-in one
+    const app = await NestFactory.create(AppModule);
 
-  const port = configService.get<number>('SERVER_PORT') || 3000;
+  const configService = app.get(AppConfigService);   // ← Built-in one
+
+  const port = configService.getFromEnv<number>('SERVER_PORT') || 3000;
 
   app.useGlobalPipes(GlobalValidationPipe);
   app.useGlobalFilters(new AllExceptionsFilter());

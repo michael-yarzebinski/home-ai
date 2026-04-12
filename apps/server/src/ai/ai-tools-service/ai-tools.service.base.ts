@@ -1,19 +1,22 @@
 import { Logger } from '@nestjs/common';
 import { PermissionTool } from '../tools/utility-tools/permission.tool';
-import { ToolRouter } from '../execution/execution.router';
+import { ToolRouter } from '../router/tool.router';
 import { AuditTool } from '../tools/utility-tools/audit.tool';
 import { NotificationTool } from '../tools/utility-tools/notification.tool';
-import type { DispatchRequest, DispatchResult } from '../tools/interfaces/dispatch-request';
+import type { DispatchRequest } from '../tools/interfaces/dispatch-request';
 import type { ToolRequest } from '../tools/interfaces/tool-request';
-import { TaskRecord, TasksService } from '../../modules/tasks/tasks.service';
-import { UserRecord, UsersService } from '../../modules/users/users.service';
+import { TasksService } from '../../core/tasks/tasks.service';
+import { UsersService } from '../../core/users/users.service';
 import {
   ChatMessage,
   ConversationState,
   ConversationStatesService,
-} from '../../modules/conversation-states/conversation-states.service';
+} from '../../core/conversation-states/conversation-states.service';
 import { MessageRequest } from './interfaces/message-request';
 import { ModelDecision } from './interfaces/model-decision';
+import { User } from 'src/core/users/user.domain';
+import { Task } from 'src/core/tasks/task.domain';
+import { DispatchResult } from '../tools/interfaces/dispatch-result';
 
 /** Normalized response for all channels. */
 export interface TaskPipelineResult {
@@ -90,13 +93,13 @@ export abstract class AIToolsServiceBase {
       return { reply: '', status: 'user_not_found' };
     }
 
-    const chatHistory = await this.buildChatMessages({ ...request, messageText: text }, user.user_id);
+    const chatHistory = await this.buildChatMessages({ ...request, messageText: text }, user.userId);
 
-    const result = await this.runPipeline(chatHistory, user.user_id, String(request.source), user);
+    const result = await this.runPipeline(chatHistory, user.userId, String(request.source), user);
 
     if (request.chatGuid) {
       try {
-        await this.persistConversationFromPipelineResult(request.chatGuid, user.user_id, result);
+        await this.persistConversationFromPipelineResult(request.chatGuid, user.userId, result);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.warn(
@@ -215,7 +218,7 @@ Rules:
     chatHistory: ChatMessage[],
     userId: string,
     source: string,
-    user: UserRecord,
+    user: User,
   ): Promise<TaskPipelineResult> {
     const startTime = Date.now();
 
@@ -255,7 +258,7 @@ Rules:
         };
       }
 
-      const identifiedTask = tasks.find((t) => t.task_name === modelDecision.task_name);
+      const identifiedTask = tasks.find((t) => t.taskName === modelDecision.task_name);
       if (!identifiedTask) {
         const clarification_question = `I'm sorry, I didn't understand what you'd like me to do. Could you rephrase`;
 
@@ -302,7 +305,7 @@ Rules:
       });
 
       if (executionResult.notify) {
-        await this.notificationTool.sendNotifications(identifiedTask.task_name, executionResult, user);
+        await this.notificationTool.sendNotifications(identifiedTask.taskName, executionResult, user);
       }
 
       return {
@@ -328,12 +331,12 @@ Rules:
     }
   }
 
-  private mapTasksToAITasks(tasks:TaskRecord[]): AITask[] {
+  private mapTasksToAITasks(tasks:Task[]): AITask[] {
     return tasks.map(t => ({
-        taskName: t.task_name,
+        taskName: t.taskName,
         description: t.description,
-        actionType: t.action_type,
-        parametersSchema: t.parameters_schema
+        actionType: t.actionType,
+        parametersSchema: t.parametersSchema
     }));
   }
 }

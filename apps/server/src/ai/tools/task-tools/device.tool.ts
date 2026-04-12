@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { DevicesService } from '../../../modules/devices/devices.service';
-import { TaskRequestsService } from '../../../modules/task-requests/task-requests.service';
+import { DevicesService } from '../../../core/devices/devices.service';
+import { TaskRequestsService } from '../../../core/task-requests/task-requests.service';
 import { ToolBase } from '../tool.base';
 import type { ToolRequest } from '../../tools/interfaces/tool-request';
 import type { ToolResult } from '../../tools/interfaces/tool-result';
@@ -28,16 +28,16 @@ export class DeviceTool extends ToolBase {
     try {
       const { parameters: params, user: contextUser, taskRequestId } = request.request;
       const {
-        device_id_slug,
-        device_type,
-        friendly_name,
-        ha_entity_id,
-        notification_guidance = {},
+        deviceIdSlug,
+        deviceType,
+        friendlyName,
+        haEntityId,
+        notificationGuidance = {},
       } = params;
 
-      const userId = contextUser?.user_id || params.userId || 'unknown';
+      const userId = contextUser?.userId || params.userId || 'unknown';
 
-      if (!device_id_slug || !device_type || !friendly_name) {
+      if (!deviceIdSlug || !deviceType || !friendlyName) {
         return {
           success: false,
           message: 'Missing required parameters: device_id_slug, device_type, and friendly_name are required.',
@@ -46,21 +46,21 @@ export class DeviceTool extends ToolBase {
 
       // Create the device using DevicesService
       const newDevice = await this.devicesService.create({
-        device_id_slug,
-        device_type,
-        friendly_name,
-        ha_entity_id: ha_entity_id || null,
-        notification_guidance,
-        event_types: [],
-        owner_user_id: userId,
-        visible_to_roles: 'parent,admin',
+        deviceIdSlug,
+        deviceType,
+        friendlyName,
+        haEntityId: haEntityId || null,
+        notificationGuidance,
+        eventTypes: [],
+        ownerUserId: userId,
+        visibleToRoles: 'parent,admin',
         enabled: true,
       });
 
 
       return {
         success: true,
-        message: `Successfully added device "${friendly_name}" (${device_id_slug}).`,
+        message: `Successfully added device "${friendlyName}" (${deviceIdSlug}).`,
         data: newDevice,
         notify: true,
         taskRequestId,

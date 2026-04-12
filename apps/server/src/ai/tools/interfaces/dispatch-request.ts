@@ -1,7 +1,7 @@
-import { UserRecord } from '../../../modules/users/users.service';
-import { TaskRecord } from '../../../modules/tasks/tasks.service';
 import { PermissionCheckResult } from '../utility-tools/permission.tool';
 import { DispatchResult } from './dispatch-result';
+import { Task } from 'src/core/tasks/task.domain';
+import { User } from 'src/core/users/user.domain';
 
 /**
  * Core request shape passed to ToolRouter.dispatch() and used throughout the AI pipeline.
@@ -9,10 +9,10 @@ import { DispatchResult } from './dispatch-result';
  */
 export interface DispatchRequest {
   /** Full task record from DB (for roles, schema, notify_roles, target etc) */
-  task: TaskRecord;
+  task: Task;
 
   /** The user who requested/owns this action */
-  user: UserRecord;
+  user: User;
 
   /** Permission results from PermissionTool.checkPermission */
   permission: PermissionCheckResult;
@@ -32,7 +32,3 @@ export interface DispatchRequest {
   /** Any additional metadata */
   metadata?: Record<string, any>;
 }
-
-/** Re-export for convenience */
-export type { DispatchResult } from './dispatch-result';
-export type { ToolRequest } from './tool-request';

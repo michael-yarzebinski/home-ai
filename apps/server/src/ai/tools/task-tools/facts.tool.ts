@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ToolBase } from '../tool.base';
 import type { ToolRequest } from '../../tools/interfaces/tool-request';
 import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { FactsService } from '../../../modules/facts/facts.service';
+import { FactsService } from '../../../core/facts/facts.service';
 
 @Injectable()
 export class FactsTool extends ToolBase {
@@ -21,7 +21,7 @@ export class FactsTool extends ToolBase {
    */
   async execute(request: ToolRequest): Promise<ToolResult> {
     const { parameters: params, task } = request.request;
-    const taskName = task.task_name;
+    const taskName = task.taskName;
     if (taskName === 'retrieve_fact') {
       return this.retrieveFact(params);
     }

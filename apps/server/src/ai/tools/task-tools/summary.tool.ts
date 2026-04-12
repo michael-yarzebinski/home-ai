@@ -24,7 +24,7 @@ export class SummaryTool extends ToolBase {
 
   async execute(request: ToolRequest): Promise<ToolResult> {
     const { parameters: params, task } = request.request;
-    const taskName = task.task_name || 'daily_summary';
+    const taskName = task.taskName || 'daily_summary';
     if (taskName === 'weekly_recap') {
       return this.weeklyRecap(params);
     }

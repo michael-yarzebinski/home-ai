@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { TaskRecord } from '../../../modules/tasks/tasks.service';
-import { UserRecord } from '../../../modules/users/users.service';
+import { Task } from 'src/core/tasks/task.domain';
+import { User } from 'src/core/users/user.domain';
+
 
 export interface PermissionCheckResult {
   /** User’s role may initiate this task (see `request_roles` on the task). */
@@ -21,9 +22,9 @@ function parseRoleList(csv?: string | null): string[] {
  */
 @Injectable()
 export class PermissionTool {
-  async checkPermission(user: UserRecord, task: TaskRecord): Promise<PermissionCheckResult> {
-    const requestRoles = parseRoleList(task.request_roles);
-    const executeRoles = parseRoleList(task.execute_roles);
+  async checkPermission(user: User, task: Task): Promise<PermissionCheckResult> {
+    const requestRoles = parseRoleList(task.requestRoles);
+    const executeRoles = parseRoleList(task.executeRoles);
 
     const canRequest = requestRoles.length > 0 && requestRoles.includes(user.role);
     const canExecute = user.role === 'admin' || (executeRoles.length > 0 && executeRoles.includes(user.role));

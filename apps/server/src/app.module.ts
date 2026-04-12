@@ -1,47 +1,47 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { KnexModule } from './common/database/knex.module';
-import { AiToolsModule } from './ai/ai-tools.module';
+import { CoreModule } from './core/core.module';
+import { AIToolsModule } from './ai/ai-tools.module';
+import { IntegrationModule } from './integration/integration.module';
+import { HealthModule } from './health/health.module';
 
-import { UsersModule } from './modules/users/users.module';
-import { TasksModule } from './modules/tasks/tasks.module';
-import { TaskRequestsModule } from './modules/task-requests/task-requests.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { AuditModule } from './modules/audit/audit.module';
-import { WebhookModule } from './modules/webhook/webhook.module';
-import { HealthModule } from './modules/health/health.module';
-import { ChatModule } from './modules/chat/chat.module';
-import { ConversationStatesModule } from './modules/conversation-states/conversation-states.module';
-import { DevicesModule } from './modules/devices/devices.module';
-import { FactsModule } from './modules/facts/facts.module';
-
+/**
+ * Root application module with the new consolidated structure.
+ * 
+ * New structure under apps/server/src/:
+ * core/ (previously common/ + merged domain logic)
+ *   - core.module.ts (merged CoreModule + DomainModule)
+ *   - app-config.service.ts
+ *   - validation.service.ts
+ *   - abstract-entity.store.ts
+ *   - config.store.ts, config.domain.ts
+ *   - database/ (knex.module.ts, etc.)
+ *   - other shared files
+ * 
+ * modules/ (unchanged)
+ * tools/
+ * integration/
+ * app.module.ts
+ * main.ts
+ * 
+ * Flow: IntegrationModule → ToolsModule → CoreModule → NotificationModule → iMessage
+ */
 @Module({
   imports: [
-    // Global Configuration
+    // Global Configuration (official NestJS)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
+
     HealthModule,
 
-    // Database
-    KnexModule,
+    // Core Infrastructure
+    CoreModule,
 
-    // AI Core Tools (the brain)
-    AiToolsModule,
-
-    // Feature Modules
-    UsersModule,
-    TasksModule,
-    TaskRequestsModule,
-    NotificationsModule,
-    AuditModule,
-    WebhookModule,
-    ConversationStatesModule,
-    DevicesModule,
-    FactsModule,
-
-    ChatModule,
+    // Business Logic Layers
+    AIToolsModule,          // AI brain (AIToolsService, tools, execution router)
+    IntegrationModule,    // All incoming integrations (webhook, iMessage input)
   ],
 })
 export class AppModule {}

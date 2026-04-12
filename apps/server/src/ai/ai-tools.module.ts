@@ -1,14 +1,7 @@
 import { Module } from '@nestjs/common';
-import { KnexModule } from '../common/database/knex.module';
-import { DevicesModule } from '../modules/devices/devices.module';
-import { TaskRequestsModule } from '../modules/task-requests/task-requests.module';
-import { ConversationStatesModule } from '../modules/conversation-states/conversation-states.module';
-import { UsersModule } from '../modules/users/users.module';
-import { TasksModule } from '../modules/tasks/tasks.module';
-import { FactsModule } from '../modules/facts/facts.module';
 
 import { PermissionTool } from './tools/utility-tools/permission.tool';
-import { ToolRouter } from './execution/execution.router';
+import { ToolRouter } from './router/tool.router';
 import { AppleNotesTool } from './tools/task-tools/apple-notes.tool';
 import { CalendarTool } from './tools/task-tools/calendar.tool';
 import { FactsTool } from './tools/task-tools/facts.tool';
@@ -18,21 +11,20 @@ import { AuditTool } from './tools/utility-tools/audit.tool';
 import { DeviceTool } from './tools/task-tools/device.tool';
 import { AIToolsServiceBase } from './ai-tools-service/ai-tools.service.base';
 import { ConfigService } from '@nestjs/config';
-import { ConversationStatesService } from 'src/modules/conversation-states/conversation-states.service';
-import { UsersService } from 'src/modules/users/users.service';
-import { TasksService } from 'src/modules/tasks/tasks.service';
+import { ConversationStatesService } from 'src/core/conversation-states/conversation-states.service';
+import { UsersService } from 'src/core/users/users.service';
+import { TasksService } from 'src/core/tasks/tasks.service';
 import { CloudAIToolsService } from './ai-tools-service/cloud-ai-tools.service';
 import { LocalAIToolsService } from './ai-tools-service/local-ai-tools.service';
+import { CoreModule } from 'src/core/core.module';
+import { ChatController } from './chat/chat.controller';
 
 @Module({
   imports: [
-    KnexModule,
-    DevicesModule,
-    TaskRequestsModule,
-    ConversationStatesModule,
-    UsersModule,
-    TasksModule,
-    FactsModule,
+    CoreModule
+  ],
+  controllers: [
+    ChatController,
   ],
   providers: [
     {
@@ -111,4 +103,4 @@ import { LocalAIToolsService } from './ai-tools-service/local-ai-tools.service';
     ConfigService,
   ],
 })
-export class AiToolsModule {}
+export class AIToolsModule {}

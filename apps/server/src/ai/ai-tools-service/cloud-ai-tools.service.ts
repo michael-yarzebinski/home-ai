@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { AITask, AIToolsServiceBase } from './ai-tools.service.base';
 import { ModelDecision } from './interfaces/model-decision';
-import { ChatMessage } from '../../modules/conversation-states/conversation-states.service';
+import { ChatMessage } from '../../core/conversation-states/conversation-states.service';
 import OpenAI from 'openai'; // xAI Grok is compatible with OpenAI SDK
 import { PermissionTool } from '../tools/utility-tools/permission.tool';
-import { ToolRouter } from '../execution/execution.router';
+import { ToolRouter } from '../router/tool.router';
 import { AuditTool } from '../tools/utility-tools/audit.tool';
 import { NotificationTool } from '../tools/utility-tools/notification.tool';
-import { TasksService } from '../../modules/tasks/tasks.service';
-import { UsersService } from '../../modules/users/users.service';
-import { ConversationStatesService } from '../../modules/conversation-states/conversation-states.service';
+import { TasksService } from '../../core/tasks/tasks.service';
+import { UsersService } from '../../core/users/users.service';
+import { ConversationStatesService } from '../../core/conversation-states/conversation-states.service';
 
 /**
  * Cloud implementation using Grok via xAI (OpenAI-compatible SDK).

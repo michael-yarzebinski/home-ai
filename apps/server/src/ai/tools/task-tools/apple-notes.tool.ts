@@ -22,7 +22,7 @@ export class AppleNotesTool extends ToolBase {
    */
   async execute(request: ToolRequest): Promise<ToolResult> {
     const { parameters: params, task } = request.request;
-    const taskName = task.task_name || params.taskName || 'add_to_grocery_list';
+    const taskName = task.taskName || params.taskName || 'add_to_grocery_list';
     let noteName = task.target || 'Grocery List';
     if (taskName.startsWith('add_to_short_term_list')) noteName = 'Short Term List';
     if (taskName.startsWith('add_to_long_term_list')) noteName = 'Long Term List';
