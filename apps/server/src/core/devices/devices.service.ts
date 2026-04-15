@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DeviceStore } from './device.store';
 import { Device } from './device.domain';
+import { User } from '../users/user.domain';
 
 @Injectable()
 export class DevicesService {
@@ -10,20 +11,12 @@ export class DevicesService {
     return this.deviceStore;
   }
 
-  async create(deviceData: Omit<Device, 'deviceId' | 'createdAt' | 'updatedAt'>): Promise<Device> {
+  async findForUser(user: User) {
+    return this.deviceStore.findForUser(user.id, user.role);
+  }
+
+  async create(deviceData: Omit<Device, 'id' | 'createdAt' | 'updatedAt'>): Promise<Device> {
     return this.deviceStore.create(deviceData as any);
-  }
-
-  async findBySlug(device_id_slug: string): Promise<Device | null> {
-    return this.deviceStore.findBySlug(device_id_slug);
-  }
-
-  async findByHaEntityId(ha_entity_id: string): Promise<Device | null> {
-    return this.deviceStore.findByHaEntityId(ha_entity_id);
-  }
-
-  async findAllEnabled(): Promise<Device[]> {
-    return this.deviceStore.findAllEnabled();
   }
 
   async update(device_id_slug: string, updates: Partial<Device>): Promise<Device> {

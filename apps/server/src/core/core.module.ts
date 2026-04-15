@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppConfigService } from './app-config/app-config.service';
-import { ConfigStore } from './app-config/config.store';
+import { ConfigStore } from './app-config/app-config.store';
 import { ValidationService } from './validation/validation.service';
 import { AuditService } from './audit/audit.service';
 import { AuditTool } from '../ai/tools/utility-tools/audit.tool';
@@ -28,6 +28,14 @@ import knexConfig from '../../knexfile';
 import { KNEX_CONNECTION } from './database/knex.constants';
 import { ConfigService } from '@nestjs/config';
 import { BackgroundNotificationService } from './notifications/background-notification.service';
+import { TaskRequestStore } from './task-requests/task-request.store';
+import { UserPermissionsService } from './user-permissions/user-permissions.service';
+import { ToolRegistryService } from './tools/registry/tool-registry.service';
+import { LogStore } from './log/log.store';
+import { LogService } from './log/log.serice';
+import { AuditStore } from './audit/audit.store';
+import { AIAuditService } from './ai-audit/ai-audit.service';
+import { AIAuditStore } from './ai-audit/ai-audit.store';
 
 /**
  * CoreModule (previously CommonModule + DomainModule).
@@ -76,6 +84,7 @@ import { BackgroundNotificationService } from './notifications/background-notifi
     BackgroundNotificationService,
     ValidationService,
     AuditService,
+    AuditStore,
     AuditTool,
     TasksService,
     TaskStore,
@@ -87,6 +96,13 @@ import { BackgroundNotificationService } from './notifications/background-notifi
     DeviceStore,
     ConversationStatesService,
     TaskRequestsService,
+    TaskRequestStore,
+    UserPermissionsService,
+    ToolRegistryService,
+    LogStore,
+    LogService,
+    AIAuditStore,
+    AIAuditService,
   ],
   exports: [
     // Export everything needed by higher-level modules
@@ -96,7 +112,6 @@ import { BackgroundNotificationService } from './notifications/background-notifi
     ConfigStore,
     ValidationService,
     AuditService,
-    AuditTool,
     TasksService,
     TaskStore,
     UsersService,
@@ -107,6 +122,10 @@ import { BackgroundNotificationService } from './notifications/background-notifi
     DeviceStore,
     ConversationStatesService,
     TaskRequestsService,
+    UserPermissionsService,
+    ToolRegistryService,
+    LogService,
+    AIAuditService,
   ],
 })
 export class CoreModule {}

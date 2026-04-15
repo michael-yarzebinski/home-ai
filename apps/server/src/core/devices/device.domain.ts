@@ -3,7 +3,7 @@
  * Only fields from devices.service.ts and schema. No invented fields.
  */
 export interface Device {
-  deviceId?: number;
+  id: string;
   deviceIdSlug: string;
   deviceType: string;
   friendlyName: string;

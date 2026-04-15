@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { ConfigStore } from './config.store';
-import { Config } from './config.domain';
+import { ConfigStore } from './app-config.store';
+import { AppConfig } from './app-config.domain';
 import { AuditService } from '../audit/audit.service';
 
 /**
@@ -36,7 +36,6 @@ export class AppConfigService {
   ) {
     // Cache all env vars on construction for fast access
     this.loadEnvCache();
-    this.logger.error('AppConfigService initialized with env cache (no DB caching per requirements)');
   }
 
   private loadEnvCache(): void {
@@ -61,13 +60,14 @@ export class AppConfigService {
     this.logger.debug(`Cached ${this.envCache.size} environment variables from process.env`);
   }
 
-  getFromEnv<T = any>(key: string): T | undefined {
+  getFromEnv<T = any>(key: string): T {
     if (this.envCache.has(key)) {
       const value = this.envCache.get(key);
       this.logIfSensitive('get (from env)', key, value);
       return value as T;
     }
-    return undefined;
+
+    throw Error(`Could not find ${key} in env`)
   }
 
   async getFromDb<T = any>(key: string): Promise<T | undefined> {
@@ -88,7 +88,7 @@ export class AppConfigService {
    * No DB caching per requirements.
    * Never logs sensitive values.
    */
-  async set(key: string, value: any, description?: string): Promise<Config> {
+  async set(key: string, value: any, description?: string): Promise<AppConfig> {
     this.logIfSensitive('set', key, value, true); // true = isWrite
 
     const config = await this.configStore.upsert(key, String(value), description);
@@ -107,7 +107,7 @@ export class AppConfigService {
           entityType: 'Config',
           entityId: key,
           action: 'UPDATE',
-          changes: { new: '[REDACTED]' },
+          changes: { },
           metadata: { sensitive: true },
         }).catch(() => {});
       }

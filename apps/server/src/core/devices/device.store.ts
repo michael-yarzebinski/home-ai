@@ -6,7 +6,7 @@ import { EntityStoreOptions, KNEX_CONNECTION } from '../database/knex.constants'
 import { Device } from './device.domain';
 
 export interface DeviceRecord {
-  device_id?: number;
+  id: string;
   device_id_slug: string;
   device_type: string;
   friendly_name: string;
@@ -54,7 +54,7 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
 
   protected recordToDomain(record: DeviceRecord): Device {
     return {
-      deviceId: record.device_id,
+      id: record.id,
       deviceIdSlug: record.device_id_slug,
       deviceType: record.device_type,
       friendlyName: record.friendly_name,
@@ -91,5 +91,30 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
     await this.knex(this.tableName)
       .where('device_id_slug', deviceIdSlug)
       .update({ last_seen_at: this.knex.fn.now() });
+  }
+
+  async findForUser(userId: string, role: string): Promise<Device[]> {
+    const query = this.knex<DeviceRecord>(this.tableName)
+    .where('enabled', true)
+    .andWhere((builder) => {
+      builder
+        // Owner always sees their own devices
+        .where('owner_user_id', userId)
+        // OR the device is visible to the user's role
+        .orWhere((sub) => {
+          if (role) {
+            sub.whereRaw('visible_to_roles LIKE ?', [`%${role}%`]);
+          } else {
+            // No role provided → only show devices with no role restriction
+            sub.whereNull('visible_to_roles').orWhere('visible_to_roles', '');
+          }
+        });
+    })
+    .orderBy('friendly_name', 'asc');
+
+  const records = await query;
+
+  // Convert to Domain objects (consistent with your store pattern)
+  return records.map((record) => this.recordToDomain(record));
   }
 }

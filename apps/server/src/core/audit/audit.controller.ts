@@ -7,15 +7,7 @@ export class AuditController {
 
   @Get()
   async getLogs(@Query() query: any) {
-    return this.auditService.getAuditLogs({
-      user_id: query.user_id,
-      event_type: query.event_type,
-      limit: query.limit ? parseInt(query.limit) : 100,
-    });
+    return this.auditService.reader().findForUser(query.userId, query.limit);
   }
 
-  @Get(':id')
-  async getById(@Param('id') id: string) {
-    return this.auditService.getAuditById(parseInt(id));
-  }
 }

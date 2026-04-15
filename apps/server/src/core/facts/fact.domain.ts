@@ -3,7 +3,7 @@
  * Only fields used in facts.service.ts and schema (key is primary identifier).
  */
 export interface Fact {
-  factId?: number;
+  id: string;
   key: string;
   value: string;
   ownerUserId?: string | null;

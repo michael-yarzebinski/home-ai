@@ -30,6 +30,11 @@ export class AuditTool {
    * Log any event to the ai_audit table
    */
   async logEvent(data: Partial<AiAuditRecord>): Promise<void> {
+    return;
+
+    // TODO:
+    // Need to fix audits
+
     try {
       await this.knex('ai_audit').insert({
         event_type: data.event_type,

@@ -2,14 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Knex } from 'knex';
 import { AuditService } from '../audit/audit.service';
 import { AbstractEntityStore } from '../abstract-entity.store';
-import { EntityStoreOptions, KNEX_CONNECTION } from '../database/knex.constants';
+import { KNEX_CONNECTION } from '../database/knex.constants';
 import { User } from './user.domain';
 
 /**
  * DB Record for users table (snake_case). Only fields from service queries + schema.
  */
 export interface UserRecord {
-  user_id: string;
+  id: string;
   name: string;
   role: string;
   messaging_id?: string;
@@ -27,13 +27,13 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
     super(knex, auditService, {
       tableName: 'users',
       auditEntityType: 'User',
-      primaryKey: 'user_id',
+      primaryKey: 'id',
     });
   }
 
   protected domainToRecord(domain: Partial<User>): Partial<UserRecord> {
     const record: Partial<UserRecord> = {};
-    if (domain.userId !== undefined) record.user_id = domain.userId;
+    if (domain.id !== undefined) record.id = domain.id;
     if (domain.name !== undefined) record.name = domain.name;
     if (domain.role !== undefined) record.role = domain.role;
     if (domain.messagingId !== undefined) record.messaging_id = domain.messagingId;
@@ -44,7 +44,7 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
 
   protected recordToDomain(record: UserRecord): User {
     return {
-      userId: record.user_id,
+      id: record.id,
       name: record.name,
       role: record.role,
       messagingId: record.messaging_id,
@@ -62,7 +62,7 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
     const v = value.trim();
     const record = await this.knex<UserRecord>(this.tableName)
       .where((qb) => {
-        qb.where('user_id', v).orWhere('messaging_id', v);
+        qb.where('id', v).orWhere('messaging_id', v);
       })
       .first();
     return record ? this.recordToDomain(record) : null;

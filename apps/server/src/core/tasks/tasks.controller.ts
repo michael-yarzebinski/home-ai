@@ -7,12 +7,12 @@ export class TasksController {
 
   @Get()
   async findAll() {
-    return this.tasksService.findAll();
+    return this.tasksService.reader().findAll();
   }
 
   @Get(':task_name')
   async findOne(@Param('task_name') task_name: string) {
-    const task = await this.tasksService.findOne(task_name);
+    const task = await this.tasksService.reader().findByTaskName(task_name);
     if (!task) {
       throw new NotFoundException(`Task "${task_name}" not found`);
     }

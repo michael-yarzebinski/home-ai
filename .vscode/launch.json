@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "command": "npm run start:debug",
+      "cwd": "${workspaceFolder}/apps/server",
+      "name": "Debug Home AI Server",
+      "request": "launch",
+      "type": "node-terminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "Debug NestJS (ts-node) — recommended",

@@ -2,22 +2,9 @@ import { Inject, Injectable, Logger, NotFoundException, BadRequestException } fr
 import { Knex } from 'knex';
 import { AuditService } from './audit/audit.service';
 import { KNEX_CONNECTION, EntityStoreOptions, StoreReader, EntityAuditLog } from './database/knex.constants';
+import { Audit } from './audit/audit.domain';
+import { v4 } from 'uuid';
 
-/**
- * Generic Abstract Entity Store providing type-safe CRUD operations with built-in:
- * - Auditing on all mutating operations (CREATE/UPDATE/DELETE) via AuditService
- * - Structured logging via NestJS Logger
- * - Standard NestJS exceptions (NotFoundException, BadRequestException)
- * - Read-only .reader property exposing ONLY query methods
- * - Conversion between DB Record (snake_case) and Domain (camelCase) shapes
- *
- * Concrete stores extend this and implement:
- * - domainToRecord() - business object -> DB record
- * - recordToDomain() - DB record -> business object
- *
- * All services inject their concrete Store and expose public readonly reader = this.store.reader;
- * This enables this.taskService.reader.getById(...) exactly as specified.
- */
 @Injectable()
 export abstract class AbstractEntityStore<
   RecordType extends Record<string, any> = any,
@@ -84,15 +71,16 @@ export abstract class AbstractEntityStore<
    */
   protected async logAudit(action: 'CREATE' | 'UPDATE' | 'DELETE', entityId: string | number, changes?: { old?: any; new?: any }): Promise<void> {
     try {
-      const logEntry: EntityAuditLog = {
+      const logEntry: Audit = {
+        id: v4(),
         entityType: this.auditEntityType,
-        entityId,
+        entityId: entityId.toString(),
         action,
         changes,
         metadata: {
           table: this.tableName,
-          timestamp: new Date().toISOString(),
         },
+        timestamp: new Date(),
       };
 
       await this.auditService.log(logEntry);

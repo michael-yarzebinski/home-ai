@@ -3,7 +3,9 @@ import { UsersService } from './users.service';
 
 @Controller('admin/users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {
+    console.error(`User Controller User Service: ${this.usersService === undefined}`)
+  }
 
   @Get()
   async findAll() {

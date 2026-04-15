@@ -17,7 +17,6 @@ export interface TaskRecord {
   execute_roles: string;
   notify_roles?: string | null;
   action_type: string;
-  parameters_schema?: any;
   target?: string | null;
   enabled: boolean;
 }
@@ -51,7 +50,6 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
     if (domain.executeRoles !== undefined) record.execute_roles = domain.executeRoles;
     if (domain.notifyRoles !== undefined) record.notify_roles = domain.notifyRoles;
     if (domain.actionType !== undefined) record.action_type = domain.actionType;
-    if (domain.parametersSchema !== undefined) record.parameters_schema = domain.parametersSchema;
     if (domain.target !== undefined) record.target = domain.target;
     if (domain.enabled !== undefined) record.enabled = domain.enabled;
 
@@ -70,7 +68,6 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
       executeRoles: record.execute_roles,
       notifyRoles: record.notify_roles || undefined,
       actionType: record.action_type,
-      parametersSchema: record.parameters_schema,
       target: record.target || undefined,
       enabled: record.enabled,
     };

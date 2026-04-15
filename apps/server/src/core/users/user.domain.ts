@@ -4,7 +4,7 @@
  * No invented fields. All methods in Store/Service return this type.
  */
 export interface User {
-  userId: string;
+  id: string;
   name: string;
   role: string;
   messagingId?: string;

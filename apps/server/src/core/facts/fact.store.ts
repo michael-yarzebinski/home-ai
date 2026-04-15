@@ -2,11 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Knex } from 'knex';
 import { AuditService } from '../audit/audit.service';
 import { AbstractEntityStore } from '../abstract-entity.store';
-import { EntityStoreOptions, KNEX_CONNECTION } from '../database/knex.constants';
+import { KNEX_CONNECTION } from '../database/knex.constants';
 import { Fact } from './fact.domain';
 
 export interface FactRecord {
-  fact_id?: number;
+  id: string;
   key: string;
   value: string;
   owner_user_id?: string | null;
@@ -40,7 +40,7 @@ export class FactStore extends AbstractEntityStore<FactRecord, Fact> {
 
   protected recordToDomain(record: FactRecord): Fact {
     return {
-      factId: record.fact_id,
+      id: record.id,
       key: this.unnormalizeKey(record.key),
       value: record.value,
       ownerUserId: record.owner_user_id,
@@ -91,7 +91,7 @@ export class FactStore extends AbstractEntityStore<FactRecord, Fact> {
     // Use update or create based on existence (or use Knex onConflict for efficiency)
     const existing = await this.findOneBy({ key: normalizedKey } as any);
     if (existing) {
-      return this.update(existing.factId!, domain);
+      return this.update(existing.id!, domain);
     }
     return this.create(domain as Omit<Fact, 'factId'>);
   }

@@ -24,7 +24,7 @@ export interface EntityStoreOptions {
 export interface EntityAuditLog {
   entityType: string;
   entityId: string | number;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'QUERY';
   changes?: {
     old?: any;
     new?: any;

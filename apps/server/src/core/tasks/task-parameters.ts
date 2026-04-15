@@ -94,26 +94,26 @@ export class RetrieveFactParams {
 }
 
 // Device Management
+
 export class AddDeviceParams {
-  @IsString()
-  @IsDefined()
-  deviceIdSlug: string;
-
-  @IsString()
-  @IsDefined()
-  deviceType: string;
-
   @IsString()
   @IsDefined()
   friendlyName: string;
 
-  @IsString()
-  @IsOptional()
-  haEntityId?: string;
-
   @IsObject()
   @IsOptional()
   notificationGuidance?: Record<string, any>;
+}
+
+// Device Query Task
+export class QueryDeviceParams {
+  @IsString()
+  @IsDefined()
+  query: string;
+
+  @IsString()
+  @IsOptional()
+  deviceTypeHint?: string;
 }
 
 // Empty-parameter tasks (for completeness)

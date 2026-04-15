@@ -17,7 +17,7 @@ export class UsersService {
     messagingId?: string;
   }): Promise<User> {
     return this.userStore.create({
-      userId: userData.userId,
+      id: userData.userId,
       name: userData.name,
       role: userData.role,
       messagingId: userData.messagingId,

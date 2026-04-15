@@ -6,20 +6,8 @@ import { Task } from './task.domain';
 export class TasksService {
   constructor(private readonly taskStore: TaskStore) {}
 
-  reader(): Pick<TaskStore, 'findAll' | 'findById' | 'findByTaskName'> {
+  reader(): Pick<TaskStore, 'findAll' | 'findById' | 'findByTaskName' | 'findEnabled'> {
     return this.taskStore;
-  }
-
-  async findAll(): Promise<Task[]> {
-    return this.taskStore.findEnabled();
-  }
-
-  async findEnabledForAI(): Promise<Task[]> {
-    return this.taskStore.findEnabled();
-  }
-
-  async findOne(task_name: string): Promise<Task | null> {
-    return this.taskStore.findByTaskName(task_name);
   }
 
   async updateTask(task_name: string, updates: Partial<Task>): Promise<Task> {
