@@ -1,45 +1,68 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMEventType, LLMServiceBase } from '../../ai/llm-services/llm.service.base';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { QueryDeviceParams } from 'src/core/tasks/task-parameters';
-import { TaskName } from 'src/core/tasks/task-name';
-import { RegisterTool } from 'src/core/tools/decorators/register-tool.decorator';
-import { DevicesService } from 'src/core/devices/devices.service';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { LLMServiceBase } from '../../ai/llm-services/llm.service.base';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { IsDefined, IsOptional, IsString } from 'class-validator';
+import { TaskName } from 'src/core/entities/task/task-name';
+import { RegisterTask } from 'src/core/task-registry/decorators/register-task.decorator';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
+import { DeviceService } from 'src/core/entities/device/device.service';
+import { LLMAction, LLMEventType } from 'src/ai/llm.dtos';
+
+export class QueryDeviceParams {
+  @IsString()
+  @IsDefined()
+  query: string;
+
+  @IsString()
+  @IsOptional()
+  deviceTypeHint?: string;
+}
+
+export const QueryDeviceParamsSchema = `
+{
+  "type": "object",
+  "properties": {
+    "query": { "type": "string", "description": "Natural language question about a device state or attribute" },
+    "deviceTypeHint": { "type": "string", "description": "Optional hint to narrow device resolution" }
+  },
+  "required": ["query"]
+}
+`;
 
 @Injectable()
-@RegisterTool(TaskName.QueryDevice)
-export class QueryDeviceTool extends ToolBase {
+@RegisterTask(TaskName.QueryDevice)
+export class QueryDeviceTool extends TaskHandlerBase {
   private readonly logger = new Logger(QueryDeviceTool.name);
 
-  readonly metadata = {
+  readonly metadata: TaskHandlerMetadata = {
     taskName: TaskName.QueryDevice,
     description: 'Query the current state or attributes of any Home Assistant device using natural language',
-    parameterDto: QueryDeviceParams,
+    parameters: QueryDeviceParams,
+    parametersSchema: QueryDeviceParamsSchema,
     hints: ['what is the', 'status of', 'check the', 'is the light on', 'what temperature', 'query device'],
     actionType: 'query_device',
   };
 
   constructor(
-    protected toolRegistryService: ToolRegistryService,
-    private readonly deviceService: DevicesService,
+    protected taskRegistryService: TaskRegistryService,
+    private readonly deviceService: DeviceService,
     private readonly llmService: LLMServiceBase,
   ) {
-    super(toolRegistryService);
+    super(taskRegistryService);
   }
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
-    const { parameters, user } = request.dispatchRequest;
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
+    const { parameters, user } = request;
     const params = parameters as QueryDeviceParams;
 
     try {
-      const visibleDevices = await this.deviceService.findForUser(user);
+      const visibleDevices = await this.deviceService.reader().getForUser(user.role);
 
       if (visibleDevices.length === 0) {
         return {
-          success: true,
+          status: TaskHandlerStatus.CLARIFICATION_NEEDED,
           reply: "You don't have any devices set up yet.",
         };
       }
@@ -49,7 +72,7 @@ You are a precise Home AI assistant.
 User query: "${params.query}"
 
 Available devices the user can access:
-${visibleDevices.map(d => `- ${d.friendlyName} (${d.deviceType}) [entity_id: ${d.haEntityId}]`).join('\n')}
+${visibleDevices.map(d => `- ${d.friendlyName} [entity_id: ${d.haEntityId}]`).join('\n')}
 
 Return ONLY valid JSON:
 {
@@ -74,14 +97,14 @@ Attribute requested: ${resolution.attribute || 'state'}
 
 Give a short, natural, and friendly answer to the user.`;
 
-      const finalAnswer = await this.llmService.queryLLM<string>({
+      const {result: finalAnswer} = await this.llmService.queryLLM<{action: LLMAction, result: string}>({
         prompt: responsePrompt,
         userId: user.id,
         eventType: LLMEventType.TASK_FOLLOWUP
       });
 
       return {
-        success: true,
+        status: TaskHandlerStatus.SUCCESS,
         reply: finalAnswer,
         data: { resolvedEntity: resolution.haEntityId },
       };
@@ -89,8 +112,8 @@ Give a short, natural, and friendly answer to the user.`;
     } catch (error: any) {
       this.logger.error('Error in QueryDeviceTool:', error);
       return {
-        success: false,
-        reply: 'Sorry, I had trouble querying your devices.',
+        status: TaskHandlerStatus.ERROR,
+        error: 'Sorry, I had trouble querying your devices.',
       };
     }
   }

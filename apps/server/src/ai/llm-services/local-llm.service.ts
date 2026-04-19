@@ -1,9 +1,10 @@
 import { Logger } from "@nestjs/common";
-import { LLMQueryParams, LLMServiceBase } from "./llm.service.base";
+import { LLMServiceBase } from "./llm.service.base";
 import { Ollama } from "ollama";
-import { AppConfigService } from "src/core/app-config/app-config.service";
-import { ChatMessage } from "src/core/conversation-states/conversation-states.service";
-import { AIAuditService } from "src/core/ai-audit/ai-audit.service";
+import { AppConfigService } from "src/core/entities/app-config/app-config.service";
+import { ChatMessage } from "src/core/entities/conversation-state/conversation-state.service";
+import { AIAuditService } from "src/core/entities/monitoring/ai-audit/ai-audit.service";
+import { LLMQueryParams } from "../llm.dtos";
 
 export class LocalLLMService extends LLMServiceBase {
     protected readonly logger = new Logger(this.constructor.name);

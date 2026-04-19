@@ -1,63 +1,139 @@
+// src/features/memory/retrieve-fact.handler.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { RetrieveFactParams } from 'src/core/tasks/task-parameters';
-import { FactsService } from '../../core/facts/facts.service';
-import { TaskName } from 'src/core/tasks/task-name';
-import { RegisterTool } from 'src/core/tools/decorators/register-tool.decorator';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { IsDefined, IsString } from 'class-validator';
+import { FactService } from '../../core/fact/fact.service';
+import { TaskName } from 'src/core/entities/task/task-name';
+import { RegisterTask } from 'src/core/task-registry/decorators/register-task.decorator';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
+import { LLMServiceBase } from 'src/ai/llm-services/llm.service.base';
+import { LLMAction, LLMEventType } from 'src/ai/llm.dtos';
+
+export class RetrieveFactParams {
+  @IsString()
+  @IsDefined()
+  query: string;   // Natural language query from the user
+}
+
+export const RetrieveFactParamsSchema = `
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The user's natural language question or request to recall a fact"
+    }
+  },
+  "required": ["query"]
+}
+`;
 
 @Injectable()
-@RegisterTool(TaskName.RetrieveFact)
-export class RetrieveFactTool extends ToolBase {
+@RegisterTask(TaskName.RetrieveFact)
+export class RetrieveFactTool extends TaskHandlerBase {
   private readonly logger = new Logger(RetrieveFactTool.name);
 
-  readonly metadata = {
+  readonly metadata: TaskHandlerMetadata = {
     taskName: TaskName.RetrieveFact,
-    description: 'Retrieve a previously stored fact or preference by key',
-    parameterDto: RetrieveFactParams,
-    hints: ['what did i say about', 'recall', 'remember what', 'what was', 'tell me about'],
+    description: 'Retrieve and recall a previously stored fact or preference using natural language',
+    parameters: RetrieveFactParams,
+    parametersSchema: RetrieveFactParamsSchema,
+    hints: ['what did i say about', 'recall', 'remember what', 'what was', 'what is', 'tell me about', 'do i have any info on'],
     actionType: 'retrieve_fact',
   };
 
-  constructor(protected toolRegistryService: ToolRegistryService, private readonly factsService: FactsService) {
-    super(toolRegistryService);
+  constructor(
+    protected taskRegistryService: TaskRegistryService,
+    private readonly factsService: FactService,
+    private readonly llmService: LLMServiceBase,
+  ) {
+    super(taskRegistryService);
   }
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
-    const { parameters: params } = request.dispatchRequest;
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
+    const { parameters: params, user } = request;
     const typedParams = params as RetrieveFactParams;
 
-    const key = typedParams.key;
-
-    if (!key) {
+    if (!typedParams.query?.trim()) {
       return {
-        success: false,
+        status: TaskHandlerStatus.CLARIFICATION_NEEDED,
         reply: 'What would you like me to recall?',
       };
     }
 
     try {
-      const fact = await this.factsService.retrieveFact(key);
+      // 1. Get all facts the user is allowed to see
+      const visibleFacts = await this.factsService.reader().getFactsByUser(user);
 
-      if (!fact) {
+      if (visibleFacts.length === 0) {
         return {
-          success: false,
-          reply: `I don't have any information stored for "${key}".`,
+          status: TaskHandlerStatus.CLARIFICATION_NEEDED,
+          reply: "You haven't stored any facts yet.",
+        };
+      }
+
+      // 2. Build a rich prompt for the LLM
+      const factsList = visibleFacts
+        .map(f => `• ${f.key}: ${f.value}`)
+        .join('\n');
+
+      const prompt = `
+You are a precise memory assistant for a family.
+
+Here are all the facts currently stored for this user:
+
+${factsList}
+
+User's request: "${typedParams.query}"
+
+Return a JSON object with the following structure:
+{
+  "found": true or false,
+  "key": "the exact key of the matching fact (if found)",
+  "value": "the exact value of the matching fact (if found)",
+  "answer": "a natural, friendly, and concise response to the user"
+}
+
+Only return the JSON. No extra text.
+`;
+
+      // 3. Query the LLM
+      const llmResult = await this.llmService.queryLLM<{
+        action: LLMAction;
+        key?: string;
+        value?: string;
+        answer: string;
+      }>({
+        prompt,
+        userId: user.id,
+        eventType: LLMEventType.TASK_FOLLOWUP,
+      });
+
+      const result = llmResult; // already parsed by your LLMServiceBase
+
+      if (result.action === LLMAction.CLARIFY || !result.value) {
+        return {
+          status: TaskHandlerStatus.CLARIFICATION_NEEDED,
+          reply: result.answer || `I couldn't find anything matching "${typedParams.query}".`,
         };
       }
 
       return {
-        success: true,
-        reply: `${key}: ${fact.value}`,
-        data: fact,
+        status: TaskHandlerStatus.SUCCESS,
+        reply: result.answer,
+        data: {
+          key: result.key,
+          value: result.value,
+          query: typedParams.query,
+        },
       };
     } catch (error: any) {
       this.logger.error('RetrieveFactTool error:', error);
       return {
-        success: false,
-        reply: 'Sorry, I couldn’t look that up right now.',
+        status: TaskHandlerStatus.ERROR,
+        error: 'Sorry, I couldn’t look that up right now.',
       };
     }
   }

@@ -15,6 +15,7 @@ export interface EntityStoreOptions {
   primaryKey?: string;
   /** Whether to automatically set updated_at timestamp on updates (for tables that have it) */
   hasUpdatedAt?: boolean;
+  hasActiveFlag?: boolean;
 }
 
 /**
@@ -31,17 +32,4 @@ export interface EntityAuditLog {
   };
   userId?: string;
   metadata?: Record<string, any>;
-}
-
-/**
- * Read-only interface exposed via .reader
- * Prevents accidental mutations from services that should only read data.
- * Services expose this as public readonly reader.
- */
-export interface StoreReader<RecordType = any, DomainType = any> {
-  findAll(): Promise<DomainType[]>;
-  findById(id: string | number): Promise<DomainType | null>;
-  findOneBy(criteria: Partial<DomainType | RecordType>): Promise<DomainType | null>;
-  /** Alias to support this.service.reader.getById(...) exactly as specified */
-  getById(id: string | number): Promise<DomainType | null>;
 }

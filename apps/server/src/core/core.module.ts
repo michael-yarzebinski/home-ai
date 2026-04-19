@@ -1,41 +1,44 @@
 import { Module } from '@nestjs/common';
-import { AppConfigService } from './app-config/app-config.service';
-import { ConfigStore } from './app-config/app-config.store';
+import { AppConfigService } from './entities/app-config/app-config.service';
 import { ValidationService } from './validation/validation.service';
-import { AuditService } from './audit/audit.service';
-import { AuditTool } from '../ai/tools/utility-tools/audit.tool';
+import { AuditService } from './entities/monitoring/audit/audit.service';
 
-import { TasksService } from './tasks/tasks.service';
-import { TaskStore } from './tasks/task.store';
-import { TasksController } from './tasks/tasks.controller';
+import { TasksService } from './entities/task/tasks.service';
+import { TaskStore } from './entities/task/task.store';
+import { TasksController } from './entities/task/tasks.controller';
 
-import { UsersService } from './users/users.service';
-import { UserStore } from './users/user.store';
-import { UsersController } from './users/users.controller';
+import { UsersService } from './entities/user/user.service';
+import { UserStore } from './entities/user/user.store';
+import { UsersController } from './entities/user/user.controller';
 
-import { FactsService } from './facts/facts.service';
-import { FactStore } from './facts/fact.store';
+import { FactService } from './fact/fact.service';
+import { FactStore } from './fact/fact.store';
 
-import { DevicesService } from './devices/devices.service';
-import { DeviceStore } from './devices/device.store';
+import { DeviceService } from './entities/device/device.service';
+import { DeviceStore } from './entities/device/device.store';
 
-import { ConversationStatesService } from './conversation-states/conversation-states.service';
+import { ConversationStateService } from './entities/conversation-state/conversation-state.service';
 
-import { TaskRequestsService } from './task-requests/task-requests.service';
-import { TaskRequestsController } from './task-requests/task-requests.controller';
+import { TaskRequestsService } from './entities/task-request/task-requests.service';
+import { TaskRequestsController } from './entities/task-request/task-requests.controller';
 import { Knex } from 'knex';
 import knexConfig from '../../knexfile';
 import { KNEX_CONNECTION } from './database/knex.constants';
 import { ConfigService } from '@nestjs/config';
-import { BackgroundNotificationService } from './notifications/background-notification.service';
-import { TaskRequestStore } from './task-requests/task-request.store';
+import { BackgroundNotificationService } from '../integration/background-notification.service';
+import { TaskRequestStore } from './entities/task-request/task-request.store';
 import { UserPermissionsService } from './user-permissions/user-permissions.service';
-import { ToolRegistryService } from './tools/registry/tool-registry.service';
-import { LogStore } from './log/log.store';
-import { LogService } from './log/log.serice';
-import { AuditStore } from './audit/audit.store';
-import { AIAuditService } from './ai-audit/ai-audit.service';
-import { AIAuditStore } from './ai-audit/ai-audit.store';
+import { TaskRegistryService } from './task-registry/registry/task-registry.service';
+import { LogStore } from './entities/monitoring/log/log.store';
+import { LogService } from './entities/monitoring/log/log.serice';
+import { AuditStore } from './entities/monitoring/audit/audit.store';
+import { AIAuditService } from './entities/monitoring/ai-audit/ai-audit.service';
+import { AIAuditStore } from './entities/monitoring/ai-audit/ai-audit.store';
+import { AppConfigStore } from './entities/app-config/app-config.store';
+import { ConversationStateStore } from './entities/conversation-state/conversation-state.store';
+import { TransactionManager } from './database/transaction-manager';
+import { NotificationService } from './entities/notification/notification.service';
+import { NotificationStore } from './entities/notification/notification.store';
 
 /**
  * CoreModule (previously CommonModule + DomainModule).
@@ -77,55 +80,60 @@ import { AIAuditStore } from './ai-audit/ai-audit.store';
       },
       inject: [ConfigService],        // Use NestJS built-in ConfigService
     },
+    TransactionManager,
 
     // Config/Audit services provided directly (ConfigModule and AuditModule removed)
-    ConfigStore,
+    AppConfigStore,
     AppConfigService,
     BackgroundNotificationService,
     ValidationService,
     AuditService,
     AuditStore,
-    AuditTool,
     TasksService,
     TaskStore,
     UsersService,
     UserStore,
-    FactsService,
+    FactService,
     FactStore,
-    DevicesService,
+    DeviceService,
     DeviceStore,
-    ConversationStatesService,
+    ConversationStateStore,
+    ConversationStateService,
     TaskRequestsService,
     TaskRequestStore,
     UserPermissionsService,
-    ToolRegistryService,
+    TaskRegistryService,
     LogStore,
     LogService,
     AIAuditStore,
     AIAuditService,
+    NotificationService,
+    NotificationStore,
   ],
   exports: [
     // Export everything needed by higher-level modules
     KNEX_CONNECTION,
     AppConfigService,
     BackgroundNotificationService,
-    ConfigStore,
+    AppConfigStore,
     ValidationService,
     AuditService,
     TasksService,
     TaskStore,
     UsersService,
     UserStore,
-    FactsService,
+    FactService,
     FactStore,
-    DevicesService,
+    DeviceService,
     DeviceStore,
-    ConversationStatesService,
+    ConversationStateService,
     TaskRequestsService,
     UserPermissionsService,
-    ToolRegistryService,
+    TaskRegistryService,
     LogService,
     AIAuditService,
+    TransactionManager,
+    NotificationService,
   ],
 })
 export class CoreModule {}

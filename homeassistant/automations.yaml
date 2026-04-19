@@ -1,13 +1,1 @@
-- id: '1776044189647'
-  alias: New automation
-  description: ''
-  triggers:
-  - type: value
-    device_id: e951334cd144feefb3e29d8e9e35db86
-    entity_id: b9cc53a4035f97b8c3be7e312ba9574b
-    domain: sensor
-    trigger: device
-    above: 75
-  conditions: []
-  actions: []
-  mode: single
+[]

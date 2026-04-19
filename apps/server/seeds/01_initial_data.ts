@@ -11,6 +11,7 @@ export async function seed(knex: Knex): Promise<void> {
   await knex('users').del();
   await knex('app_config').del();
 
+
   // 1. Default Admin User
   await knex('users').insert({
     id: '00000000-0000-0000-0000-000000000000',

@@ -7,6 +7,7 @@ import { ToolsModule } from './tools/tools.module';
 import { AIModule } from './ai/ai.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
 import { RemoteModule } from './remote/remote.module';
+import { FeaturesModule } from './features/features.module';
 
 @Module({
   imports: [
@@ -25,6 +26,8 @@ import { RemoteModule } from './remote/remote.module';
     OrchestratorModule,
     IntegrationModule,
     ToolsModule,
+
+    FeaturesModule,
 
     RemoteModule,
   ],

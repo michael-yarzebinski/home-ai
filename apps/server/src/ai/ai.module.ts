@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CoreModule } from 'src/core/core.module';
 import { LLMServiceBase } from './llm-services/llm.service.base';
-import { AppConfigService } from 'src/core/app-config/app-config.service';
+import { AppConfigService } from 'src/core/entities/app-config/app-config.service';
 import { CloudLLMService } from './llm-services/cloud-llm.service';
 import { LocalLLMService } from './llm-services/local-llm.service';
-import { AIAuditService } from 'src/core/ai-audit/ai-audit.service';
+import { AIAuditService } from 'src/core/entities/monitoring/ai-audit/ai-audit.service';
 
 @Module({
   imports: [

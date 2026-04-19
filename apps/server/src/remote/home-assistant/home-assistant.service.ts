@@ -1,6 +1,6 @@
 // apps/server/src/core/homeassistant/home-assistant.service.ts
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { AppConfigService } from '../../core/app-config/app-config.service';
+import { AppConfigService } from '../../core/entities/app-config/app-config.service';
 import { createConnection, subscribeEntities, subscribeServices, HassEntities, HassEntity, Connection } from 'home-assistant-js-websocket';
 
 export interface HomeAssistantDevice {

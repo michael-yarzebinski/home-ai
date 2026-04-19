@@ -1,19 +1,6 @@
-import { AIAuditService } from "src/core/ai-audit/ai-audit.service";
-import { ChatMessage } from "src/core/conversation-states/conversation-states.service";
-
-export enum LLMEventType {
-    TASK_CATEGORIZATION = 'task-categorization',
-    TASK_FOLLOWUP = 'task-followup'
-}
-
-export interface LLMQueryParams {
-    prompt: string;
-    userId: string;
-    eventType: LLMEventType;
-    chatHistory?: ChatMessage[];
-}
-
-
+import { AIAuditService } from "src/core/entities/monitoring/ai-audit/ai-audit.service";
+import { ChatMessage } from "src/core/entities/conversation-state/conversation-state.service";
+import { LLMQueryParams, LLMEventType, LLMResponseBase } from "../llm.dtos";
 
 export abstract class LLMServiceBase {
     constructor(
@@ -23,8 +10,7 @@ export abstract class LLMServiceBase {
     /**
      * LLM task detection — implemented by Cloud / Local subclasses.
      */
-    abstract queryLLM<T>(llmQueryParams: LLMQueryParams): Promise<T>;
-
+    abstract queryLLM<T extends LLMResponseBase>(llmQueryParams: LLMQueryParams): Promise<T>;
 
     protected parseResponse<T>(content: string) : T {
         if (!content || content.length === 0) {
@@ -33,7 +19,6 @@ export abstract class LLMServiceBase {
 
         return JSON.parse(content) as T;
     }
-
     
     protected async insertAIAudit(prompt: string, eventType: LLMEventType, content: string, parsedContent: any,  userId: string, latency: number, chatHistory?: ChatMessage[]) {
         await this.aiAuditService.log({

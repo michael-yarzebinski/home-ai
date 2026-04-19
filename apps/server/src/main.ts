@@ -4,8 +4,8 @@ import { ConfigService } from '@nestjs/config';   // ← Built-in NestJS ConfigS
 import * as dotenv from 'dotenv';
 import { GlobalValidationPipe } from './core/global-validation.pipe';
 import { AllExceptionsFilter } from './core/exceptions.filter';
-import { BackgroundNotificationService } from './core/notifications/background-notification.service';
-import { AppConfigService } from './core/app-config/app-config.service';
+import { BackgroundNotificationService } from './integration/background-notification.service';
+import { AppConfigService } from './core/entities/app-config/app-config.service';
 
 async function bootstrap() {
   dotenv.config();

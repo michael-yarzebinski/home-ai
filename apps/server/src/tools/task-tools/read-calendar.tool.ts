@@ -1,36 +1,53 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { ReadCalendarParams } from 'src/core/tasks/task-parameters';
-import { TaskName } from 'src/core/tasks/task-name';
-import { RegisterTool } from 'src/core/tools/decorators/register-tool.decorator';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { IsNumber, IsOptional } from 'class-validator';
+import { TaskName } from 'src/core/entities/task/task-name';
+import { RegisterTask } from 'src/core/task-registry/decorators/register-task.decorator';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
 
 const execAsync = promisify(exec);
 
+export class ReadCalendarParams {
+  @IsNumber()
+  @IsOptional()
+  daysAhead?: number;
+}
+
+export const ReadCalendarParamsSchema = `
+{
+  "type": "object",
+  "properties": {
+    "daysAhead": { "type": "number", "description": "Optional number of days ahead to check for events" }
+  },
+  "required": []
+}
+`;
+
 @Injectable()
-@RegisterTool(TaskName.ReadCalendar)
-export class ReadCalendarTool extends ToolBase {
+@RegisterTask(TaskName.ReadCalendar)
+export class ReadCalendarTool extends TaskHandlerBase {
   private readonly logger = new Logger(ReadCalendarTool.name);
 
-  readonly metadata = {
+  readonly metadata: TaskHandlerMetadata = {
     taskName: TaskName.ReadCalendar,
     description: 'Read upcoming events from the Family Calendar for a given date or period',
-    parameterDto: ReadCalendarParams,
+    parameters: ReadCalendarParams,
+    parametersSchema: ReadCalendarParamsSchema,
     hints: ['what events', 'read calendar', 'show calendar', 'upcoming events', 'whats on my calendar'],
     actionType: 'read_calendar',
   };
 
-  constructor(protected toolRegistryService: ToolRegistryService) {
-    super(toolRegistryService);
+  constructor(protected taskRegistryService: TaskRegistryService) {
+    super(taskRegistryService);
   }
 
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
-    const { parameters: params } = request.dispatchRequest;
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
+    const { parameters: params } = request;
     const typedParams = params as ReadCalendarParams;
     const dateStr = typedParams.daysAhead !== undefined ? `in ${typedParams.daysAhead} days` : 'today';
 
@@ -65,15 +82,15 @@ export class ReadCalendarTool extends ToolBase {
       const eventsOutput = stdout.trim() || `No events found for ${dateStr}.`;
 
       return {
-        success: true,
+        status: TaskHandlerStatus.SUCCESS,
         reply: eventsOutput,
         data: { events: eventsOutput, date: dateStr },
       };
     } catch (error: any) {
       this.logger.error('ReadCalendarTool error:', error);
       return {
-        success: false,
-        reply: 'Sorry, I couldn’t read the calendar right now.',
+        status: TaskHandlerStatus.ERROR,
+        error: 'Sorry, I couldn’t read the calendar right now.',
       };
     }
   }

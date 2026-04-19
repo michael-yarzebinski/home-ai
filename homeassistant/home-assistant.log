@@ -1,189 +1,168 @@
-2026-04-15 14:44:41.798 WARNING (Recorder) [homeassistant.components.recorder.util] The system could not validate that the sqlite3 database at //config/home-assistant_v2.db was shutdown cleanly
-2026-04-15 14:44:41.836 WARNING (Recorder) [homeassistant.components.recorder.util] Ended unfinished session (id=2 from 2026-04-12 17:35:28.371148)
-2026-04-15 14:44:45.698 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 14:44:45.698 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 14:44:46.195 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 14:44:46.195 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 14:44:46.634 ERROR (MainThread) [homeassistant.components.automation.new_automation] Error setting up trigger New automation
-Traceback (most recent call last):
-  File "/usr/src/homeassistant/homeassistant/components/device_automation/trigger.py", line 76, in async_attach_trigger
-    return await platform.async_attach_trigger(hass, config, action, trigger_info)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/src/homeassistant/homeassistant/components/sensor/device_trigger.py", line 253, in async_attach_trigger
-    numeric_state_config = await numeric_state_trigger.async_validate_trigger_config(
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        hass, numeric_state_config
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/usr/src/homeassistant/homeassistant/components/homeassistant/triggers/numeric_state.py", line 92, in async_validate_trigger_config
-    config[CONF_ENTITY_ID] = er.async_validate_entity_ids(
-                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        registry, cv.entity_ids_or_uuids(config[CONF_ENTITY_ID])
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/usr/src/homeassistant/homeassistant/helpers/entity_registry.py", line 2509, in async_validate_entity_ids
-    return [async_validate_entity_id(registry, item) for item in entity_ids_or_uuids]
-            ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "/usr/src/homeassistant/homeassistant/helpers/entity_registry.py", line 2478, in async_validate_entity_id
-    raise vol.Invalid(f"Unknown entity registry entry {entity_id_or_uuid}")
-voluptuous.error.Invalid: Unknown entity registry entry b9cc53a4035f97b8c3be7e312ba9574b
-2026-04-15 14:49:46.928 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 14:49:46.928 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 14:54:47.808 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 14:54:47.809 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 14:59:47.852 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 14:59:47.852 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:04:48.915 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:04:48.915 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:08:14.129 ERROR (MainThread) [pylitterbot.account] An error occurred (UserNotFoundException) when calling the InitiateAuth operation: User does not exist.
-2026-04-15 15:08:27.454 ERROR (MainThread) [pylitterbot.account] An error occurred (NotAuthorizedException) when calling the RespondToAuthChallenge operation: Incorrect username or password.
-2026-04-15 15:09:02.950 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:09:02.950 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:09:03.419 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:09:03.419 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:14:03.902 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:14:03.902 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:19:04.864 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:19:04.864 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:24:05.832 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:24:05.832 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:29:06.898 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:29:06.898 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:34:07.811 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:34:07.811 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:39:08.871 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:39:08.871 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:44:09.832 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:44:09.832 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:49:10.858 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:49:10.858 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:54:11.781 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:54:11.781 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 15:59:12.739 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 15:59:12.739 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:04:13.783 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:04:13.783 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:09:15.475 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:09:15.475 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:14:15.753 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:14:15.753 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:19:16.760 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:19:16.761 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:24:17.678 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:24:17.678 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:29:18.696 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:29:18.696 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:34:19.609 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:34:19.610 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:39:20.634 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:39:20.634 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:44:21.687 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:44:21.687 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:49:22.707 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:49:22.707 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:54:23.533 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:54:23.533 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 16:59:24.612 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 16:59:24.612 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:04:25.593 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:04:25.593 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:09:27.015 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:09:27.015 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:14:27.535 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:14:27.537 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:19:28.491 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:19:28.491 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:24:29.613 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:24:29.613 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:29:30.585 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:29:30.585 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:34:31.507 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:34:31.507 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:39:31.573 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:39:31.573 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:44:32.581 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:44:32.581 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:49:33.469 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:49:33.470 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:54:34.534 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:54:34.535 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 17:59:35.540 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 17:59:35.540 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:04:36.532 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:04:36.532 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:09:37.913 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:09:37.913 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:14:38.472 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:14:38.472 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:19:39.441 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:19:39.441 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:24:40.369 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:24:40.369 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:29:41.352 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:29:41.352 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:34:42.343 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:34:42.343 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:39:43.428 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:39:43.428 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:44:44.391 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:44:44.391 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:49:45.420 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:49:45.421 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:54:46.319 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:54:46.319 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 18:59:47.377 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 18:59:47.377 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:04:48.286 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:04:48.286 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:09:49.756 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:09:49.756 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:14:50.296 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:14:50.296 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:19:51.337 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:19:51.337 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:24:52.208 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:24:52.208 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:29:53.225 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:29:53.225 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:34:54.247 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:34:54.247 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:39:55.215 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:39:55.215 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:44:56.216 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:44:56.217 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:49:57.219 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:49:57.219 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:54:58.525 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:54:58.525 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 19:59:59.187 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 19:59:59.187 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:05:00.113 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:05:00.113 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:10:01.517 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:10:01.517 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:15:02.257 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:15:02.258 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:20:03.784 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:20:03.784 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:25:04.177 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:25:04.177 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:30:05.108 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:30:05.108 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:35:06.058 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:35:06.058 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:40:07.102 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:40:07.102 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:45:08.120 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:45:08.121 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:50:09.130 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:50:09.130 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 20:55:09.997 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 20:55:09.997 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 21:00:11.007 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 21:00:11.008 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 21:05:12.008 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 21:05:12.008 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
-2026-04-15 21:10:13.401 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot3: 403, message='Forbidden', url='https://v2.api.whisker.iothings.site/users/1563959/robots'
-2026-04-15 21:10:13.401 ERROR (MainThread) [pylitterbot.account] Failed to fetch LitterRobot4: 404, message='Not Found', url='https://lr4.iothings.site/graphql'
+2026-04-18 17:53:31.636 WARNING (Recorder) [homeassistant.components.recorder.util] The system could not validate that the sqlite3 database at //config/home-assistant_v2.db was shutdown cleanly
+2026-04-18 17:53:31.812 WARNING (Recorder) [homeassistant.components.recorder.util] Ended unfinished session (id=1 from 2026-04-17 02:17:49.495919)
+2026-04-18 17:54:15.999 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:54:16.000 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:56:59.276 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:56:59.277 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:57:08.150 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:57:08.151 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:57:26.985 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:57:26.986 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:59:52.680 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:59:52.680 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:59:58.994 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 17:59:58.995 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:02:50.859 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:02:50.859 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:04:55.104 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:04:55.104 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:05:03.521 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:05:03.522 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:05:31.162 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:05:31.163 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:20.185 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:20.186 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:27.559 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:27.559 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:36.803 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:36.804 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:44.901 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:06:44.901 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:07:46.730 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:07:46.731 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:09:24.332 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:09:24.332 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:10:38.760 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:10:38.761 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:14:24.565 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:14:24.566 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:16:52.717 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:16:52.717 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:17:37.382 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:17:37.383 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:19:53.714 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:19:53.715 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:21:26.203 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:21:26.204 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:21:52.774 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:21:52.774 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:23:23.106 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:23:23.107 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:26:14.138 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:26:14.138 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:26:24.442 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:26:24.443 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:27:34.732 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:27:34.733 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:27:46.404 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:27:46.404 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:47.733 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:47.734 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:56.329 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:56.329 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:59.555 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:28:59.556 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:06.644 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:06.644 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:36.194 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:36.195 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:44.911 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:44.911 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:58.334 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:29:58.335 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:30:05.040 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:30:05.040 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:31:01.572 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:31:01.572 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:39:22.917 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:39:22.917 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:42:43.579 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:42:43.579 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:42:54.932 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:42:54.933 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:43:24.503 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:43:24.504 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:43:42.128 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:43:42.129 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:45:49.300 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:45:49.300 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:46:04.126 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:46:04.126 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:46:07.667 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:46:07.668 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:14.064 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:14.064 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:30.632 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:30.632 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:35.559 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:48:35.559 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:49:12.499 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:49:12.500 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:49:31.445 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 18:49:31.446 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:28:25.312 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:28:25.312 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:28:27.057 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:28:27.059 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:35:52.435 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:35:52.436 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:36:41.418 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:36:41.418 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:37:22.225 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:37:22.225 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:38:17.636 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 19:38:17.637 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:19:30.253 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:19:30.258 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:21:10.605 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:21:10.606 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:26.145 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:26.146 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:28.039 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:28.040 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:37.809 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:22:37.810 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:25:53.472 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:25:53.472 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:04.569 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:04.570 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:06.374 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:06.375 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:39.334 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:39.335 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:45.282 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:26:45.283 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:32:53.633 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:32:53.633 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:33:10.039 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:33:10.040 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:34:25.358 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:34:25.359 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:34:36.126 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-18 23:34:36.127 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:11:56.042 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:11:56.049 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:14:15.422 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:14:15.425 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:16:07.355 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:16:07.357 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:17:10.242 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:17:10.243 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:24:09.257 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:24:09.259 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:24:46.874 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:24:46.875 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:27:36.772 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:27:36.773 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:31:04.998 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:31:04.999 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:37:36.611 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:37:36.612 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:38:17.687 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:38:17.687 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:42:07.629 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:42:07.630 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:46:48.135 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:46:48.136 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:51:11.269 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)
+2026-04-19 02:51:11.270 WARNING (MainThread) [homeassistant.components.http.ban] Login attempt or request with invalid authentication from 172.18.0.1 (172.18.0.1). Requested URL: '/api/websocket'. (node)

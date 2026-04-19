@@ -18,12 +18,15 @@
     "db:status": "knex migrate:status"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^10.4.0",
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
+    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "class-validator-jsonschema": "^5.1.0",
     "dotenv": "^16.4.5",
     "guid": "^0.0.12",
     "home-assistant-js-websocket": "^9.6.0",
@@ -32,6 +35,7 @@
     "ollama": "^0.6.3",
     "openai": "^6.34.0",
     "pg": "^8.13.0",
+    "puppeteer": "^24.41.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^13.0.0"
@@ -39,8 +43,10 @@
   "devDependencies": {
     "@nestjs/cli": "^10.4.0",
     "@nestjs/schematics": "^10.2.0",
+    "@nestjs/swagger": "^7.4.2",
     "@nestjs/testing": "^10.4.0",
     "@types/node": "^22.0.0",
+    "@types/puppeteer": "^5.4.7",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",

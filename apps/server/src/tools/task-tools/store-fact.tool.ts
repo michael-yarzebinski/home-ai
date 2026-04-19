@@ -1,32 +1,59 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { StoreFactParams } from 'src/core/tasks/task-parameters';
-import { FactsService } from '../../core/facts/facts.service';
-import { TaskName } from 'src/core/tasks/task-name';
-import { RegisterTool } from 'src/core/tools/decorators/register-tool.decorator';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { IsDefined, IsOptional, IsString } from 'class-validator';
+import { FactService } from '../../core/fact/fact.service';
+import { TaskName } from 'src/core/entities/task/task-name';
+import { RegisterTask } from 'src/core/task-registry/decorators/register-task.decorator';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
+
+export class StoreFactParams {
+  @IsString()
+  @IsDefined()
+  key: string;
+
+  @IsString()
+  @IsDefined()
+  value: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+}
+
+export const StoreFactParamsSchema = `
+{
+  "type": "object",
+  "properties": {
+    "key": { "type": "string", "description": "Stable key used to store and retrieve the fact.  Should replace spaces with underscores and be all lower case. " },
+    "value": { "type": "string", "description": "Fact value that should be remembered" },
+    "category": { "type": "string", "description": "Optional category used to group related facts" }
+  },
+  "required": ["key", "value"]
+}
+`;
 
 @Injectable()
-@RegisterTool(TaskName.StoreFact)
-export class StoreFactTool extends ToolBase {
+@RegisterTask(TaskName.StoreFact)
+export class StoreFactTool extends TaskHandlerBase {
   private readonly logger = new Logger(StoreFactTool.name);
 
-  readonly metadata = {
+  readonly metadata: TaskHandlerMetadata = {
     taskName: TaskName.StoreFact,
     description: 'Store a new fact, preference, or piece of information for later recall',
-    parameterDto: StoreFactParams,
+    parameters: StoreFactParams,
+    parametersSchema: StoreFactParamsSchema,
     hints: ['remember that', 'store fact', 'remember this', 'save that', 'note that'],
     actionType: 'store_fact',
   };
 
-  constructor(protected toolRegistryService: ToolRegistryService, private readonly factsService: FactsService) {
-    super(toolRegistryService);
+  constructor(protected taskRegistryService: TaskRegistryService, private readonly factsService: FactService) {
+    super(taskRegistryService);
   }
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
-    const { parameters: params } = request.dispatchRequest;
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
+    const { parameters: params } = request;
     const typedParams = params as StoreFactParams;
 
     const key = typedParams.key;
@@ -34,27 +61,29 @@ export class StoreFactTool extends ToolBase {
 
     if (!key || !value) {
       return {
-        success: false,
-        reply: 'Please tell me both what to remember and the details (e.g. "Remember Mike\'s Chipotle order is a burrito with guacamole").',
+        status: TaskHandlerStatus.CLARIFICATION_NEEDED,
+        reply: 'Please tell me both what to remember and the details.',
       };
     }
 
     try {
-      await this.factsService.storeFact(
+      await this.factsService.createFact({
         key,
         value,
-        params.user?.userId || null
+        ownerUserId: params.user?.userId || null,
+        visibilityRoles: [request.user.role],
+      }
       );
 
       return {
-        success: true,
+        status: TaskHandlerStatus.SUCCESS,
         reply: `Got it! I'll remember "${key}" as "${value}".`,
       };
     } catch (error: any) {
       this.logger.error('StoreFactTool error:', error);
       return {
-        success: false,
-        reply: 'Sorry, I couldn’t save that information right now.',
+        status:  TaskHandlerStatus.ERROR,
+        error: 'Sorry, I couldn’t save that information right now.',
       };
     }
   }

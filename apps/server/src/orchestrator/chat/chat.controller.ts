@@ -26,7 +26,7 @@ export class ChatController {
 
       return {
         success: true,
-        reply: result.reply,
+        reply: result.response,
         status: result.status,
       };
     } catch (error: any) {

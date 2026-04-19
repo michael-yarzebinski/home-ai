@@ -4,9 +4,10 @@ import { CoreModule } from '../core/core.module';
 import { ToolsModule } from '../tools/tools.module';
 
 import { AIOrchestratorService } from './ai-orchestrator.service';
-import { ToolRouter } from './router/tool.router';
+import { TaskRouter } from './router/task.router';
 import { AIModule } from 'src/ai/ai.module';
 import { ChatController } from './chat/chat.controller';
+import { TaskIdentificationService } from './task-identification.service';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { ChatController } from './chat/chat.controller';
   ],
   providers: [
     AIOrchestratorService,
-    ToolRouter,
+    TaskIdentificationService,
+    TaskRouter,
   ],
   controllers: [ChatController],
   exports: [

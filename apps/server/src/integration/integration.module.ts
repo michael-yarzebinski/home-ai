@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CoreModule } from 'src/core/core.module';
+import { BlueBubblesService } from './blue-bubbles.service';
 
 /**
  * IntegrationModule - Handles all incoming integrations (webhook, iMessage input, etc.).
@@ -16,6 +17,9 @@ import { CoreModule } from 'src/core/core.module';
   imports: [
     CoreModule
   ],
-  exports: [],
+  providers: [
+    BlueBubblesService,
+  ],
+  exports: [BlueBubblesService],
 })
 export class IntegrationModule {}

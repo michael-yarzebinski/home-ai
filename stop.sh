@@ -1,22 +1,25 @@
 #!/bin/bash
-set -e
+# ================================================
+# Home AI - Stop Script
+# Gracefully stops all services
+# ================================================
 
-echo "🛑 Stopping ai-home System..."
-echo "============================"
+echo "🛑 Home AI - Stopping Services"
+echo "============================="
 
-# Stop NestJS server (if running)
-echo "Stopping NestJS server processes..."
-pkill -f "nest start" || true
-pkill -f "node.*apps/server" || true
+if [ ! -f "docker-compose.yml" ]; then
+    echo "❌ Error: Please run this from the root of the home-ai project."
+    exit 1
+fi
 
-# Stop Docker services
-echo "Stopping Docker services (Postgres + Home Assistant)..."
-docker compose down
+echo "Stopping all containers..."
+docker compose stop
 
-# Optional: Stop Ollama and BlueBubbles if they were started manually
-pkill -f ollama || true
-pkill -f BlueBubbles || true
-
-echo "✅ All services stopped."
 echo ""
-echo "To restart, run: ./start.sh"
+echo "✅ All Home AI services have been stopped."
+echo ""
+echo "💡 Quick restart tip for updates:"
+echo "   1. git pull"
+echo "   2. ./start.sh"
+echo ""
+echo "   (Only the NestJS app will rebuild — DB and Ollama stay intact)"

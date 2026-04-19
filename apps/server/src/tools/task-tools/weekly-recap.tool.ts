@@ -1,30 +1,41 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { WeeklyRecapParams } from 'src/core/tasks/task-parameters';
-import { TaskName } from 'src/core/tasks/task-name';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { TaskName } from 'src/core/entities/task/task-name';
 import { DailySummaryTool } from './daily-summary.tool';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
+
+export class WeeklyRecapParams {}
+
+export const WeeklyRecapParamsSchema = `
+{
+  "type": "object",
+  "properties": {},
+  "description": "No parameters are required for generating a weekly recap",
+  "required": []
+}
+`;
 
 @Injectable()
-export class WeeklyRecapTool extends ToolBase {
+export class WeeklyRecapTool extends TaskHandlerBase {
   private readonly logger = new Logger(DailySummaryTool.name);
 
-  readonly metadata = {
+  readonly metadata:TaskHandlerMetadata = {
     taskName: TaskName.WeeklyRecap,
     description: 'Generate a weekly recap of completed tasks, upcoming events, and useful tips',
-    parameterDto: WeeklyRecapParams,
+    parameters: WeeklyRecapParams,
+    parametersSchema: WeeklyRecapParamsSchema,
     hints: ['weekly recap', 'weekly summary', 'what happened this week', 'week review'],
     actionType: 'weekly_recap',
   };
 
-  constructor(protected toolRegistryService: ToolRegistryService) {
-    super(toolRegistryService);
+  constructor(protected taskRegistryService: TaskRegistryService) {
+    super(taskRegistryService);
   }
 
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
     try {
       const recap = `
 Weekly Recap:
@@ -44,7 +55,7 @@ Would you like a more detailed recap or focus on a specific area?
       `.trim();
 
       return {
-        success: true,
+        status: TaskHandlerStatus.SUCCESS,
         reply: recap,
         data: {
           period: 'weekly',
@@ -54,8 +65,8 @@ Would you like a more detailed recap or focus on a specific area?
     } catch (error: any) {
       this.logger.error('WeeklyRecapTool error:', error);
       return {
-        success: false,
-        reply: 'Sorry, I couldn’t generate the weekly recap.',
+        status: TaskHandlerStatus.ERROR,
+        error: 'Sorry, I couldn’t generate the weekly recap.',
       };
     }
   }

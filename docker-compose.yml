@@ -19,7 +19,71 @@ services:
       timeout: 5s
       retries: 5
 
-  # Home Assistant (for device integrations - washer, LitterRobot, etc.)
+  # Main Ollama service - only runs the server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: home-ai-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    command: ollama serve
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+
+  # One-time model loader (pulls qwen2.5:7b + embedding model)
+  ollama-model-loader:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama to start...' &&
+        sleep 12 &&
+        echo 'Pulling qwen2.5:7b (best balanced model)...' &&
+        ollama pull qwen2.5:7b &&
+        echo 'Pulling embedding model...' &&
+        ollama pull nomic-embed-text &&
+        echo '✅ All models pulled successfully!'
+      "
+    profiles: ["init"]   # Only runs when you explicitly ask for it
+
+  # Your NestJS Home AI server
+  # home-ai:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: home-ai-server
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}
+  #     - OLLAMA_HOST=http://ollama:11434
+  #     - BLUEBUBBLES_URL=http://host.docker.internal:1234
+  #     - BLUEBUBBLES_PASSWORD=${BLUEBUBBLES_PASSWORD}
+  #   volumes:
+  #     - ./apps/server:/app
+  #     - ./logs:/app/logs
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     ollama:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+
+  # Home Assistant
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
@@ -35,3 +99,4 @@ services:
 
 volumes:
   postgres-data:
+  ollama-data:

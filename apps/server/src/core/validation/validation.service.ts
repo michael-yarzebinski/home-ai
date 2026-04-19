@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { validateOrReject, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { TaskParams } from '../tasks/task-parameters';
 
 /**
  * Reusable ValidationService for strongly-typed task parameters.
@@ -22,7 +21,7 @@ export class ValidationService {
    *   );
    * Then safely pass `typed` to taskStore.create(...) or execution.
    */
-  async validateAndTransform<T extends TaskParams>(
+  async validateAndTransform<T extends new () => T>(
     params: any,
     targetClass: new () => T,
   ): Promise<T> {

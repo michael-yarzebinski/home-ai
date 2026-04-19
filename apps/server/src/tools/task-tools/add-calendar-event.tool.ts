@@ -1,36 +1,78 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ToolBase } from '../tool.base';
-import type { ToolRequest } from '../../tools/interfaces/tool-request';
-import type { ToolResult } from '../../tools/interfaces/tool-result';
-import { AddCalendarEventParams } from 'src/core/tasks/task-parameters';
-import { TaskName } from 'src/core/tasks/task-name';
-import { RegisterTool } from 'src/core/tools/decorators/register-tool.decorator';
-import { ToolRegistryService } from 'src/core/tools/registry/tool-registry.service';
+import { TaskHandlerBase, TaskHandlerMetadata } from '../task-handler.base';
+import type { TaskHandlerContext } from '../interfaces/task-handler-context';
+import { TaskHandlerStatus, type TaskHandlerResult } from '../interfaces/task-handler-result';
+import { IsArray, IsDefined, IsNumber, IsOptional, IsString } from 'class-validator';
+import { TaskName } from 'src/core/entities/task/task-name';
+import { RegisterTask } from 'src/core/task-registry/decorators/register-task.decorator';
+import { TaskRegistryService } from 'src/core/task-registry/registry/task-registry.service';
 
 const execAsync = promisify(exec);
 
+export class AddCalendarEventParams {
+  @IsString()
+  @IsDefined()
+  title: string;
+
+  @IsString()
+  @IsDefined()
+  startTime: string;
+
+  @IsNumber()
+  @IsOptional()
+  durationMinutes?: number;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attendees?: string[];
+}
+
+export const AddCalendarEventParamsSchema = `
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string", "description": "Title of the calendar event" },
+    "startTime": { "type": "string", "description": "Start time in natural language or ISO format" },
+    "durationMinutes": { "type": "number", "description": "Optional event duration in minutes" },
+    "location": { "type": "string", "description": "Optional location for the event" },
+    "attendees": {
+      "type": "array",
+      "description": "Optional list of attendee names",
+      "items": { "type": "string", "description": "Attendee name" }
+    }
+  },
+  "required": ["title", "startTime"]
+}
+`;
+
 @Injectable()
-@RegisterTool(TaskName.AddCalendarEvent)
-export class AddCalendarEventTool extends ToolBase {
+@RegisterTask(TaskName.AddCalendarEvent)
+export class AddCalendarEventTool extends TaskHandlerBase {
   private readonly logger = new Logger(AddCalendarEventTool.name);
 
-  readonly metadata = {
+  readonly metadata: TaskHandlerMetadata = {
     taskName: TaskName.AddCalendarEvent,
     description: 'Add a new event to the Family Calendar in Apple Calendar app',
-    parameterDto: AddCalendarEventParams,
+    parameters: AddCalendarEventParams,
+    parametersSchema: AddCalendarEventParamsSchema,
     hints: ['add event', 'schedule meeting', 'calendar event', 'book appointment'],
     actionType: 'add_calendar_event',
   };
 
-  constructor(protected toolRegistryService: ToolRegistryService) {
-    super(toolRegistryService);
+  constructor(protected taskRegistryService: TaskRegistryService) {
+    super(taskRegistryService);
   }
 
 
-  async execute(request: ToolRequest): Promise<ToolResult> {
-    const { parameters: params } = request.dispatchRequest;
+  async execute(request: TaskHandlerContext): Promise<TaskHandlerResult> {
+    const { parameters: params } = request;
     const typedParams = params as AddCalendarEventParams;
 
     const title = typedParams.title || 'New Event';
@@ -41,8 +83,7 @@ export class AddCalendarEventTool extends ToolBase {
     const cleanTitle = title.replace(/["'`]/g, '');
     const cleanNotes = notes.replace(/["'`]/g, '');
 
-    try {
-      const appleScript = `
+    const appleScript = `
         tell application "Calendar"
           tell calendar "Family Calendar"
             set theStartDate to date "${startTime}"
@@ -53,23 +94,16 @@ export class AddCalendarEventTool extends ToolBase {
         end tell
       `;
 
-      const { stdout, stderr } = await execAsync(`osascript -e '${appleScript}'`);
+    const { stdout, stderr } = await execAsync(`osascript -e '${appleScript}'`);
 
-      if (stderr) {
-        console.error('AppleScript error:', stderr);
-        return { success: false, reply: 'Failed to add calendar event.' };
-      }
-
-      return {
-        success: true,
-        reply: stdout.trim() || `Added event "${cleanTitle}" to your calendar.`,
-      };
-    } catch (error: any) {
-      this.logger.error('AddCalendarEventTool error:', error);
-      return {
-        success: false,
-        reply: `Sorry, I couldn’t add the event "${cleanTitle}".`,
-      };
+    if (stderr) {
+      console.error('AppleScript error:', stderr);
+      return { status:  TaskHandlerStatus.ERROR, error: 'Failed to add calendar event.' };
     }
+
+    return {
+      status:  TaskHandlerStatus.SUCCESS,
+      reply: stdout.trim() || `Added event "${cleanTitle}" to your calendar.`,
+    };
   }
 }
