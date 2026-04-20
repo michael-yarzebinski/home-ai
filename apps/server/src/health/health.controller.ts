@@ -1,12 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { Knex } from 'knex';
 import { ConfigService } from '@nestjs/config';
+import { KNEX_CONNECTION } from '../core/database/knex.constants';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('admin/health')
+@Roles('admin')
 export class HealthController {
   constructor(
-    @Inject('KNEX_CONNECTION') private readonly knex: Knex,
+    @Inject(KNEX_CONNECTION) private readonly knex: Knex,
     private readonly configService: ConfigService,
   ) {}
 

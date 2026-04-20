@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { SearchRequestDto, SearchResponseDto, SearchUtils, TaskRequestDto } from '@home-ai/shared';
 import { TaskRequestStore } from './task-request.store';
 import { TaskRequest } from './task-request.domain';
+import { toTaskRequestDto } from './task-request.mapper';
 
 @Injectable()
 export class TaskRequestsService {
   constructor(private readonly taskRequestStore: TaskRequestStore) {}
 
-  reader(): Pick<TaskRequestStore, 'getAll' | 'getAllActive' | 'getById' | 'getByReadableId' | 'findPendingApprovals'> {
+  reader(): Pick<TaskRequestStore, 'getAll' | 'getById' | 'getByReadableId' | 'findPendingApprovals'> {
     return this.taskRequestStore;
   }
 
@@ -37,5 +39,19 @@ export class TaskRequestsService {
     return await this.updateTaskRequest(id, {
       status: 'rejected',
     });
+  }
+
+  async search(
+    criteria: SearchRequestDto,
+  ): Promise<SearchResponseDto<TaskRequestDto>> {
+    const { skip, take } = SearchUtils.toSkipTake(criteria);
+    const result = await this.taskRequestStore.search(
+      criteria.search,
+      skip,
+      take,
+      criteria.includeInactive,
+    );
+    const taskRequestDtos = result.data.map((r) => toTaskRequestDto(r));
+    return SearchUtils.toSearchResponseDto(criteria, taskRequestDtos, result.total);
   }
 }

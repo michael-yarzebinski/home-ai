@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Knex } from 'knex';
 import { Log } from './log.domain';
+import { AbstractEntityStore } from '../../abstract-entity.store';
+import { KNEX_CONNECTION } from '../../../database/knex.constants';
 
 export interface LogRecord {
   id: string;
@@ -13,12 +14,17 @@ export interface LogRecord {
 }
 
 @Injectable()
-export class LogStore {
+export class LogStore extends AbstractEntityStore<LogRecord, Log> {
   private readonly logger = new Logger(LogStore.name);
 
   constructor(
-    @Inject('KNEX_CONNECTION') private readonly knex: Knex,
-  ) {}
+    @Inject(KNEX_CONNECTION) knex: Knex,
+  ) {
+    super(knex, undefined, {
+      tableName: 'log',
+      isAuditingEnabled: false,
+    });
+  }
 
   protected domainToRecord(domain: Partial<Log>): Partial<LogRecord> {
     return {
@@ -43,25 +49,27 @@ export class LogStore {
 
   async log(entry: Partial<Log>): Promise<void> {
     try {
-      const record = this.domainToRecord(entry);
-      await this.knex('log').insert(record);
+      await this.create(entry);
     } catch (error) {
       this.logger.error('Failed to write to log table', error);
     }
   }
 
   async findForUser(userId: string, limit = 100): Promise<Log[]> {
-    const records = await this.knex<LogRecord>('log')
-      .where('userId', userId)
+    const records = await this.baseQuery()
+      .where('user_id', userId)
       .orderBy('id', 'desc')
       .limit(limit);
     return records.map(r => this.recordToDomain(r));
   }
 
-  async getAll(limit = 100): Promise<Log[]> {
-    const records = await this.knex<LogRecord>('log')
-      .orderBy('id', 'desc')
-      .limit(limit);
-    return records.map(r => this.recordToDomain(r));
+  protected searchQuery(search: string, query: Knex.QueryBuilder<LogRecord>): Knex.QueryBuilder<LogRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+    return query.andWhere(function () {
+      this.whereRaw(`message ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`severity ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(user_id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
 }

@@ -1,5 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Knex } from 'knex';
+import { AbstractEntityStore } from '../abstract-entity.store';
+import { AuditService } from '../monitoring/audit/audit.service';
+import { KNEX_CONNECTION } from '../../database/knex.constants';
 import { AppConfig } from './app-config.domain';
 
 export interface AppConfigRecord {
@@ -12,12 +15,20 @@ export interface AppConfigRecord {
   updated_at: Date;
 }
 @Injectable()
-export class AppConfigStore {
+export class AppConfigStore extends AbstractEntityStore<AppConfigRecord, AppConfig> {
   private readonly logger = new Logger(AppConfigStore.name);
 
   constructor(
-    @Inject('KNEX_CONNECTION') private readonly knex: Knex,
-  ) {}
+    @Inject(KNEX_CONNECTION) knex: Knex,
+    auditService: AuditService,
+  ) {
+    super(knex, auditService, {
+      tableName: 'app_config',
+      auditEntityType: 'AppConfig',
+      hasUpdatedAt: true,
+      hasActiveFlag: true,
+    });
+  }
 
   protected domainToRecord(domain: Partial<AppConfig>): Partial<AppConfigRecord> {
     return {
@@ -41,8 +52,13 @@ export class AppConfigStore {
     };
   }
 
+  protected searchQuery(search: string, query: Knex.QueryBuilder<AppConfigRecord>): Knex.QueryBuilder<AppConfigRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    return query.andWhereRaw(`key ILIKE ? ESCAPE '\\'`, [`%${escaped}%`]);
+  }
+
   async getByKey(key: string, includeInactive = false): Promise<AppConfig | null> {
-    let query = this.knex<AppConfigRecord>('app_config').where('key', key);
+    let query = this.baseQuery().where('key', key);
 
     if (!includeInactive) {
       query = query.where('active', true);
@@ -52,43 +68,4 @@ export class AppConfigStore {
     return record ? this.recordToDomain(record) : null;
   }
 
-  async getValue<T = any>(key: string, defaultValue?: T): Promise<T> {
-    const config = await this.getByKey(key);
-    return (config?.value as T) ?? defaultValue ?? ({} as T);
-  }
-
-  async setValue(key: string, value: any, description?: string): Promise<AppConfig> {
-    const existing = await this.getByKey(key, true);
-
-    if (existing) {
-      const updated = await this.knex('app_config')
-        .where('key', key)
-        .update({
-          value,
-          description: description ?? existing.description,
-          updated_at: this.knex.fn.now(),
-        })
-        .returning('*');
-
-      return this.recordToDomain(updated[0]);
-    }
-
-    // Create new
-    const newRecord = this.domainToRecord({
-      key,
-      value,
-      description,
-      active: true,
-    });
-
-    const [created] = await this.knex('app_config').insert(newRecord).returning('*');
-    return this.recordToDomain(created);
-  }
-
-  async setActive(key: string, active: boolean): Promise<void> {
-    await this.knex('app_config').where('key', key).update({
-      active,
-      updated_at: this.knex.fn.now(),
-    });
-  }
 }

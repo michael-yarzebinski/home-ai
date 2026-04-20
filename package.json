@@ -1,0 +1,8 @@
+{
+  "name": "home-ai",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "build": "npm run build -w @home-ai/shared && npm run build -w ai-home-server && npm run build -w home-ai-web"
+  }
+}

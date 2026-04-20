@@ -27,7 +27,6 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
     super(knex, auditService, {
       tableName: 'devices',
       auditEntityType: 'Device',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: true,
     });
@@ -59,6 +58,18 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };
+  }
+
+  protected searchQuery(search: string, query: Knex.QueryBuilder<DeviceRecord>): Knex.QueryBuilder<DeviceRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`friendly_name ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`device_id_slug ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(ha_entity_id, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
 
   async getForUser(userRole: string): Promise<Device[]> { 

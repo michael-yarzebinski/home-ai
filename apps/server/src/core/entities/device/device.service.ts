@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { DeviceDto, SearchRequestDto, SearchResponseDto, SearchUtils } from '@home-ai/shared';
 import { DeviceStore } from './device.store';
 import { Device } from './device.domain';
+import { toDeviceDto } from './device.mapper';
 
 @Injectable()
 export class DeviceService {
@@ -9,7 +11,7 @@ export class DeviceService {
   /**
    * Reader facade - safe read-only methods for most of the app
    */
-  reader(): Pick<DeviceStore, 'getAll' | 'getAllActive' | 'getById' | 'getForUser'> {
+  reader(): Pick<DeviceStore, 'getAll' | 'getById' | 'getForUser'> {
     return this.deviceStore;
   }
 
@@ -20,6 +22,7 @@ export class DeviceService {
     deviceIdSlug: string;
     friendlyName: string;
     haEntityId?: string;
+    visibleToRoles?: string[];
     notificationGuidance?: Record<string, any>;
     metadata?: Record<string, any>;
   }): Promise<Device> {
@@ -27,6 +30,7 @@ export class DeviceService {
       deviceIdSlug: data.deviceIdSlug,
       friendlyName: data.friendlyName,
       haEntityId: data.haEntityId,
+      visibleToRoles: data.visibleToRoles ?? [],
       notificationGuidance: data.notificationGuidance ?? {},
       metadata: data.metadata ?? {},
       active: true,
@@ -47,10 +51,17 @@ export class DeviceService {
     return this.deviceStore.setActive(id, active);
   }
 
-  /**
-   * Hard delete device (rarely used)
-   */
-  async deleteDevice(id: string): Promise<number> {
-    return this.deviceStore.delete(id);
+  async search(
+    criteria: SearchRequestDto,
+  ): Promise<SearchResponseDto<DeviceDto>> {
+    const { skip, take } = SearchUtils.toSkipTake(criteria);
+    const result = await this.deviceStore.search(
+      criteria.search,
+      skip,
+      take,
+      criteria.includeInactive,
+    );
+    const deviceDtos = result.data.map((d) => toDeviceDto(d));
+    return SearchUtils.toSearchResponseDto(criteria, deviceDtos, result.total);
   }
 }

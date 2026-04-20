@@ -18,7 +18,7 @@ export class ConversationStateService {
    */
   reader(): Pick<
     ConversationStateStore,
-    'getAll' | 'getAllActive' | 'getById' | 'findByChatGuid' | 'findActiveByChatGuid'
+    'getAll' | 'getById' | 'findByChatGuid' | 'findActiveByChatGuid'
   > {
     return this.conversationStateStore;
   }

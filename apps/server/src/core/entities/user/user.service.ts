@@ -1,14 +1,31 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { SearchRequestDto, SearchResponseDto, SearchUtils, UserDto,  } from '@home-ai/shared';
 import { UserStore } from './user.store';
 import { User } from './user.domain';
 import * as bcrypt from 'bcrypt';
+import { toUserDto } from './user.mapper';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly userStore: UserStore) { }
 
-  reader(): Pick<UserStore, 'getAll' | 'getAllActive' | 'getById' | 'getByUserIdOrMessagingId' | 'getByRoles'> {
+  reader(): Pick<
+    UserStore,
+    'getAll' | 'getById' | 'getByUserIdOrMessagingId' | 'getByRoles' | 'getByName'
+  > {
     return this.userStore;
+  }
+
+  /** Single list/search pipeline; `includeInactive` must be set by the controller tier. */
+  async search(
+    searchRequest: SearchRequestDto,
+  ): Promise<SearchResponseDto<UserDto>> {
+    const {skip, take} = SearchUtils.toSkipTake(searchRequest);
+
+    const searchResult = await this.userStore.search(searchRequest.search, skip, take, searchRequest.includeInactive);
+    const userDtos = searchResult.data.map(u => toUserDto(u));
+
+    return SearchUtils.toSearchResponseDto<UserDto>(searchRequest, userDtos, searchResult.total);
   }
 
   async createUser(data: Partial<User> & { accessCode: string }): Promise<User> {

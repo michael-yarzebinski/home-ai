@@ -31,7 +31,6 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
     super(knex, auditService, {
       tableName: 'users',
       auditEntityType: 'User',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: true,
     });
@@ -64,6 +63,18 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
     };
   }
 
+  protected searchQuery(search: string, query: Knex.QueryBuilder<UserRecord>): Knex.QueryBuilder<UserRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`name ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`role ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(messaging_id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
+  }
+
   async getByUserIdOrMessagingId(value: string): Promise<User | null> {
     if (!value?.trim()) return null;
     const v = value.trim();
@@ -75,17 +86,21 @@ export class UserStore extends AbstractEntityStore<UserRecord, User> {
     return record ? this.recordToDomain(record) : null;
   }
 
-  async getByRoles(roles: string[]) : Promise<User[]> {
-    const roleList = Array.isArray(roles) ? roles : [roles];
-
-    if (roleList.length === 0) {
-      return [];
+  /**
+   * Match login by display name (case-insensitive, trimmed).
+   * Name is not guaranteed unique in the schema; callers must handle multiple matches.
+   */
+  async getByName(name: string): Promise<User | null> {
+    const user = await this.activeOnly(this.baseQuery()).whereRaw('LOWER(TRIM(name)) = ?', [name.toLowerCase()]).first();
+    if (!user) {
+      return null;
     }
+    return this.recordToDomain(user);
+  }
 
-    const records = await this.knex<UserRecord>('users')
-      .whereIn('role', roleList)
-      .where('active', true)
-      .orderBy('name', 'asc');
+  async getByRoles(roles: string[]) : Promise<User[]> {
+    const records = await this.activeOnly(this.baseQuery())
+      .whereIn('role', roles);
 
     return records.map((record) => this.recordToDomain(record));
   }

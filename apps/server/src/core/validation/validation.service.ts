@@ -21,7 +21,7 @@ export class ValidationService {
    *   );
    * Then safely pass `typed` to taskStore.create(...) or execution.
    */
-  async validateAndTransform<T extends new () => T>(
+  async validateAndTransform<T extends object>(
     params: any,
     targetClass: new () => T,
   ): Promise<T> {

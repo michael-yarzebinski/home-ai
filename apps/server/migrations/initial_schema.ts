@@ -31,7 +31,8 @@ export async function up(knex: Knex): Promise<void> {
 
   // 3. Tasks (Admin control only)
   await knex.schema.createTable('tasks', (table) => {
-    table.string('task_name').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
+    table.string('task_name');
     table.text('description').notNullable();
     table.jsonb('request_roles').notNullable().defaultTo('[]');
     table.jsonb('execute_roles').notNullable().defaultTo('[]');

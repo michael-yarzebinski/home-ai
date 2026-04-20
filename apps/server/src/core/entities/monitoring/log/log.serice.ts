@@ -1,7 +1,7 @@
-// apps/server/src/core/log/log.service.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { LogStore } from './log.store';
+import { SearchRequestDto, SearchUtils } from '@home-ai/shared';
+import { Injectable } from '@nestjs/common';
 import { Log } from './log.domain';
+import { LogStore } from './log.store';
 
 @Injectable()
 export class LogService {
@@ -13,6 +13,24 @@ export class LogService {
   // Reader pattern - consistent with every other service
   reader(): Pick<LogStore, 'findForUser' | 'getAll'> {
     return this.logStore;
+  }
+
+  async search(
+    criteria: SearchRequestDto,
+  ): Promise<{ logs: Log[]; total: number; page: number; pageSize: number }> {
+    const { skip, take } = SearchUtils.toSkipTake(criteria);
+    const result = await this.logStore.search(
+      criteria.search,
+      skip,
+      take,
+      criteria.includeInactive,
+    );
+    return {
+      logs: result.data,
+      total: result.total,
+      page: criteria.pageNumber ?? 1,
+      pageSize: criteria.pageSize ?? 100,
+    };
   }
 
   async log(data: {

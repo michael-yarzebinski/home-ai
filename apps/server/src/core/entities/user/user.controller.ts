@@ -1,28 +1,26 @@
-import { Controller, Get, Post, Body, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { SearchRequestDto } from '@home-ai/shared';
 import { UsersService } from './user.service';
+import { toUserDto } from './user.mapper';
+import { ValidationService } from 'src/core/validation/validation.service';
 
-@Controller('admin/users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {
+@Controller('v1/users')
+export class UserController {
+  constructor(
+    private readonly validationService: ValidationService,
+    private readonly usersService: UsersService) {}
+
+  @Post('search')
+  async search(@Body() body: SearchRequestDto) {
+    const searchRequest = await this.validationService.validateAndTransform(body, SearchRequestDto);
+    searchRequest.includeInactive = false;
+
+    return await this.usersService.search(searchRequest);
   }
 
-  @Get()
-  async getAll() {
-    return this.usersService.reader().getAll();
-  }
-
-  @Post()
-  async create(@Body() createUserDto: any) {
-    return this.usersService.createUser(createUserDto);
-  }
-
-  @Get(':user_id')
-  async findOne(@Param('user_id') user_id: string) {
-    return this.usersService.reader().getById(user_id);
-  }
-
-  @Patch(':user_id')
-  async update(@Param('user_id') user_id: string, @Body() updates: any) {
-    return this.usersService.updateUser(user_id, updates);
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    const user = await this.usersService.reader().getById(id);
+    return toUserDto(user);
   }
 }

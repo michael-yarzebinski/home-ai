@@ -8,6 +8,7 @@ import { AIModule } from './ai/ai.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
 import { RemoteModule } from './remote/remote.module';
 import { FeaturesModule } from './features/features.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,8 @@ import { FeaturesModule } from './features/features.module';
     FeaturesModule,
 
     RemoteModule,
+
+    AuthModule,
   ],
 })
 export class AppModule {}

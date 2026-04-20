@@ -1,13 +1,15 @@
 // src/recipes/recipe.service.ts
 import { Injectable } from '@nestjs/common';
+import { RecipeDto, SearchRequestDto, SearchResponseDto, SearchUtils } from '@home-ai/shared';
 import { RecipeStore } from './recipe.store';
 import { Recipe } from './recipe.domain';
+import { toRecipeDto } from './recipe.mapper';
 
 @Injectable()
 export class RecipesService {
   constructor(private readonly recipeStore: RecipeStore) {}
 
-  reader(): Pick<RecipeStore, 'getAll' | 'getAllActive' | 'getById' | 'getByReadableId' | 'getByReadableIds'> {
+  reader(): Pick<RecipeStore, 'getAll' | 'getById' | 'getByReadableId' | 'getByReadableIds'> {
     return this.recipeStore;
   }
 
@@ -30,5 +32,27 @@ export class RecipesService {
 
   async updateRecipe(id: string, updates: Partial<Recipe>): Promise<Recipe> {
     return this.recipeStore.update(id, updates);
+  }
+
+  async setRecipeActive(id: string, active: boolean): Promise<Recipe> {
+    return this.recipeStore.setActive(id, active);
+  }
+
+  async search(
+    criteria: SearchRequestDto,
+  ): Promise<SearchResponseDto<RecipeDto>> {
+    const { skip, take } = SearchUtils.toSkipTake(criteria);
+    const result = await this.recipeStore.search(
+      criteria.search,
+      skip,
+      take,
+      criteria.includeInactive,
+    );
+    const recipeDtos = result.data.map((r) => toRecipeDto(r));
+    return SearchUtils.toSearchResponseDto(criteria, recipeDtos, result.total);
+  }
+
+  async deleteRecipe(id: string): Promise<number> {
+    return this.recipeStore.delete(id);
   }
 }

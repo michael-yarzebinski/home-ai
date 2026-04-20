@@ -60,7 +60,7 @@ export class TaskRegistryService implements OnModuleInit {
   }
 
   async getTasksAndParameters(): Promise<TaskWithSchema[]> {
-    const tasks = await this.taskService.reader().getAllActive();
+    const tasks = await this.taskService.reader().getAll();
 
   return tasks.map(t => {
       const handlerForTask = this.getTaskHandlerForTask(t.taskName);

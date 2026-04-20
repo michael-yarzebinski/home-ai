@@ -8,12 +8,14 @@ import { TaskRouter } from './router/task.router';
 import { AIModule } from 'src/ai/ai.module';
 import { ChatController } from './chat/chat.controller';
 import { TaskIdentificationService } from './task-identification.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     CoreModule,
     ToolsModule,
     AIModule,
+    AuthModule,
   ],
   providers: [
     AIOrchestratorService,

@@ -29,7 +29,6 @@ export class NotificationStore extends AbstractEntityStore<NotificationRecord, N
     super(knex, auditService, {
       tableName: 'notifications',
       auditEntityType: 'Notification',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: false,
     });
@@ -63,6 +62,18 @@ export class NotificationStore extends AbstractEntityStore<NotificationRecord, N
     };
   }
 
+  protected searchQuery(search: string, query: Knex.QueryBuilder<NotificationRecord>): Knex.QueryBuilder<NotificationRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`message_text ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`status ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(recipient_user_id, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
+  }
+
   /** Notifications held for quiet hours that are due to be sent (scheduled time has passed). */
   async findQueuedQuietHoursDue(asOf: Date): Promise<Notification[]> {
     const notifications = await this.knex<NotificationRecord>(this.tableName)
@@ -73,4 +84,5 @@ export class NotificationStore extends AbstractEntityStore<NotificationRecord, N
 
     return notifications.map((n) => this.recordToDomain(n));
   }
+
 }

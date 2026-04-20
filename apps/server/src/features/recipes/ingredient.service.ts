@@ -7,7 +7,7 @@ import { Ingredient } from './ingredient.domain';
 export class IngredientsService {
   constructor(private readonly ingredientStore: IngredientStore) {}
 
-  reader(): Pick<IngredientStore, 'getById' | 'getAllActive'> {
+  reader(): Pick<IngredientStore, 'getById' | 'getAll'> {
     return this.ingredientStore;
   }
 

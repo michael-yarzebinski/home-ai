@@ -33,7 +33,6 @@ export interface ConversationStateRecord {
       super(knex, auditService, {
         tableName: 'conversation_states',
         auditEntityType: 'ConversationState',
-        primaryKey: 'id',
         hasUpdatedAt: true,
         hasActiveFlag: false,           // conversation states don't use active flag
       });

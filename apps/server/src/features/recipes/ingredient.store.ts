@@ -28,7 +28,6 @@ export class IngredientStore extends AbstractEntityStore<IngredientRecord, Ingre
     super(knex, auditService, {
       tableName: 'ingredients',
       auditEntityType: 'Ingredient',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: true,
     });
@@ -60,6 +59,21 @@ export class IngredientStore extends AbstractEntityStore<IngredientRecord, Ingre
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };
+  }
+
+  protected searchQuery(search: string, query: Knex.QueryBuilder<IngredientRecord>): Knex.QueryBuilder<IngredientRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`name ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(original_name, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(quantity, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(unit, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(notes, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(recipe_id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
 
   async getByRecipeIds(recipeIds: string[]) : Promise<Ingredient[]> {

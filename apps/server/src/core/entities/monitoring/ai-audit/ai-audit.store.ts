@@ -1,9 +1,8 @@
-// src/ai-audit/ai-audit.store.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Knex } from 'knex';
-import { v4 } from 'uuid';
 import { AIAudit } from './ai-audit.domain';
+import { AbstractEntityStore } from '../../abstract-entity.store';
+import { KNEX_CONNECTION } from '../../../database/knex.constants';
 
 export interface AIAuditRecord {
   id: string;
@@ -21,12 +20,17 @@ export interface AIAuditRecord {
 }
 
 @Injectable()
-export class AIAuditStore {
+export class AIAuditStore extends AbstractEntityStore<AIAuditRecord, AIAudit> {
   private readonly logger = new Logger(AIAuditStore.name);
 
   constructor(
-    @Inject('KNEX_CONNECTION') private readonly knex: Knex,
-  ) {}
+    @Inject(KNEX_CONNECTION) knex: Knex,
+  ) {
+    super(knex, undefined, {
+      tableName: 'ai_audit',
+      isAuditingEnabled: false,
+    });
+  }
 
   protected domainToRecord(domain: Partial<AIAudit>): Partial<AIAuditRecord> {
     return {
@@ -67,9 +71,7 @@ export class AIAuditStore {
    */
   async log(entry: Omit<AIAudit, 'id' | 'timestamp'>): Promise<void> {
     try {
-      const record = this.domainToRecord(entry);
-
-      await this.knex('ai_audit').insert(record);
+      await this.create(entry);
 
       this.logger.debug(`AI Audit: ${entry.eventType} for task ${entry.taskName || 'unknown'}`);
     } catch (error) {
@@ -81,7 +83,7 @@ export class AIAuditStore {
    * Find AI audits for a specific user
    */
   async findForUser(userId: string, limit = 50): Promise<AIAudit[]> {
-    const records = await this.knex<AIAuditRecord>('ai_audit')
+    const records = await this.baseQuery()
       .where('user_id', userId)
       .orderBy('timestamp', 'desc')
       .limit(limit);
@@ -93,7 +95,7 @@ export class AIAuditStore {
    * Find AI audits related to a specific task request
    */
   async findForTaskRequest(taskRequestId: string, limit = 20): Promise<AIAudit[]> {
-    const records = await this.knex<AIAuditRecord>('ai_audit')
+    const records = await this.baseQuery()
       .where('task_request_id', taskRequestId)
       .orderBy('timestamp', 'desc')
       .limit(limit);
@@ -105,7 +107,7 @@ export class AIAuditStore {
    * Find AI audits by event type (e.g. 'task_detection', 'llm_call')
    */
   async findByEventType(eventType: string, limit = 50): Promise<AIAudit[]> {
-    const records = await this.knex<AIAuditRecord>('ai_audit')
+    const records = await this.baseQuery()
       .where('event_type', eventType)
       .orderBy('timestamp', 'desc')
       .limit(limit);
@@ -113,14 +115,18 @@ export class AIAuditStore {
     return records.map(record => this.recordToDomain(record));
   }
 
-  /**
-   * General find all (with limit for safety)
-   */
-  async getAll(limit = 100): Promise<AIAudit[]> {
-    const records = await this.knex<AIAuditRecord>('ai_audit')
-      .orderBy('timestamp', 'desc')
-      .limit(limit);
+  protected searchQuery(search: string, query: Knex.QueryBuilder<AIAuditRecord>): Knex.QueryBuilder<AIAuditRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
 
-    return records.map(record => this.recordToDomain(record));
+    return query.andWhere(function () {
+      this.whereRaw(`event_type ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(task_name, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(model, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(notes, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(user_id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(task_request_id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
+
 }

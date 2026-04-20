@@ -1,14 +1,15 @@
 // src/facts/fact.service.ts
 import { Injectable } from '@nestjs/common';
+import { FactDto, SearchRequestDto, SearchResponseDto, SearchUtils } from '@home-ai/shared';
 import { FactStore } from './fact.store';
 import { Fact } from './fact.domain';
-import { v4 } from 'uuid';
+import { toFactDto } from './fact.mapper';
 
 @Injectable()
 export class FactService {
   constructor(private readonly factStore: FactStore) {}
 
-  reader(): Pick<FactStore, 'getAll' | 'getAllActive' | 'getById' | 'getFactsByUser'> {
+  reader(): Pick<FactStore, 'getAll' | 'getById' | 'getFactsByUser'> {
     return this.factStore;
   }
 
@@ -30,7 +31,17 @@ export class FactService {
     return this.factStore.update(id, updates);
   }
 
-  async deleteFact(id: string): Promise<number> {
-    return this.factStore.delete(id);
+  async search(
+    criteria: SearchRequestDto,
+  ): Promise<SearchResponseDto<FactDto>> {
+    const { skip, take } = SearchUtils.toSkipTake(criteria);
+    const result = await this.factStore.search(
+      criteria.search,
+      skip,
+      take,
+      criteria.includeInactive,
+    );
+    const factDtos = result.data.map((f) => toFactDto(f));
+    return SearchUtils.toSearchResponseDto(criteria, factDtos, result.total);
   }
 }

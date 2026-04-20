@@ -29,7 +29,6 @@ export class RecipeStore extends AbstractEntityStore<RecipeRecord, Recipe> {
     super(knex, auditService, {
       tableName: 'recipes',
       auditEntityType: 'Recipe',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: true,
     });
@@ -61,6 +60,18 @@ export class RecipeStore extends AbstractEntityStore<RecipeRecord, Recipe> {
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };
+  }
+
+  protected searchQuery(search: string, query: Knex.QueryBuilder<RecipeRecord>): Knex.QueryBuilder<RecipeRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`title ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`source_url ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(readable_id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
 
   async getByReadableId(readableId: number) : Promise<Recipe | null> {

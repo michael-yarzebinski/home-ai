@@ -6,10 +6,13 @@ import { IngredientsService } from "./ingredient.service";
 import { CoreModule } from "src/core/core.module";
 import { SaveRecipeHandler } from "./save-recipe.handler";
 import { AIModule } from "src/ai/ai.module";
+import { RecipesAdminController } from "./recipes-admin.controller";
+import { RecipesController } from "./recipes.controller";
 
 
 @Module({
     imports: [CoreModule, AIModule,],
+    controllers: [RecipesAdminController, RecipesController],
     providers: [
         RecipeStore,
         RecipesService,

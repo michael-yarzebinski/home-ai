@@ -35,7 +35,6 @@ export class TaskRequestStore extends AbstractEntityStore<TaskRequestRecord, Tas
     super(knex, auditService, {
       tableName: 'task_requests',
       auditEntityType: 'TaskRequest',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: false,        // no active flag on task_requests
     });
@@ -85,6 +84,20 @@ export class TaskRequestStore extends AbstractEntityStore<TaskRequestRecord, Tas
     };
   }
 
+  protected searchQuery(search: string, query: Knex.QueryBuilder<TaskRequestRecord>): Knex.QueryBuilder<TaskRequestRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`COALESCE(task_name, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`status ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(readable_id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`CAST(id AS text) ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(requester_user_id, '') ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(executor_user_id, '') ILIKE ? ESCAPE '\\'`, [like]);
+    });
+  }
+
   async findPendingApprovals(): Promise<TaskRequest[]> {
     const records = await this.knex<TaskRequestRecord>(this.tableName)
       .where('status', 'awaiting_approval')
@@ -103,5 +116,4 @@ export class TaskRequestStore extends AbstractEntityStore<TaskRequestRecord, Tas
 
       return this.recordToDomain(record); 
   }
-
 }

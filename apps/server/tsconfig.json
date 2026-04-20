@@ -23,6 +23,6 @@
       "moduleResolution": "node",
       "lib": ["ES2021"]
     },
-    "include": ["src/**/*", "migrations/**/*", "seeds/**/*"],
+    "include": ["src/**/*", "migrations/**/*", "seeds/**/*", "../shared/src/auth/create-session.dto.ts"],
     "exclude": ["node_modules", "dist"]
   }

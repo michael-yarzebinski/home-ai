@@ -1,4 +1,5 @@
 export interface Task {
+  id: string;
   taskName: string;
   description: string;
   requestRoles: string[];

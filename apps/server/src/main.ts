@@ -34,8 +34,6 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`✅ ai-home server is running at http://localhost:${port}`);
-  console.log(`📊 Admin endpoints: http://localhost:${port}/api/admin`);
-  console.log(`🔌 Device webhook: http://localhost:${port}/api/webhook/device-event`);
 }
 
 bootstrap().catch((err) => {

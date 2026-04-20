@@ -25,7 +25,6 @@ export class FactStore extends AbstractEntityStore<FactRecord, Fact> {
     super(knex, auditService, {
       tableName: 'facts',
       auditEntityType: 'Fact',
-      primaryKey: 'id',
       hasUpdatedAt: true,
       hasActiveFlag: false,
     });
@@ -53,6 +52,17 @@ export class FactStore extends AbstractEntityStore<FactRecord, Fact> {
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };
+  }
+
+  protected searchQuery(search: string, query: Knex.QueryBuilder<FactRecord>): Knex.QueryBuilder<FactRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`key ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`value ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`COALESCE(owner_user_id, '') ILIKE ? ESCAPE '\\'`, [like]);
+    });
   }
 
   async getFactsByUser(user: User): Promise<Fact[]> {

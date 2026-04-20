@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { Knex } from 'knex';
 import { AuditService } from './monitoring/audit/audit.service';
 import { KNEX_CONNECTION, EntityStoreOptions } from '../database/knex.constants';
@@ -10,19 +10,18 @@ export abstract class AbstractEntityStore<
   RecordType extends Record<string, any> = any,
   DomainType extends Record<string, any> = any,
 > {
-  protected readonly logger = new Logger(AbstractEntityStore.name);
   protected readonly knex: Knex;
-  protected readonly auditService: AuditService;
+  protected readonly auditService?: AuditService;
 
   protected readonly tableName: string;
-  protected readonly auditEntityType: string;
-  protected readonly primaryKey: string;
+  protected readonly auditEntityType?: string;
   protected readonly hasUpdatedAt: boolean;
   protected readonly hasActiveFlag: boolean;
+  protected readonly isAuditingEnabled: boolean;
 
   constructor(
     @Inject(KNEX_CONNECTION) knex: Knex,
-    auditService: AuditService,
+    auditService: AuditService | undefined,
     options: EntityStoreOptions,
   ) {
     this.knex = knex;
@@ -30,14 +29,23 @@ export abstract class AbstractEntityStore<
 
     this.tableName = options.tableName;
     this.auditEntityType = options.auditEntityType;
-    this.primaryKey = options.primaryKey || 'id';
     this.hasUpdatedAt = options.hasUpdatedAt ?? false;
     this.hasActiveFlag = options.hasActiveFlag ?? false;
+    this.isAuditingEnabled = options.isAuditingEnabled ?? true;
+  }
 
-    this.logger.log(
-      `Initialized ${this.auditEntityType}Store for table '${this.tableName}' ` +
-      `(PK: ${this.primaryKey}, activeFlag: ${this.hasActiveFlag})`
-    );
+  async _getById(id: string | number, includeInactive: boolean = false): Promise<RecordType> {
+    let query = this.baseQuery();
+    if (this.hasActiveFlag && !includeInactive) {
+      query = this.activeOnly(query);
+    }
+
+    const record = await query.where('id', id).first();
+    if (!record) {
+      throw new BadRequestException(`Could not find entity with id ${id}.`)
+    }
+
+    return record;
   }
 
   /**
@@ -50,58 +58,59 @@ export abstract class AbstractEntityStore<
    */
   protected abstract recordToDomain(record: RecordType): DomainType;
 
-  /**
-   * Get entity identifier (handles custom PKs like task_name or readable_id)
-   */
+  protected searchQuery?(search: string, query: Knex.QueryBuilder<RecordType>) : Knex.QueryBuilder<RecordType>;
+
   protected getEntityId(record: RecordType | DomainType): string | number {
-    if (!record) return 'unknown';
-    return (record as any)[this.primaryKey] ?? (record as any).id ?? 'unknown';
+    return (record as any).id ?? 'unknown';
   }
 
   /**
    * Base query builder (returns raw Knex query for flexibility)
    */
-  protected baseQuery() {
-    return this.knex(this.tableName).select('*');
+  protected baseQuery(): Knex.QueryBuilder<RecordType> {
+    return this.knex<RecordType>(this.tableName);
+  }
+
+  protected activeOnly(query: Knex.QueryBuilder<RecordType>) {
+    return query.where('active', true);
+  }
+
+  async search(search?: string, skip?: number, take?: number, includeInactive?: boolean) {
+    let query = this.baseQuery();
+    if (this.hasActiveFlag && !includeInactive) {
+      query = this.activeOnly(query);
+    }
+
+    if (search && this.searchQuery) {
+      query = this.searchQuery(search, query);
+    }
+
+    const countResult = await query
+    .clone()
+    .count({ total: '*' })
+    .first<{ total: string | number }>();
+
+    const total = countResult ? Number(countResult.total) || 0 : 0;
+
+    if (skip !== undefined && take !== undefined) {
+      query = query.offset(skip).limit(take);
+    }
+
+    const records = await query.orderBy('id', 'asc').select('*') as RecordType[];
+
+    return {
+      data: records.map(r => this.recordToDomain(r)),
+      total,
+    }
   }
 
   /**
    * Find ALL records (including inactive ones)
    */
-  async getAll(): Promise<DomainType[]> {
-    try {
-      const records = await this.baseQuery()
-        .orderBy(this.primaryKey) as RecordType[];
+  async getAll(includeInactive: boolean = false): Promise<DomainType[]> {
+    const searchResult = await this.search(undefined, undefined, undefined, includeInactive);
 
-      const domains = records.map((record) => this.recordToDomain(record));
-      this.logger.debug(`Retrieved ${domains.length} ${this.auditEntityType.toLowerCase()}s (including inactive)`);
-      return domains;
-    } catch (error) {
-      this.logger.error(`Failed to getAll ${this.tableName}`, error);
-      throw new BadRequestException(`Failed to retrieve ${this.auditEntityType}s`);
-    }
-  }
-
-  /**
-   * Find only ACTIVE records (recommended for normal operations)
-   */
-  async getAllActive(): Promise<DomainType[]> {
-    if (!this.hasActiveFlag) {
-      return this.getAll();
-    }
-
-    try {
-      const records = await this.baseQuery()
-        .where('active', true)
-        .orderBy(this.primaryKey) as RecordType[];
-
-      const domains = records.map((record) => this.recordToDomain(record));
-      this.logger.debug(`Retrieved ${domains.length} active ${this.auditEntityType.toLowerCase()}s`);
-      return domains;
-    } catch (error) {
-      this.logger.error(`Failed to getAllActive ${this.tableName}`, error);
-      throw new BadRequestException(`Failed to retrieve active ${this.auditEntityType}s`);
-    }
+    return searchResult.data
   }
 
   /**
@@ -109,135 +118,56 @@ export abstract class AbstractEntityStore<
    * Default: only returns active records when hasActiveFlag = true
    */
   async getById(id: string | number, includeInactive: boolean = false): Promise<DomainType> {
-    if (!id) {
-      throw new BadRequestException('ID is required');
+    const record = await this._getById(id, includeInactive);
+    if (!record) {
+      throw new BadRequestException(`Could not find entity by id ${id}.`)
     }
-
-    try {
-      let query = this.knex(this.tableName)
-        .where(this.primaryKey, id)
-        .first() as Promise<RecordType | undefined>;
-
-      // Only apply active filter if the table has the flag AND we are NOT including inactive
-      if (this.hasActiveFlag && !includeInactive) {
-        query = this.knex(this.tableName)
-          .where(this.primaryKey, id)
-          .andWhere('active', true)
-          .first() as Promise<RecordType | undefined>;
-      }
-
-      const record = await query;
-
-      if (!record) {
-        const status = this.hasActiveFlag && !includeInactive ? 'not found or inactive' : 'not found';
-        throw new NotFoundException(`${this.auditEntityType} with ${this.primaryKey}=${id} ${status}`);
-      }
-
-      return this.recordToDomain(record);
-    } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      this.logger.error(`Failed to getById ${this.tableName}:${id}`, error);
-      throw new BadRequestException(`Failed to retrieve ${this.auditEntityType}`);
-    }
+    return this.recordToDomain(record);
   }
 
   /**
    * Create a new entity
    */
   async create(domain: Partial<DomainType>): Promise<DomainType> {
-    if (!domain) throw new BadRequestException('Domain data is required');
+    const record = this.domainToRecord(domain);
 
-    try {
-      const record = this.domainToRecord(domain);
-
-      if (this.hasActiveFlag && (record as any).active === undefined) {
-        (record as any).active = true;
-      }
-
-      const [createdRecord] = await this.knex(this.tableName)
-        .insert(record)
-        .returning('*') as [RecordType];
-
-      const createdDomain = this.recordToDomain(createdRecord);
-      const entityId = this.getEntityId(createdRecord);
-
-      await this.logAudit('CREATE', entityId, { new: createdDomain });
-
-      this.logger.log(`Created ${this.auditEntityType} ${entityId}`);
-      return createdDomain;
-    } catch (error: any) {
-      this.logger.error(`Failed to create ${this.auditEntityType}`, error);
-      if (error.code === '23505') {
-        throw new BadRequestException(`A ${this.auditEntityType} with that identifier already exists`);
-      }
-      throw new BadRequestException(`Failed to create ${this.auditEntityType}`);
+    if (this.hasActiveFlag && (record as any).active === undefined) {
+      (record as any).active = true;
     }
+
+    const [createdRecord] = await this.knex(this.tableName)
+      .insert(record)
+      .returning('*') as [RecordType];
+
+    const entityId = this.getEntityId(createdRecord);
+
+    await this.logAudit('CREATE', entityId, { new: createdRecord });
+
+    return this.recordToDomain(createdRecord);
+  }
+
+  private async _update(existingRecord: RecordType, updates: Partial<RecordType>) : Promise<DomainType> {
+    if (this.hasUpdatedAt) {
+      (updates as any).updated_at = this.knex.fn.now();
+    }
+
+    const updatedRecord = await this.baseQuery().where('id', this.getEntityId(existingRecord)).update(updates as any).returning('*').first() as RecordType;
+    await this.logAudit('UPDATE', this.getEntityId(existingRecord), { old: existingRecord, new: updatedRecord });
+
+    return this.recordToDomain(updatedRecord);
   }
 
   /**
    * Update an existing entity
    */
   async update(id: string | number, updates: Partial<DomainType>): Promise<DomainType> {
-    if (!id) throw new BadRequestException('ID is required');
-    if (!updates || Object.keys(updates).length === 0) {
-      throw new BadRequestException('Update data is required');
+    const existingRecord = await this._getById(id, false);
+    if (!existingRecord) {
+      throw new BadRequestException(`Record could not be found for ${id}. Could not perform update.`)
     }
 
-    try {
-      const oldDomain = await this.getById(id).catch(() => null);
-      const recordUpdates = this.domainToRecord(updates);
-
-      if (this.hasUpdatedAt) {
-        (recordUpdates as any).updated_at = this.knex.fn.now();
-      }
-
-      const [updatedRecord] = await this.knex(this.tableName)
-        .where(this.primaryKey, id)
-        .update(recordUpdates)
-        .returning('*') as [RecordType];
-
-      if (!updatedRecord) {
-        throw new NotFoundException(`${this.auditEntityType} with ${this.primaryKey}=${id} not found`);
-      }
-
-      const updatedDomain = this.recordToDomain(updatedRecord);
-      await this.logAudit('UPDATE', id, { old: oldDomain, new: updatedDomain });
-
-      this.logger.log(`Updated ${this.auditEntityType} ${id}`);
-      return updatedDomain;
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-      this.logger.error(`Failed to update ${this.auditEntityType}:${id}`, error);
-      throw new BadRequestException(`Failed to update ${this.auditEntityType}`);
-    }
-  }
-
-  /**
-   * Hard delete
-   */
-  async delete(id: string | number): Promise<number> {
-    if (!id) throw new BadRequestException('ID is required');
-
-    try {
-      const oldDomain = await this.getById(id).catch(() => null);
-
-      const deletedCount = await this.knex(this.tableName)
-        .where(this.primaryKey, id)
-        .del();
-
-      if (deletedCount === 0) {
-        throw new NotFoundException(`${this.auditEntityType} with ${this.primaryKey}=${id} not found`);
-      }
-
-      await this.logAudit('DELETE', id, { old: oldDomain });
-
-      this.logger.log(`Deleted ${this.auditEntityType} ${id}`);
-      return deletedCount;
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-      this.logger.error(`Failed to delete ${this.auditEntityType}:${id}`, error);
-      throw new BadRequestException(`Failed to delete ${this.auditEntityType}`);
-    }
+    const recordUpdates = this.domainToRecord(updates);
+    return await this._update(existingRecord, recordUpdates);
   }
 
   /**
@@ -248,13 +178,26 @@ export abstract class AbstractEntityStore<
       throw new BadRequestException(`Table ${this.tableName} does not support active flag`);
     }
 
-    return this.update(id, { active } as unknown as Partial<DomainType>);
+    const existingRecord = await this._getById(id, true);
+
+    return this._update(existingRecord, {active} as unknown as RecordType);
+  }
+
+  async delete(id: string | number): Promise<number> {
+    const existingRecord = await this._getById(id, true);
+    const deleted = await this.baseQuery().where('id', this.getEntityId(existingRecord)).del();
+    await this.logAudit('DELETE', this.getEntityId(existingRecord), { old: existingRecord });
+    return deleted;
   }
 
   /**
    * Protected audit logging
    */
   protected async logAudit(action: 'CREATE' | 'UPDATE' | 'DELETE', entityId: string | number, changes?: { old?: any; new?: any }): Promise<void> {
+    if (!this.isAuditingEnabled || !this.auditService || !this.auditEntityType) {
+      return;
+    }
+
     try {
       const logEntry: Audit = {
         id: v4(),
@@ -267,9 +210,6 @@ export abstract class AbstractEntityStore<
       };
 
       await this.auditService.log(logEntry);
-      this.logger.debug(`${action} ${this.auditEntityType} ${entityId}`);
-    } catch (error) {
-      this.logger.error(`Failed to audit ${action} for ${this.auditEntityType}:${entityId}`, error);
-    }
+    } catch (error) {}
   }
 }

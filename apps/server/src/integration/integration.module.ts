@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { CoreModule } from 'src/core/core.module';
 import { BlueBubblesService } from './blue-bubbles.service';
+import { BackgroundNotificationService } from './background-notification.service';
+import { HttpModule } from '@nestjs/axios';
 
 /**
  * IntegrationModule - Handles all incoming integrations (webhook, iMessage input, etc.).
@@ -15,10 +17,11 @@ import { BlueBubblesService } from './blue-bubbles.service';
  */
 @Module({
   imports: [
-    CoreModule
+    CoreModule, HttpModule,
   ],
   providers: [
     BlueBubblesService,
+    BackgroundNotificationService,
   ],
   exports: [BlueBubblesService],
 })

@@ -5,14 +5,18 @@ import { AuditService } from './entities/monitoring/audit/audit.service';
 
 import { TasksService } from './entities/task/tasks.service';
 import { TaskStore } from './entities/task/task.store';
-import { TasksController } from './entities/task/tasks.controller';
+import { TaskAdminController } from './entities/task/task-admin.controller';
+import { TaskController } from './entities/task/task.controller';
 
 import { UsersService } from './entities/user/user.service';
 import { UserStore } from './entities/user/user.store';
-import { UsersController } from './entities/user/user.controller';
+import { UserAdminController } from './entities/user/user-admin.controller';
+import { UserController } from './entities/user/user.controller';
 
 import { FactService } from './fact/fact.service';
 import { FactStore } from './fact/fact.store';
+import { FactAdminController } from './fact/fact-admin.controller';
+import { FactController } from './fact/fact.controller';
 
 import { DeviceService } from './entities/device/device.service';
 import { DeviceStore } from './entities/device/device.store';
@@ -20,7 +24,8 @@ import { DeviceStore } from './entities/device/device.store';
 import { ConversationStateService } from './entities/conversation-state/conversation-state.service';
 
 import { TaskRequestsService } from './entities/task-request/task-requests.service';
-import { TaskRequestsController } from './entities/task-request/task-requests.controller';
+import { TaskRequestAdminController } from './entities/task-request/task-request-admin.controller';
+import { TaskRequestController } from './entities/task-request/task-request.controller';
 import { Knex } from 'knex';
 import knexConfig from '../../knexfile';
 import { KNEX_CONNECTION } from './database/knex.constants';
@@ -39,6 +44,13 @@ import { ConversationStateStore } from './entities/conversation-state/conversati
 import { TransactionManager } from './database/transaction-manager';
 import { NotificationService } from './entities/notification/notification.service';
 import { NotificationStore } from './entities/notification/notification.store';
+import { NotificationAdminController } from './entities/notification/notification-admin.controller';
+import { AuditAdminController } from './entities/monitoring/audit/audit-admin.controller';
+import { AIAuditAdminController } from './entities/monitoring/ai-audit/ai-audit-admin.controller';
+import { LogAdminController } from './entities/monitoring/log/log-admin.controller';
+import { DeviceAdminController } from './entities/device/device-admin.controller';
+import { DeviceController } from './entities/device/device.controller';
+import { AppConfigAdminController } from './entities/app-config/app-config-admin.controller';
 
 /**
  * CoreModule (previously CommonModule + DomainModule).
@@ -57,9 +69,21 @@ import { NotificationStore } from './entities/notification/notification.store';
 @Module({
   imports: [],
   controllers: [
-    TasksController,
-    UsersController,
-    TaskRequestsController,
+    TaskAdminController,
+    TaskController,
+    UserAdminController,
+    UserController,
+    TaskRequestAdminController,
+    TaskRequestController,
+    NotificationAdminController,
+    AuditAdminController,
+    AIAuditAdminController,
+    LogAdminController,
+    DeviceAdminController,
+    DeviceController,
+    FactAdminController,
+    FactController,
+    AppConfigAdminController,
   ],
   providers: [
     {
@@ -85,7 +109,6 @@ import { NotificationStore } from './entities/notification/notification.store';
     // Config/Audit services provided directly (ConfigModule and AuditModule removed)
     AppConfigStore,
     AppConfigService,
-    BackgroundNotificationService,
     ValidationService,
     AuditService,
     AuditStore,
@@ -114,7 +137,6 @@ import { NotificationStore } from './entities/notification/notification.store';
     // Export everything needed by higher-level modules
     KNEX_CONNECTION,
     AppConfigService,
-    BackgroundNotificationService,
     AppConfigStore,
     ValidationService,
     AuditService,
@@ -134,6 +156,7 @@ import { NotificationStore } from './entities/notification/notification.store';
     AIAuditService,
     TransactionManager,
     NotificationService,
+    NotificationStore,
   ],
 })
 export class CoreModule {}

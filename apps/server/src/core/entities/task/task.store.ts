@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Knex } from 'knex';
 import { AuditService } from '../monitoring/audit/audit.service';
 import { AbstractEntityStore } from '../abstract-entity.store';
-import { EntityStoreOptions, KNEX_CONNECTION } from '../../database/knex.constants';
 import { Task } from './task.domain';
 
 export interface TaskRecord {
+  id: string;
   task_name: string;
   description: string;
   request_roles: string[];   // jsonb
@@ -22,7 +22,6 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
     super(knex, auditService, {
       tableName: 'tasks',
       auditEntityType: 'Task',
-      primaryKey: 'task_name',
       hasUpdatedAt: true,
       hasActiveFlag: true,
     });
@@ -30,6 +29,7 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
 
   protected domainToRecord(d: Partial<Task>): Partial<TaskRecord> {
     return {
+      id: d.id,
       task_name: d.taskName,
       description: d.description,
       request_roles: d.requestRoles ?? [],
@@ -42,6 +42,7 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
 
   protected recordToDomain(r: TaskRecord): Task {
     return {
+      id: r.id,
       taskName: r.task_name,
       description: r.description,
       requestRoles: r.request_roles,
@@ -54,8 +55,21 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
     };
   }
 
+  protected searchQuery(search: string, query: Knex.QueryBuilder<TaskRecord>): Knex.QueryBuilder<TaskRecord> {
+    const escaped = search.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const like = `%${escaped}%`;
+  
+    return query.andWhere(function () {
+      this.whereRaw(`task_name ILIKE ? ESCAPE '\\'`, [like])
+        .orWhereRaw(`description ILIKE ? ESCAPE '\\'`, [like]);
+    });
+  }
+
   async getByTaskName(taskName: string): Promise<Task | null> {
     const taskRecord = await this.knex.where('task_name', taskName).first();
+    if (!taskRecord) {
+      throw new NotFoundException(`Could not find task with name ${taskName}`);
+    }
 
     return this.recordToDomain(taskRecord);
   }
