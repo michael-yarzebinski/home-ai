@@ -17,7 +17,6 @@ export class BackgroundNotificationService implements OnModuleInit, OnModuleDest
 
   onModuleInit() {
     this.startBackgroundJob();
-    console.log('✅ Background notification service started (checks every 60 seconds for queued notifications)');
   }
 
   private startBackgroundJob() {

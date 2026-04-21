@@ -56,7 +56,6 @@ export class DeviceAdminController {
     }
     const row = await this.deviceService.createDevice({
       ...payload,
-      notificationGuidance: payload.notificationGuidance as Record<string, any> | undefined,
       metadata: payload.metadata as Record<string, any> | undefined,
     });
     return toDeviceDto(row);
@@ -67,7 +66,6 @@ export class DeviceAdminController {
     const updates = fromDeviceUpdateDto(body);
     const row = await this.deviceService.updateDevice(id, {
       ...updates,
-      notificationGuidance: updates.notificationGuidance as Record<string, any> | undefined,
       metadata: updates.metadata as Record<string, any> | undefined,
     });
     return toDeviceDto(row);

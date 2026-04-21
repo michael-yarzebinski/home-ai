@@ -4,7 +4,7 @@ import { Inject } from '@nestjs/common';
 import { KNEX_CONNECTION } from './knex.constants';
 import { Knex } from 'knex';
 
-@Injectable({ scope: Scope.REQUEST })   // Important: request-scoped
+@Injectable()
 export class TransactionManager {
   private trx: Knex.Transaction | null = null;
 

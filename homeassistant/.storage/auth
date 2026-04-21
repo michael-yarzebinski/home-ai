@@ -14,6 +14,17 @@
         "name": "Home Assistant Content",
         "system_generated": true,
         "local_only": false
+      },
+      {
+        "id": "710ca3b5b9b34f24a94e638377326e2d",
+        "group_ids": [
+          "system-admin"
+        ],
+        "is_owner": true,
+        "is_active": true,
+        "name": "mike",
+        "system_generated": false,
+        "local_only": false
       }
     ],
     "groups": [
@@ -30,7 +41,17 @@
         "name": "Read Only"
       }
     ],
-    "credentials": [],
+    "credentials": [
+      {
+        "id": "5193262d4c8244c2b545ee745ef1ee4b",
+        "user_id": "710ca3b5b9b34f24a94e638377326e2d",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {
+          "username": "mike"
+        }
+      }
+    ],
     "refresh_tokens": [
       {
         "id": "341d2129e8ce426695b83eaf19f6e915",
@@ -44,6 +65,40 @@
         "token": "99db3bffc8d754e363846c985c86f3e6768a3c0d5820eecd9c1e1849358f208e910577fd1211f75257d44359defd8d8e63b0c9d8b1ae603e2e1c803d0eeb1392",
         "jwt_key": "18cdd3fddca7d05516f9ac245cc99db382eae592202581ae53e5c1208dbddd7ef4d1ba289e38bd1df35eedf939ab31e186d3f030fa51e2faf5226a65ae592916",
         "last_used_at": null,
+        "last_used_ip": null,
+        "expire_at": null,
+        "credential_id": null,
+        "version": "2026.4.2"
+      },
+      {
+        "id": "5389b433bd474fe8afd022ec96fb048c",
+        "user_id": "710ca3b5b9b34f24a94e638377326e2d",
+        "client_id": "http://localhost:8123/",
+        "client_name": null,
+        "client_icon": null,
+        "token_type": "normal",
+        "created_at": "2026-04-20T21:10:54.044088+00:00",
+        "access_token_expiration": 1800.0,
+        "token": "3389eff50cf2cb4a7be190dd00a4e2c94290b103ea696c5589da8380a66c338fa67465a70eb8bcf267a6353cd3824fa7866a5520323dac16a99c614752fbb102",
+        "jwt_key": "7f2aa23df7a18c20565e1b889fbd68b5228133be717d5862fd2e1e89da57fe121bb3527b678d7b25cff3f1ebacc037fac1f4a159fce2d80ef24c5936dbfc1620",
+        "last_used_at": "2026-04-21T02:00:51.258097+00:00",
+        "last_used_ip": "172.18.0.1",
+        "expire_at": 1784512851.258097,
+        "credential_id": "5193262d4c8244c2b545ee745ef1ee4b",
+        "version": "2026.4.2"
+      },
+      {
+        "id": "c0190b96181b4f39a87e3a12b8a2ed09",
+        "user_id": "710ca3b5b9b34f24a94e638377326e2d",
+        "client_id": null,
+        "client_name": "Home AI",
+        "client_icon": null,
+        "token_type": "long_lived_access_token",
+        "created_at": "2026-04-20T21:11:06.636922+00:00",
+        "access_token_expiration": 315360000.0,
+        "token": "39aa018f8942f84fc754212f4f9339d65ffc59f7e269295ed9d7ee547f46ef9d1dd7862c059a7c08a5ec31c69bfbe2de67677ad96e0205a0affbc9c7e9139143",
+        "jwt_key": "e8ce8c261c802ff62e252303bdc5e6d1b3846006240928153414d6c653f7d096db6092403265ca3fb3674623543cfe5fc1230ef75bc85e82cb8da7e7e8bf780e",
+        "last_used_at": "2026-04-20T21:11:06.636991+00:00",
         "last_used_ip": null,
         "expire_at": null,
         "credential_id": null,

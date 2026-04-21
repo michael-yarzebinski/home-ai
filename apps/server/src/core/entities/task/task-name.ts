@@ -22,6 +22,8 @@ export enum TaskName {
     QueryDevice = 'queryDevice',        // ← NEW
 
     SaveRecipe = 'saveRecipe',
+
+    NotifyForDevice = 'notifyForDevice',
   
     // Add more here as you create new tasks
   }

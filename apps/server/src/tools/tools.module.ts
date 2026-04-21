@@ -11,13 +11,12 @@ import { RetrieveFactTool } from './task-tools/retrieve-fact.tool';
 import { StoreFactTool } from './task-tools/store-fact.tool';
 import { WeeklyRecapTool } from './task-tools/weekly-recap.tool';
 import { AIModule } from 'src/ai/ai.module';
-import { RemoteModule } from 'src/remote/remote.module';
+import { NotifyForDeviceHandler } from './task-tools/notify-for-device.taskhandler';
 
 @Module({
   imports: [
     CoreModule,
     AIModule,
-    RemoteModule,
   ],
   providers: [
     AddCalendarEventTool,
@@ -30,6 +29,7 @@ import { RemoteModule } from 'src/remote/remote.module';
     RetrieveFactTool,
     StoreFactTool,
     WeeklyRecapTool,
+    NotifyForDeviceHandler,
   ],
   exports: [
   ],

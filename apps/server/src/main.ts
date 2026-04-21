@@ -27,7 +27,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Start background service
-  app.get(BackgroundNotificationService);
+  // app.get(BackgroundNotificationService);
 
   console.log(`🚀 Starting ai-home server on port ${port}...`);
 

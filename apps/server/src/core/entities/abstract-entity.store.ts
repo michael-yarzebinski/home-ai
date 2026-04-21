@@ -96,7 +96,7 @@ export abstract class AbstractEntityStore<
       query = query.offset(skip).limit(take);
     }
 
-    const records = await query.orderBy('id', 'asc').select('*') as RecordType[];
+    const records = await query.orderBy('created_at', 'desc').select('*') as RecordType[];
 
     return {
       data: records.map(r => this.recordToDomain(r)),
@@ -151,7 +151,7 @@ export abstract class AbstractEntityStore<
       (updates as any).updated_at = this.knex.fn.now();
     }
 
-    const updatedRecord = await this.baseQuery().where('id', this.getEntityId(existingRecord)).update(updates as any).returning('*').first() as RecordType;
+    const updatedRecord = (await this.baseQuery().where('id', this.getEntityId(existingRecord)).update(updates as any).returning('*'))[0] as RecordType;
     await this.logAudit('UPDATE', this.getEntityId(existingRecord), { old: existingRecord, new: updatedRecord });
 
     return this.recordToDomain(updatedRecord);

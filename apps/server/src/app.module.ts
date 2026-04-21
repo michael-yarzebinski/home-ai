@@ -6,7 +6,6 @@ import { HealthModule } from './health/health.module';
 import { ToolsModule } from './tools/tools.module';
 import { AIModule } from './ai/ai.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
-import { RemoteModule } from './remote/remote.module';
 import { FeaturesModule } from './features/features.module';
 import { AuthModule } from './auth/auth.module';
 
@@ -29,8 +28,6 @@ import { AuthModule } from './auth/auth.module';
     ToolsModule,
 
     FeaturesModule,
-
-    RemoteModule,
 
     AuthModule,
   ],

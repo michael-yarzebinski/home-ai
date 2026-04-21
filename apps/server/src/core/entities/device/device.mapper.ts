@@ -2,8 +2,10 @@ import {
   DeviceCreateDto,
   DeviceDto,
   DeviceUpdateDto,
+  NotificationGuidanceRuleDto,
 } from '@home-ai/shared';
-import { Device } from './device.domain';
+import { Device, NotificationGuidanceRule } from './device.domain';
+import { parseNotificationGuidanceFromRecord } from './device-guidance';
 
 function toIso(d: Date): string {
   return d instanceof Date ? d.toISOString() : new Date(d as unknown as string).toISOString();
@@ -16,13 +18,40 @@ function jsonObject(v: unknown): Record<string, unknown> {
   return {};
 }
 
+function rulesToDto(rules: NotificationGuidanceRule[]): NotificationGuidanceRuleDto[] {
+  return rules.map((r) => {
+    const dto = new NotificationGuidanceRuleDto();
+    dto.entityPattern = r.entityPattern;
+    dto.enabled = r.enabled;
+    dto.instruction = r.instruction;
+    dto.rolesToNotify = r.rolesToNotify ? [...r.rolesToNotify] : undefined;
+    return dto;
+  });
+}
+
+function dtoRulesToDomain(rules?: NotificationGuidanceRuleDto[]): NotificationGuidanceRule[] {
+  if (!rules?.length) {
+    return [];
+  }
+  return rules.map((r) => ({
+    entityPattern: r.entityPattern,
+    enabled: r.enabled,
+    instruction: r.instruction,
+    rolesToNotify: r.rolesToNotify?.length ? [...r.rolesToNotify] : undefined,
+  }));
+}
+
 export function toDeviceDto(d: Device): DeviceDto {
   const dto = new DeviceDto();
   dto.id = d.id;
   dto.deviceIdSlug = d.deviceIdSlug;
   dto.friendlyName = d.friendlyName;
   dto.haEntityId = d.haEntityId ?? null;
-  dto.notificationGuidance = jsonObject(d.notificationGuidance);
+  dto.notificationGuidance = rulesToDto(
+    Array.isArray(d.notificationGuidance)
+      ? d.notificationGuidance
+      : parseNotificationGuidanceFromRecord(d.notificationGuidance as unknown),
+  );
   dto.visibleToRoles = Array.isArray(d.visibleToRoles) ? [...d.visibleToRoles] : [];
   dto.active = d.active;
   dto.metadata = jsonObject(d.metadata);
@@ -36,7 +65,7 @@ export function fromDeviceCreateDto(body: DeviceCreateDto): {
   friendlyName: string;
   haEntityId?: string;
   visibleToRoles?: string[];
-  notificationGuidance?: Record<string, unknown>;
+  notificationGuidance?: NotificationGuidanceRule[];
   metadata?: Record<string, unknown>;
 } {
   return {
@@ -44,7 +73,8 @@ export function fromDeviceCreateDto(body: DeviceCreateDto): {
     friendlyName: body.friendlyName,
     haEntityId: body.haEntityId,
     visibleToRoles: body.visibleToRoles,
-    notificationGuidance: body.notificationGuidance,
+    notificationGuidance:
+      body.notificationGuidance !== undefined ? dtoRulesToDomain(body.notificationGuidance) : undefined,
     metadata: body.metadata,
   };
 }
@@ -64,7 +94,7 @@ export function fromDeviceUpdateDto(body: DeviceUpdateDto): Partial<Device> {
     out.visibleToRoles = body.visibleToRoles;
   }
   if (body.notificationGuidance !== undefined) {
-    out.notificationGuidance = body.notificationGuidance;
+    out.notificationGuidance = dtoRulesToDomain(body.notificationGuidance);
   }
   if (body.metadata !== undefined) {
     out.metadata = body.metadata;

@@ -1,3 +1,4 @@
+export * from './auth/create-session.dto';
 export * from './search/search.dto';
 export * from './search/search.utils';
 export * from './model/user/user.dto';

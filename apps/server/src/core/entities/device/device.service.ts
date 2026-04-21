@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DeviceDto, SearchRequestDto, SearchResponseDto, SearchUtils } from '@home-ai/shared';
 import { DeviceStore } from './device.store';
-import { Device } from './device.domain';
+import { Device, NotificationGuidanceRule } from './device.domain';
 import { toDeviceDto } from './device.mapper';
 
 @Injectable()
@@ -23,7 +23,7 @@ export class DeviceService {
     friendlyName: string;
     haEntityId?: string;
     visibleToRoles?: string[];
-    notificationGuidance?: Record<string, any>;
+    notificationGuidance?: NotificationGuidanceRule[];
     metadata?: Record<string, any>;
   }): Promise<Device> {
     return this.deviceStore.create({
@@ -31,7 +31,7 @@ export class DeviceService {
       friendlyName: data.friendlyName,
       haEntityId: data.haEntityId,
       visibleToRoles: data.visibleToRoles ?? [],
-      notificationGuidance: data.notificationGuidance ?? {},
+      notificationGuidance: data.notificationGuidance ?? [],
       metadata: data.metadata ?? {},
       active: true,
     });

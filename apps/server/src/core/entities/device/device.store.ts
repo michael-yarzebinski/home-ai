@@ -4,6 +4,7 @@ import { AuditService } from '../monitoring/audit/audit.service';
 import { AbstractEntityStore } from '../abstract-entity.store';
 import { KNEX_CONNECTION } from '../../database/knex.constants';
 import { Device } from './device.domain';
+import { parseNotificationGuidanceFromRecord } from './device-guidance';
 
 export interface DeviceRecord {
   id: string;
@@ -11,7 +12,8 @@ export interface DeviceRecord {
   friendly_name: string;
   ha_entity_id?: string | null;
   notification_guidance: any;
-  visible_to_roles: string[];
+  /** jsonb array of role strings from Postgres */
+  visible_to_roles: string[] | unknown;
   active: boolean;
   metadata: any;
   created_at: Date;
@@ -38,8 +40,8 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
       device_id_slug: domain.deviceIdSlug,
       friendly_name: domain.friendlyName,
       ha_entity_id: domain.haEntityId,
-      notification_guidance: domain.notificationGuidance ?? {},
-      visible_to_roles: domain.visibleToRoles ?? [],
+      notification_guidance: JSON.stringify(domain.notificationGuidance ?? []),
+      visible_to_roles: domain.visibleToRoles ? JSON.stringify(domain.visibleToRoles) : '[]',
       active: domain.active,
       metadata: domain.metadata ?? {},
     };
@@ -51,8 +53,10 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
       deviceIdSlug: record.device_id_slug,
       friendlyName: record.friendly_name,
       haEntityId: record.ha_entity_id ?? undefined,
-      notificationGuidance: record.notification_guidance ?? {},
-      visibleToRoles: record.visible_to_roles ?? [],
+      notificationGuidance: parseNotificationGuidanceFromRecord(record.notification_guidance),
+      visibleToRoles: Array.isArray(record.visible_to_roles)
+        ? (record.visible_to_roles as string[]).map(String)
+        : [],
       active: record.active,
       metadata: record.metadata ?? {},
       createdAt: record.created_at,
@@ -72,15 +76,14 @@ export class DeviceStore extends AbstractEntityStore<DeviceRecord, Device> {
     });
   }
 
-  async getForUser(userRole: string): Promise<Device[]> { 
-    const records = await this.knex<DeviceRecord>('devices')
-      .where('active', true)
+  async getForUser(userRole: string): Promise<Device[]> {
+    const roleJson = JSON.stringify([userRole]);
+    const records = await this.activeOnly(this.baseQuery())
       .andWhere((builder) => {
-        builder
-          .whereRaw('visible_to_roles && ?', [userRole]); 
+        builder.whereRaw(`COALESCE(visible_to_roles, '[]'::jsonb) @> ?::jsonb`, [roleJson]);
       })
       .orderBy('friendly_name', 'asc');
-  
-    return records.map(record => this.recordToDomain(record));
+
+    return records.map((record) => this.recordToDomain(record));
   }
 }

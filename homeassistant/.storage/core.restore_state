@@ -4,17 +4,42 @@
   "key": "core.restore_state",
   "data": [
     {
-      "state": {"entity_id":"conversation.home_assistant","state":"unknown","attributes":{"friendly_name":"Home Assistant","supported_features":1},"last_changed":"2026-04-18T17:53:32.084490+00:00","last_reported":"2026-04-18T17:53:32.084490+00:00","last_updated":"2026-04-18T17:53:32.084490+00:00","context":{"id":"01KPGVKXDM25Z19VESJ943MJGQ","parent_id":null,"user_id":null}},
+      "state": {"entity_id":"conversation.home_assistant","state":"unknown","attributes":{"friendly_name":"Home Assistant","supported_features":1},"last_changed":"2026-04-20T20:42:12.816323+00:00","last_reported":"2026-04-20T20:42:12.816323+00:00","last_updated":"2026-04-20T20:42:12.816323+00:00","context":{"id":"01KPPA26YGE6FC47EXSNNRZ5C3","parent_id":null,"user_id":null}},
       "extra_data": null,
-      "last_seen": "2026-04-19T04:53:31.929034+00:00"
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
     },
     {
-      "state": {"entity_id":"event.backup_automatic_backup","state":"unknown","attributes":{"event_types":["completed","failed","in_progress"],"event_type":null,"friendly_name":"Backup Automatic backup"},"last_changed":"2026-04-18T17:53:32.143047+00:00","last_reported":"2026-04-18T17:53:32.143047+00:00","last_updated":"2026-04-18T17:53:32.143047+00:00","context":{"id":"01KPGVKXFF0SKSMSRGKP4R8N59","parent_id":null,"user_id":null}},
+      "state": {"entity_id":"event.backup_automatic_backup","state":"unknown","attributes":{"event_types":["completed","failed","in_progress"],"event_type":null,"friendly_name":"Backup Automatic backup"},"last_changed":"2026-04-20T20:42:12.841482+00:00","last_reported":"2026-04-20T20:42:12.841482+00:00","last_updated":"2026-04-20T20:42:12.841482+00:00","context":{"id":"01KPPA26Z9B5FWXTT0YAFGJ1GW","parent_id":null,"user_id":null}},
       "extra_data": {
         "last_event_type": null,
         "last_event_attributes": null
       },
-      "last_seen": "2026-04-19T04:53:31.929034+00:00"
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
+    },
+    {
+      "state": {"entity_id":"person.mike","state":"unknown","attributes":{"editable":true,"id":"mike","device_trackers":[],"user_id":"710ca3b5b9b34f24a94e638377326e2d","friendly_name":"mike"},"last_changed":"2026-04-20T21:10:40.727647+00:00","last_reported":"2026-04-20T21:10:40.727926+00:00","last_updated":"2026-04-20T21:10:40.727647+00:00","context":{"id":"01KPPBPATQM87GHV1BWXQEKMKK","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
+    },
+    {
+      "state": {"entity_id":"tts.google_translate_en_com","state":"unknown","attributes":{"friendly_name":"Google Translate en com"},"last_changed":"2026-04-20T21:10:48.355804+00:00","last_reported":"2026-04-20T21:10:48.355898+00:00","last_updated":"2026-04-20T21:10:48.355804+00:00","context":{"id":"01KPPBPJ930FPZJZQAXN72VSNQ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
+    },
+    {
+      "state": {"entity_id":"button.litter_robot_4_reset","state":"unknown","attributes":{"friendly_name":"Litter-Robot 4 Reset"},"last_changed":"2026-04-20T21:13:29.531061+00:00","last_reported":"2026-04-20T21:13:29.531149+00:00","last_updated":"2026-04-20T21:13:29.531061+00:00","context":{"id":"01KPPBVFNVXT4CH3P6G2073QN5","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
+    },
+    {
+      "state": {"entity_id":"update.litter_robot_4_firmware","state":"on","attributes":{"auto_update":false,"display_precision":0,"installed_version":"ESP: 1.1.75 / PIC: 10512.3072.2.92 / TOF: 5.0.2.1","in_progress":false,"latest_version":"ESP: 1.1.75 / PIC: 10512.3072.2.93 / TOF: 5.0.2.1","release_summary":null,"release_url":"https://www.litter-robot.com/releases.html","skipped_version":null,"title":null,"update_percentage":null,"device_class":"firmware","entity_picture":"/api/brands/integration/litterrobot/icon.png","friendly_name":"Litter-Robot 4 Firmware","supported_features":5},"last_changed":"2026-04-20T21:13:29.771008+00:00","last_reported":"2026-04-20T21:13:29.771142+00:00","last_updated":"2026-04-20T21:13:29.771008+00:00","context":{"id":"01KPPBVFXBTMDDGS6G5PHF71XZ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
+    },
+    {
+      "state": {"entity_id":"update.superior_6000s_firmware","state":"on","attributes":{"auto_update":false,"display_precision":0,"installed_version":"2.0.02","in_progress":false,"latest_version":"3.0.00","release_summary":null,"release_url":null,"skipped_version":null,"title":null,"update_percentage":null,"device_class":"firmware","entity_picture":"/api/brands/integration/vesync/icon.png","friendly_name":"Superior 6000S Firmware","supported_features":0},"last_changed":"2026-04-20T23:34:50.595004+00:00","last_reported":"2026-04-20T23:41:50.491632+00:00","last_updated":"2026-04-20T23:34:50.595004+00:00","context":{"id":"01KPPKY9Z35M4B512P4RJZ7G7G","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-04-21T03:12:13.247114+00:00"
     }
   ]
 }

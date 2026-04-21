@@ -32,7 +32,7 @@ export async function up(knex: Knex): Promise<void> {
   // 3. Tasks (Admin control only)
   await knex.schema.createTable('tasks', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.string('task_name');
+    table.string('task_name').unique();
     table.text('description').notNullable();
     table.jsonb('request_roles').notNullable().defaultTo('[]');
     table.jsonb('execute_roles').notNullable().defaultTo('[]');
@@ -245,7 +245,7 @@ export async function up(knex: Knex): Promise<void> {
       active: true,
       version: 1,
     },
-  
+
     {
       task_name: 'addCalendarEvent',
       description: 'Add a new event to the family calendar',
@@ -264,7 +264,7 @@ export async function up(knex: Knex): Promise<void> {
       active: true,
       version: 1,
     },
-  
+
     {
       task_name: 'storeFact',
       description: 'Remember a fact or preference',
@@ -283,7 +283,7 @@ export async function up(knex: Knex): Promise<void> {
       active: true,
       version: 1,
     },
-  
+
     {
       task_name: 'dailySummary',
       description: "Get today's summary: weather, calendar, short term list",
@@ -311,7 +311,7 @@ export async function up(knex: Knex): Promise<void> {
       active: false,
       version: 1,
     },
-  
+
     {
       task_name: 'queryDevice',
       description: 'Query the state of any device',
@@ -330,18 +330,36 @@ export async function up(knex: Knex): Promise<void> {
       active: true,
       version: 1,
     },
+
+    {
+      task_name: 'notifyForDevice',
+      description: 'Process Home Assistant device or entity state changes and intelligently decide whether to send notifications and what the message should be, using the device\'s notification_guidance',
+      request_roles: JSON.stringify(['automation']),
+      execute_roles: JSON.stringify(['automation']),
+      notify_roles: JSON.stringify(['parent']),
+      active: true,
+      version: 1,
+    },
   ]);
 
-  const accessCodeHash = await bcrypt.hash('0000', 12);
-
+  const adminCodeHash = await bcrypt.hash('0000', 12);
   await knex('users').insert({
     id: '00000000-0000-0000-0000-000000000000',
-    name: 'System Admin',
+    name: 'admin',
     role: 'admin',
-    access_code_hash: accessCodeHash,
-    messaging_id: '',
+    access_code_hash: adminCodeHash,
+    messaging_id: 'ADMIN',
   });
 
+  const automationCodeHash = await bcrypt.hash('9999', 12);
+
+  await knex('users').insert({
+    id: '99999999-9999-9999-9999-999999999999',
+    name: 'automation',
+    role: 'automation',
+    access_code_hash: automationCodeHash,
+    messaging_id: 'AUTOMATION',
+  });
 
   await knex('app_config').insert([
     {
@@ -371,6 +389,8 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('log');
   await knex.schema.dropTableIfExists('audit');
   await knex.schema.dropTableIfExists('ai_audit');
+  await knex.schema.dropTableIfExists('ingredients');
+  await knex.schema.dropTableIfExists('recipes');
   await knex.schema.dropTableIfExists('conversation_states');
   await knex.schema.dropTableIfExists('notifications');
   await knex.schema.dropTableIfExists('task_requests');

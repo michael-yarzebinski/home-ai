@@ -66,7 +66,7 @@ export class TaskStore extends AbstractEntityStore<TaskRecord, Task> {
   }
 
   async getByTaskName(taskName: string): Promise<Task | null> {
-    const taskRecord = await this.knex.where('task_name', taskName).first();
+    const taskRecord = await this.activeOnly(this.baseQuery()).where('task_name', taskName).first();
     if (!taskRecord) {
       throw new NotFoundException(`Could not find task with name ${taskName}`);
     }

@@ -19,7 +19,7 @@ export class SearchUtils {
         }
 
         return {
-            skip: searchRequest.pageNumber - 1 * searchRequest.pageSize,
+            skip: (searchRequest.pageNumber - 1) * searchRequest.pageSize,
             take: searchRequest.pageSize
         }
 

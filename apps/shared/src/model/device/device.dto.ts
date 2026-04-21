@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -6,14 +7,34 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+
+/** One rule for when/how to notify about this device (stored in `notification_guidance` jsonb). */
+export class NotificationGuidanceRuleDto {
+  @IsOptional()
+  @IsString()
+  entityPattern?: string;
+
+  @IsBoolean()
+  enabled!: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  instruction!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  rolesToNotify?: string[];
+}
 
 export class DeviceDto {
   id!: string;
   deviceIdSlug!: string;
   friendlyName!: string;
   haEntityId?: string | null;
-  notificationGuidance!: Record<string, unknown>;
+  notificationGuidance!: NotificationGuidanceRuleDto[];
   visibleToRoles!: string[];
   active!: boolean;
   metadata!: Record<string, unknown>;
@@ -42,8 +63,10 @@ export class DeviceCreateDto {
   visibleToRoles?: string[];
 
   @IsOptional()
-  @IsObject()
-  notificationGuidance?: Record<string, unknown>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NotificationGuidanceRuleDto)
+  notificationGuidance?: NotificationGuidanceRuleDto[];
 
   @IsOptional()
   @IsObject()
@@ -71,8 +94,10 @@ export class DeviceUpdateDto {
   visibleToRoles?: string[];
 
   @IsOptional()
-  @IsObject()
-  notificationGuidance?: Record<string, unknown>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NotificationGuidanceRuleDto)
+  notificationGuidance?: NotificationGuidanceRuleDto[];
 
   @IsOptional()
   @IsObject()

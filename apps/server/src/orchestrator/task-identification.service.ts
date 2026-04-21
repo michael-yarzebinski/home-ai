@@ -3,9 +3,7 @@ import { LLMServiceBase } from "src/ai/llm-services/llm.service.base";
 import { LLMAction, LLMEventType } from "src/ai/llm.dtos";
 import { ChatMessage } from "src/core/entities/conversation-state/conversation-state.service";
 import { TaskRegistryService, TaskWithSchema } from "src/core/task-registry/registry/task-registry.service";
-import { TaskDecision } from "./task-decision";
-import { Task } from "src/core/entities/task/task.domain";
-import { TaskPipelineResult } from "./ai-orchestrator.service";
+import type { TaskPipelineResult } from "./task-pipeline-result";
 import { LogService } from "src/core/entities/monitoring/log/log.serice";
 
 interface AITask {

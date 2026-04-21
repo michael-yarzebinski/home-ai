@@ -4,6 +4,8 @@ import { CoreModule } from 'src/core/core.module';
 import { BlueBubblesService } from './blue-bubbles.service';
 import { BackgroundNotificationService } from './background-notification.service';
 import { HttpModule } from '@nestjs/axios';
+import { HomeAssistantService } from './home-assistant/home-assistant.service';
+import { HomeAssistantAdminController } from './home-assistant/home-assistant-admin.controller';
 
 /**
  * IntegrationModule - Handles all incoming integrations (webhook, iMessage input, etc.).
@@ -19,10 +21,12 @@ import { HttpModule } from '@nestjs/axios';
   imports: [
     CoreModule, HttpModule,
   ],
+  controllers: [HomeAssistantAdminController],
   providers: [
+    HomeAssistantService,
     BlueBubblesService,
     BackgroundNotificationService,
   ],
-  exports: [BlueBubblesService],
+  exports: [HomeAssistantService, BlueBubblesService],
 })
 export class IntegrationModule {}

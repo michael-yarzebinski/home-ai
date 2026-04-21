@@ -6,13 +6,16 @@ import { CoreModule } from '../core/core.module';
 import { AuthService } from './service/auth.service';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
-import { AppConfigService } from 'src/core/entities/app-config/app-config.service';
+import { AppConfigService } from '../core/entities/app-config/app-config.service';
 
 @Module({
   imports: [
     CoreModule,
     ConfigModule,
     JwtModule.registerAsync({
+      // Dynamic module runs its factory in JwtModule’s context; import CoreModule
+      // here so AppConfigService (exported from CoreModule) can be injected.
+      imports: [CoreModule],
       useFactory: (config: AppConfigService) => ({
         secret: config.getFromEnv<string>('JWT_SECRET'),
       }),

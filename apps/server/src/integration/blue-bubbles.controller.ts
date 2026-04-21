@@ -17,7 +17,7 @@ interface BlueBubblesWebhookPayload {
 @Controller('webhooks/bluebubbles')
 export class BlueBubblesWebhookController {
   constructor(
-    private readonly aiOrchestrator: AIOrchestratorService,
+    // private readonly aiOrchestrator: AIOrchestratorService,
     private readonly blueBubblesService: BlueBubblesService,
     private readonly logService: LogService,
   ) {}
@@ -43,14 +43,14 @@ export class BlueBubblesWebhookController {
         source: MessageSource.IMESSAGE,
       };
 
-      const result = await this.aiOrchestrator.processMessage(messageRequest);
+      // const result = await this.aiOrchestrator.processMessage(messageRequest);
 
-      await this.blueBubblesService.sendIMessage({
-        guid: payload.chatGuid || payload.guid,
-        text: result.response,
-        handle: payload.handle,
-      });
+      // await this.blueBubblesService.sendIMessage({
+      //   guid: payload.chatGuid || payload.guid,
+      //   text: result.response,
+      //   handle: payload.handle,
+      // });
 
-      return { status: 'processed', result: result.status };
+      return { status: 'processed', result: '' };
   }
 }

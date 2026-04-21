@@ -2,6 +2,8 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { AppConfigService } from '../../core/entities/app-config/app-config.service';
 import { createConnection, subscribeEntities, subscribeServices, HassEntities, HassEntity, Connection } from 'home-assistant-js-websocket';
+import { HomeAssistantBase } from 'src/core/home-assistant/home-assistant.base';
+import { LogService } from 'src/core/entities/monitoring/log/log.serice';
 
 export interface HomeAssistantDevice {
   deviceSlug: string;
@@ -10,50 +12,21 @@ export interface HomeAssistantDevice {
 }
 
 @Injectable()
-export class HomeAssistantService implements OnModuleDestroy {
-  private readonly logger = new Logger(HomeAssistantService.name);
-  private connection: Connection | undefined;
+export class HomeAssistantService extends HomeAssistantBase implements OnModuleDestroy {
   private entities: HassEntities = {};
 
   constructor(
-    private readonly appConfig: AppConfigService,
+    protected readonly appConfig: AppConfigService,
+    protected readonly logService: LogService,
   ) {
-    this.connect();
-    this.subscribeToEvents();
+    super(appConfig, logService);
+    this.subscribeToEntities(this.onEntities.bind(this));
   }
 
-  private async connect() {
-    const url = this.appConfig.getFromEnv<string>('HOME_ASSISTANT_URL');
-    const token = this.appConfig.getFromEnv<string>('HOME_ASSISTANT_TOKEN');
-
-    try {
-      this.connection = await createConnection({
-        auth: {
-            wsUrl: url.replace('http', 'ws') + '/api/websocket',
-            accessToken: token,
-            expired: false,
-            refreshAccessToken: function (): Promise<void> {
-                throw new Error('Function not implemented.');
-            },
-            revoke: function (): Promise<void> {
-                throw new Error('Function not implemented.');
-            },
-        } as any,
-      });
-
-      // Subscribe to all entity state changes
-      subscribeEntities(this.connection, (entities) => {
-        this.entities = entities;
-      });
-      
-
-      this.logger.log('✅ Connected to Home Assistant WebSocket');
-    } catch (error) {
-      this.logger.error('Failed to connect to Home Assistant WebSocket', error);
-    } 
+  protected onEntities(entities:HassEntities) {
+    this.entities = entities;
   }
 
-  // a) Get all devices/entities from HA
   private async _getAllEntities(): Promise<HassEntities> {
     if (!this.connection) {
       await this.connect();
@@ -68,21 +41,46 @@ export class HomeAssistantService implements OnModuleDestroy {
       entityId: haEntity.entity_id,
       context: haEntity.context,
     }));
-
-
   }
 
-  private async subscribeToEvents()
-  {
-    if (!this.connection) {
-        await this.connect();
+  /**
+   * Human-readable rows for admin UI (in-memory HA entity map).
+   */
+  getEntitySummaries(): Array<{
+    entityId: string;
+    friendlyName?: string;
+    state?: string;
+    deviceClass?: string;
+  }> {
+    return Object.values(this.entities)
+      .map((e) => ({
+        entityId: e.entity_id,
+        friendlyName: e.attributes?.friendly_name as string | undefined,
+        state: e.state,
+        deviceClass: e.attributes?.device_class as string | undefined,
+      }))
+      .sort((a, b) => a.entityId.localeCompare(b.entityId));
+  }
+
+  /** Base URL for opening Home Assistant in a browser (from HOME_ASSISTANT_URL). */
+  getWebUiBaseUrl(): string | null {
+    try {
+      const raw = this.appConfig.getFromEnv<string>('HOME_ASSISTANT_URL')?.trim();
+      if (!raw) {
+        return null;
+      }
+      let u = raw;
+      if (u.startsWith('ws:')) {
+        u = `http:${u.slice(3)}`;
+      } else if (u.startsWith('wss:')) {
+        u = `https:${u.slice(4)}`;
+      }
+      u = u.replace(/\/api\/websocket\/?$/i, '').replace(/\/$/, '');
+      return u || null;
+    } catch {
+      return null;
     }
-
-    this.connection?.subscribeEvents((event) => {
-        console.log('Event:', event);
-    });
   }
-
 
   // b) Get status of a specific entity (device)
   async getState(entityId: string): Promise<HassEntity | null> {

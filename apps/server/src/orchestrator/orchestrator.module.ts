@@ -9,6 +9,7 @@ import { AIModule } from 'src/ai/ai.module';
 import { ChatController } from './chat/chat.controller';
 import { TaskIdentificationService } from './task-identification.service';
 import { AuthModule } from '../auth/auth.module';
+import { HomeAssistantSubscriberService } from './home-assistant-subscriber.service';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AuthModule } from '../auth/auth.module';
     AIOrchestratorService,
     TaskIdentificationService,
     TaskRouter,
+    HomeAssistantSubscriberService
   ],
   controllers: [ChatController],
   exports: [

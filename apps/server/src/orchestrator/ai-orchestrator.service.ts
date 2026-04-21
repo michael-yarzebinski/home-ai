@@ -19,6 +19,8 @@ import { TaskHandlerResult, TaskHandlerStatus } from "src/tools/interfaces/task-
 import { TransactionManager } from "src/core/database/transaction-manager";
 import { ConversationState } from "src/core/entities/conversation-state/conversation-state.domain";
 import { NotificationService } from "src/core/entities/notification/notification.service";
+import { TaskName } from "src/core/entities/task/task-name";
+import { NotifyForDeviceParams } from "src/tools/task-tools/notify-for-device.taskhandler";
 
 export interface TaskPipelineResult {
   response: string;
@@ -49,7 +51,7 @@ interface ValidationFailure {
 
 @Injectable()
 export class AIOrchestratorService {
-  protected readonly logger = new Logger(this.constructor.name);
+  protected readonly logger = new Logger(AIOrchestratorService.name);
 
   constructor(
     private readonly transactionManager: TransactionManager,
@@ -67,7 +69,7 @@ export class AIOrchestratorService {
   ) {
   }
 
-  async processMessage(request: MessageRequest): Promise<TaskPipelineResult> {
+  async processMessage(request: MessageRequest & { pretypedParameters?: any }): Promise<TaskPipelineResult> {
     this.logger.debug('processMessage: IN');
 
     const validationResult = await this.validateRequest(request);
@@ -77,62 +79,77 @@ export class AIOrchestratorService {
 
     const { user, text } = validationResult;
     const chatHistory = await this.buildChatMessages({ ...request, messageText: text }, user.id);
-    const messageClassification = await this.classifyMessage(text, user, chatHistory);
 
     return this.transactionManager.execute(async (trx) => {
       let taskHandlerContext: TaskHandlerContext;
-
-      if (messageClassification === MessageClassification.APPROVAL) {
-        const approvalResult = await this.handleTaskRequestApproval(text, user, chatHistory);
-        if (approvalResult.status === ValidationStatus.FAILURE) {
-          return approvalResult.result;
+      if (request.pretypedParameters) {
+        const automationResult = await this.handleAutomatedTask(user, request.pretypedParameters);
+        if (automationResult.status === ValidationStatus.FAILURE) {
+          return automationResult.result
         }
-
         taskHandlerContext = {
-          parameters: approvalResult.typedParameters,
-          task: approvalResult.task,
-          taskRequest: approvalResult.taskRequest,
+          parameters: automationResult.typedParameters,
+          task: automationResult.task,
+          taskRequest: automationResult.taskRequest,
           user,
           chatHistory,
         };
-        if (approvalResult.decision === 'rejected') {
-          await this.persistConversationResult(request.chatGuid, user.id, taskHandlerContext, {status: TaskHandlerStatus.SUCCESS, reply: 'Task Request was successfully rejected'});
-          return { status: 'success', response: 'Task Request was successfully rejected.' };
-        }
-      } 
-      else if (messageClassification === MessageClassification.TASK) {
-        const handleTaskRequestResult = await this.handleTaskRequest(user, chatHistory);
-        if (handleTaskRequestResult.status === ValidationStatus.FAILURE) {
-          return handleTaskRequestResult.result;
-        }
-
-        taskHandlerContext = {
-          parameters: handleTaskRequestResult.typedParameters,
-          task: handleTaskRequestResult.task,
-          taskRequest: handleTaskRequestResult.taskRequest,
-          user,
-          chatHistory,
-        };
-      } 
-      else if (messageClassification === MessageClassification.RETRY) {
-        const retryResult = await this.handleTaskRetry(text, user, chatHistory);
-        if (retryResult.status === ValidationStatus.FAILURE) {
-          return retryResult.result;
-        }
-
-        taskHandlerContext = {
-          parameters: retryResult.typedParameters,
-          task: retryResult.task,
-          taskRequest: retryResult.taskRequest,
-          user,
-          chatHistory,
-        };
-      } 
+      }
       else {
-        return {
-          status: 'failure',
-          response: 'Sorry. I could not understand your request. Would you like to try again?',
-        };
+        const messageClassification = await this.classifyMessage(text, user, chatHistory);
+
+        if (messageClassification === MessageClassification.APPROVAL) {
+          const approvalResult = await this.handleTaskRequestApproval(text, user, chatHistory);
+          if (approvalResult.status === ValidationStatus.FAILURE) {
+            return approvalResult.result;
+          }
+
+          taskHandlerContext = {
+            parameters: approvalResult.typedParameters,
+            task: approvalResult.task,
+            taskRequest: approvalResult.taskRequest,
+            user,
+            chatHistory,
+          };
+          if (approvalResult.decision === 'rejected') {
+            await this.persistConversationResult(request.chatGuid, user.id, taskHandlerContext, { status: TaskHandlerStatus.SUCCESS, reply: 'Task Request was successfully rejected' });
+            return { status: 'success', response: 'Task Request was successfully rejected.' };
+          }
+        }
+        else if (messageClassification === MessageClassification.TASK) {
+          const handleTaskRequestResult = await this.handleTaskRequest(user, chatHistory);
+          if (handleTaskRequestResult.status === ValidationStatus.FAILURE) {
+            return handleTaskRequestResult.result;
+          }
+
+          taskHandlerContext = {
+            parameters: handleTaskRequestResult.typedParameters,
+            task: handleTaskRequestResult.task,
+            taskRequest: handleTaskRequestResult.taskRequest,
+            user,
+            chatHistory,
+          };
+        }
+        else if (messageClassification === MessageClassification.RETRY) {
+          const retryResult = await this.handleTaskRetry(text, user, chatHistory);
+          if (retryResult.status === ValidationStatus.FAILURE) {
+            return retryResult.result;
+          }
+
+          taskHandlerContext = {
+            parameters: retryResult.typedParameters,
+            task: retryResult.task,
+            taskRequest: retryResult.taskRequest,
+            user,
+            chatHistory,
+          };
+        }
+        else {
+          return {
+            status: 'failure',
+            response: 'Sorry. I could not understand your request. Would you like to try again?',
+          };
+        }
       }
 
       // Execute the task
@@ -592,6 +609,42 @@ Now extract the readableId.`;
     }
   }
 
+  private async handleAutomatedTask(user: User, parameters: NotifyForDeviceParams): Promise<{
+    status: ValidationStatus.SUCCESS
+    task: TaskWithSchema,
+    taskRequest: TaskRequest,
+    typedParameters: any,
+    requiresApproval: boolean,
+  } | ValidationFailure> {
+    const task = await this.taskRegistryService.getTaskByName(TaskName.NotifyForDevice);
+
+    const permissionsResult = await this.validatePermissions(task, user);
+    if (permissionsResult.status === ValidationStatus.FAILURE) {
+      return permissionsResult;
+    }
+
+    const { permissions } = permissionsResult;
+    const requiresApproval = !permissions.canExecute;
+
+    const taskRequest = await this.taskRequestsService.createTaskRequest({
+      taskName: task.taskName,
+      requesterUserId: user.id,
+      executorUserId: user.id,
+      parameters,
+      status: 'in-progress',
+      requiresApproval,
+      quietHoursQueued: false,
+    });
+
+    return {
+      status: ValidationStatus.SUCCESS,
+      task,
+      taskRequest,
+      typedParameters: parameters,
+      requiresApproval,
+    }
+  }
+
   private async validatePermissions(task: Task, user: User, requireExecute: boolean = false): Promise<{ status: ValidationStatus.SUCCESS, permissions: PermissionCheckResult } | ValidationFailure> {
     const permissions = this.userPermissionsService.checkPermission(user, task);
 
@@ -663,7 +716,7 @@ Now extract the readableId.`;
       const updateData: Partial<ConversationState> = {
         currentTaskName: context.task.taskName,
         lastAIMessage: result.status !== TaskHandlerStatus.ERROR ? result.reply : '',
-        conversationSummary: result.status !== TaskHandlerStatus.ERROR ? result.reply.substring(0,300) : '',
+        conversationSummary: result.status !== TaskHandlerStatus.ERROR ? result.reply.substring(0, 300) : '',
         relatedTaskRequestId: context.taskRequest?.id ?? state.relatedTaskRequestId,
         status: 'completed',
         lastActivityAt: new Date(),

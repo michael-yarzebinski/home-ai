@@ -30,7 +30,6 @@ import { Knex } from 'knex';
 import knexConfig from '../../knexfile';
 import { KNEX_CONNECTION } from './database/knex.constants';
 import { ConfigService } from '@nestjs/config';
-import { BackgroundNotificationService } from '../integration/background-notification.service';
 import { TaskRequestStore } from './entities/task-request/task-request.store';
 import { UserPermissionsService } from './user-permissions/user-permissions.service';
 import { TaskRegistryService } from './task-registry/registry/task-registry.service';
@@ -97,10 +96,7 @@ import { AppConfigAdminController } from './entities/app-config/app-config-admin
           throw new Error(`Knex configuration for environment "${env}" is missing. Check knexfile.ts`);
         }
 
-        const knexInstance = require('knex')(config);
-
-        console.log(`✅ Knex connected to database: ${config.connection.database}`);
-        return knexInstance;
+        return require('knex')(config);
       },
       inject: [ConfigService],        // Use NestJS built-in ConfigService
     },

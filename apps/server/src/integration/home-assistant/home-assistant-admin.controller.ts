@@ -40,7 +40,12 @@ export class HomeAssistantAdminController {
       };
     }
 
-    const list = await this.homeAssistantService.getAllEntities();
-    return { entities: list };
+    const entities = this.homeAssistantService.getEntitySummaries();
+    return { entities, total: entities.length };
+  }
+
+  @Get('web-ui')
+  webUi() {
+    return { url: this.homeAssistantService.getWebUiBaseUrl() };
   }
 }
