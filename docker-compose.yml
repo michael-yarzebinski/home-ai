@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -14,76 +12,85 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      # Check against 'postgres' db instead of '${DB_NAME}' to avoid FATAL errors during init
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - home-ai-network
 
-  # Main Ollama service - only runs the server
   ollama:
     image: ollama/ollama:latest
     container_name: home-ai-ollama
     restart: unless-stopped
+    tty: true
+    stdin_open: true
     ports:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
-    command: ollama serve
+    entrypoint: /bin/sh
+    command: >
+      -c "
+        apt-get update -qq && apt-get install -y -qq curl > /dev/null 2>&1;
+        ollama serve & 
+        SERVER_PID=\$$!;
+        echo '[OLLAMA-INIT] ⏳ Waiting for server to boot...';
+        while ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; do
+          sleep 2;
+        done;
+        echo '[OLLAMA-INIT] ✅ Server is UP. Starting model downloads...';
+        
+        echo '[OLLAMA-INIT] 📥 Pulling Qwen 2.5 (7B)...';
+        ollama pull qwen2.5:7b;
+        
+        echo '[OLLAMA-INIT] 📥 Pulling Granite 3.1 (8B)...';
+        ollama pull granite3.1;
+        
+        echo '[OLLAMA-INIT] 📥 Pulling Nomic Embed Text...';
+        ollama pull nomic-embed-text;
+        
+        echo '[OLLAMA-INIT] 🎉 ALL MODELS INSTALLED SUCCESSFULLY';
+        wait \$$SERVER_PID
+      "
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 8
-      start_period: 30s
+      retries: 15
+      start_period: 60s
+    networks:
+      - home-ai-network
 
-  # One-time model loader (pulls qwen2.5:7b + embedding model)
-  ollama-model-loader:
-    image: ollama/ollama:latest
+  home-ai:
+    build:
+      context: .
+      dockerfile: ./apps/server/Dockerfile
+    container_name: home-ai-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./apps/server:/app/apps/server
+      - ./apps/shared:/app/apps/shared
+      - ./attachments:/app/attachments
     depends_on:
+      postgres:
+        condition: service_healthy
       ollama:
         condition: service_healthy
-    command: >
-      sh -c "
-        echo 'Waiting for Ollama to start...' &&
-        sleep 12 &&
-        echo 'Pulling qwen2.5:7b (best balanced model)...' &&
-        ollama pull qwen2.5:7b &&
-        echo 'Pulling embedding model...' &&
-        ollama pull nomic-embed-text &&
-        echo '✅ All models pulled successfully!'
-      "
-    profiles: ["init"]   # Only runs when you explicitly ask for it
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - home-ai-network
 
-  # Your NestJS Home AI server
-  # home-ai:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: home-ai-server
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=production
-  #     - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}
-  #     - OLLAMA_HOST=http://ollama:11434
-  #     - BLUEBUBBLES_URL=http://host.docker.internal:1234
-  #     - BLUEBUBBLES_PASSWORD=${BLUEBUBBLES_PASSWORD}
-  #   volumes:
-  #     - ./apps/server:/app
-  #     - ./logs:/app/logs
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     ollama:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-
-  # Home Assistant
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
@@ -96,6 +103,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - home-ai-network
+
+networks:
+  home-ai-network:
+    driver: bridge
 
 volumes:
   postgres-data:

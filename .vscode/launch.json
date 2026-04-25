@@ -2,8 +2,8 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "npm run start:debug",
-      "cwd": "${workspaceFolder}/apps/server",
+      "command": "npm run start:debug -w @home-ai/server",
+      "cwd": "${workspaceFolder}",
       "name": "Debug Home AI Server",
       "request": "launch",
       "type": "node-terminal",
@@ -23,20 +23,6 @@
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**", "${workspaceFolder}/apps/server/node_modules/**"],
       "envFile": "${workspaceFolder}/apps/server/.env",
-      "sourceMaps": true
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug NestJS (ts-node, server is workspace root)",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["-r", "reflect-metadata", "-r", "ts-node/register"],
-      "program": "${workspaceFolder}/src/main.ts",
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
-      "envFile": "${workspaceFolder}/.env",
       "sourceMaps": true
     },
     {

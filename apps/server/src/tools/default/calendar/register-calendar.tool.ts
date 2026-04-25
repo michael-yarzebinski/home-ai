@@ -1,0 +1,72 @@
+// src/tools/default/register-calendar.tool.ts
+import { z } from 'zod';
+import { ToolHandler } from '../../abstract/tool-handler';
+import { CalendarStore } from '../../../core/stores/calendar/calendar.store';
+import type { ToolContext } from '../../types/tool-context';
+import { Injectable } from '@nestjs/common';
+import { Tool } from 'src/tools/decorators/tool.decorator';
+import { Role } from '@home-ai/shared/domain/role/role';
+
+const RegisterCalendarToolSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .describe('Exact calendar name from Apple Calendar (e.g. "Family")'),
+  friendlyName: z.string().optional().describe('Friendly display name (optional)'),
+  readRoles: z.array(z.string()).optional().describe('Roles that can read this calendar'),
+  writeRoles: z.array(z.string()).optional().describe('Roles that can write to this calendar'),
+  color: z.string().optional().describe('Optional color for the calendar'),
+});
+
+export interface RegisterCalendarResult {
+  success: boolean;
+  message: string;
+  calendarName: string;
+}
+
+@Tool()
+@Injectable()
+export class RegisterCalendarTool extends ToolHandler<
+  typeof RegisterCalendarToolSchema,
+  RegisterCalendarResult
+> {
+  readonly name = 'register-calendar';
+  readonly filterOnIsRecursiveCall = false;
+
+  readonly description =
+    'Register a new Apple Calendar so the AI can use it. ' +
+    "Admin-only tool. If read/write roles are not provided, they default to the current user's role.";
+
+  readonly parameters = RegisterCalendarToolSchema;
+
+  constructor(private readonly calendarStore: CalendarStore) {
+    super();
+  }
+
+  async execute(
+    params: z.infer<typeof RegisterCalendarToolSchema>,
+    context: ToolContext,
+  ): Promise<RegisterCalendarResult> {
+    const readRoles = params.readRoles?.length
+      ? (params.readRoles as Role[])
+      : [context.userRole];
+    const writeRoles = params.writeRoles?.length
+      ? (params.writeRoles as Role[])
+      : [context.userRole];
+
+    const calendar = await this.calendarStore.create({
+      name: params.name,
+      friendlyName: params.friendlyName || params.name,
+      readRoles,
+      writeRoles,
+      color: params.color,
+      aliases: [],
+    });
+
+    return {
+      success: true,
+      message: `✅ Calendar "${params.name}" has been registered successfully.`,
+      calendarName: calendar.name,
+    };
+  }
+}

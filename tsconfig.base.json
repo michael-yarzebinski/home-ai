@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2021", "dom"],
+    "module": "commonjs",
+    "target": "ES2021",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "composite": true,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@home-ai/shared/*": ["apps/shared/src/*"],
+      "src/*": ["apps/server/src/*"]
+      // "@modelcontextprotocol/sdk/server/mcp.js": [
+      //   "node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"
+      // ]
+    }
+  }
+}

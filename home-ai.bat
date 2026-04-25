@@ -36,7 +36,7 @@ if not exist "node_modules" (
 )
 
 echo Running migrations...
-npx knex migrate:latest
+call npm run migration:run -w @home-ai/server
 
 if %errorlevel% neq 0 (
     echo.
@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Seeding initial data...
-npx knex seed:run
+call npm run seed:run -w @home-ai/server
 
 echo.
 echo ========================================
@@ -59,6 +59,6 @@ echo.
 echo Press Ctrl+C to stop the server when you're done.
 echo.
 
-npm run start:dev
+call npm run dev:server
 
 pause

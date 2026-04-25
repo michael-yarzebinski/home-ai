@@ -1,28 +1,23 @@
 {
-    "compilerOptions": {
-      "module": "commonjs",
-      "declaration": true,
-      "removeComments": true,
-      "emitDecoratorMetadata": true,
-      "experimentalDecorators": true,
-      "strictPropertyInitialization": false,
-      "allowSyntheticDefaultImports": true,
-      "target": "ES2021",
-      "sourceMap": true,
-      "outDir": "./dist",
-      "baseUrl": "./",
-      "incremental": true,
-      "skipLibCheck": true,
-      "strictNullChecks": true,
-      "noImplicitAny": false,
-      "strictBindCallApply": false,
-      "forceConsistentCasingInFileNames": false,
-      "noFallthroughCasesInSwitch": false,
-      "resolveJsonModule": true,
-      "esModuleInterop": true,
-      "moduleResolution": "node",
-      "lib": ["ES2021"]
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "src/*": ["./src/*"],
+      "@home-ai/shared/*": ["../shared/src/*"]
+      // "@modelcontextprotocol/sdk/server/mcp.js": [
+      //   "../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"
+      // ]
     },
-    "include": ["src/**/*", "migrations/**/*", "seeds/**/*"],
-    "exclude": ["node_modules", "dist"]
-  }
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

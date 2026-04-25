@@ -1,0 +1,21 @@
+{
+  "name": "home-ai",
+  "private": true,
+  "description": "Monorepo: Nest server, shared TypeScript package, and web UI",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build -w @home-ai/shared",
+    "build": "npm run build -w @home-ai/shared && npm run build -w @home-ai/server && npm run build -w @home-ai/ui",
+    "build:shared": "npm run build -w @home-ai/shared",
+    "build:server": "npm run build -w @home-ai/server",
+    "build:ui": "npm run build -w @home-ai/ui",
+    "dev:server": "npm run start:dev -w @home-ai/server",
+    "dev:ui": "npm run dev -w @home-ai/ui",
+    "dev:shared": "npm run watch -w @home-ai/shared"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

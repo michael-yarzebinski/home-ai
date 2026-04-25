@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
-import { RecipeModule } from "./recipes/recipes.module";
-import { CoreModule } from "src/core/core.module";
-
+import { RecipeSaverModule } from "./recipe-saver/recipe-saver.module";
+import { FactsModule } from "./facts/fact.module";
 
 @Module({
-    imports: [CoreModule, RecipeModule],
-    exports: [RecipeModule],
+    imports: [
+        FactsModule,
+        RecipeSaverModule
+    ],
 })
 export class FeaturesModule {}

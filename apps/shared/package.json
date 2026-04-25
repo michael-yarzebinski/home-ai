@@ -1,0 +1,29 @@
+{
+  "name": "@home-ai/shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared types and utilities for Home AI server and UI",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./version": {
+      "types": "./dist/version.d.ts",
+      "default": "./dist/version.js"
+    },
+    "./domain/*/*": {
+      "types": "./dist/domain/*/*.d.ts",
+      "default": "./dist/domain/*/*.js"
+    },
+    "./search/*": {
+      "types": "./dist/search/*.d.ts",
+      "default": "./dist/search/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

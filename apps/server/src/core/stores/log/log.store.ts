@@ -1,0 +1,56 @@
+// core/stores/log/log.store.ts
+import type { Knex } from 'knex';
+import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
+import type { SearchCriteria } from '@home-ai/shared/search/search';
+import { Paginated } from '@home-ai/shared/search/pagination';
+import type { Log } from '@home-ai/shared/domain/log/log';
+import { Inject, Injectable } from '@nestjs/common';
+
+export interface LogRecord {
+  id: string;
+  user_id?: string;
+  severity: string;
+  message: string;
+  metadata: any;
+  created_at: Date;
+}
+
+@Injectable()
+export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
+  constructor(@Inject('KNEX_CONNECTION') knex: Knex,) {
+    super(knex, { tableName: 'logs' });
+  }
+
+  async search(criteria: SearchCriteria): Promise<Paginated<Log>> {
+    return {
+      items: [],
+      total: 0,
+      page: criteria.page,
+      pageSize: criteria.pageSize,
+      hasNext: false,
+      hasPrevious: false,
+    };
+  }
+
+  protected recordToDomain(record: LogRecord): Log {
+    return {
+      id: record.id,
+      userId: record.user_id,
+      severity: record.severity,
+      message: record.message,
+      metadata: record.metadata,
+      createdAt: record.created_at,
+    };
+  }
+
+  protected domainToRecord(domain: Log): LogRecord {
+    return {
+      id: domain.id,
+      user_id: domain.userId,
+      severity: domain.severity,
+      message: domain.message,
+      metadata: domain.metadata,
+      created_at: domain.createdAt,
+    };
+  }
+}

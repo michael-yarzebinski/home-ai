@@ -1,0 +1,83 @@
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ToolRegistry } from "src/tools/registry/tool.registry";
+import { ClsService } from "nestjs-cls";
+import { Role } from "@home-ai/shared/domain/role/role";
+import { ToolContext } from "../../tools/types/tool-context";
+
+@Injectable()
+export class McpService implements OnModuleInit {
+  private mcpServer: McpServer;
+
+  constructor(
+    private readonly toolRegistry: ToolRegistry,
+    private readonly cls: ClsService,
+  ) {
+    this.mcpServer = new McpServer({
+      name: "Home-AI-Manager",
+      version: "1.0.0",
+    });
+  }
+
+  async onModuleInit() {
+    const tools = await this.toolRegistry.getAvailableTools();
+
+    for (const tool of tools) {
+      // We "register" your existing NestJS tools with the MCP protocol
+      this.mcpServer.registerTool(
+        tool.name,
+        {
+          description: tool.handler.description,
+          inputSchema: tool.handler.parameters.shape,
+        },
+        async (args: any): Promise<any> => this.execute(tool.name, args),
+      );
+    }
+  }
+
+  async execute(name: string, args: any) {
+    try {
+      // Pull user info from CLS (set by the Orchestrator)
+      const userRole = this.cls.get<Role>("userRole");
+
+      // 2. Use the registry's built-in RBAC check
+      const registeredTool = await this.toolRegistry.getRegisteredTool(
+        name,
+        userRole,
+      );
+
+      if (!registeredTool) {
+        throw new Error(`Unauthorized or unknown tool: ${name}`);
+      }
+      const context = this.getToolContext();
+
+      const result = await registeredTool.handler.execute(args, context);
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+
+  private getToolContext(): ToolContext {
+    return {
+      userId: this.cls.get("userId"),
+      userRole: this.cls.get("userRole"),
+      userName: this.cls.get("userName"),
+      chatSessionId: this.cls.get("chatSessionId"),
+      currentISO: this.cls.get("currentISO"),
+      // This connects the specific tool to the broader AI context
+      llmContext: {
+        originalPrompt: this.cls.get("originalPrompt"),
+      },
+      // Spread preferences so tools (like recipe standardizers) can see them
+      preferences: this.cls.get("preferences"),
+      timezone: "Americas/Eastern",
+    };
+  }
+}

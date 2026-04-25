@@ -1,44 +1,47 @@
+// src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';   // ← Built-in NestJS ConfigService
-import * as dotenv from 'dotenv';
-import { GlobalValidationPipe } from './core/global-validation.pipe';
-import { AllExceptionsFilter } from './core/exceptions.filter';
-import { BackgroundNotificationService } from './integration/background-notification.service';
-import { AppConfigService } from './core/entities/app-config/app-config.service';
+import { ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  dotenv.config();
+  const app = await NestFactory.create(AppModule);
 
-    const app = await NestFactory.create(AppModule);
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,           // strip unknown properties
+      forbidNonWhitelisted: true,
+      transform: true,           // automatically transform payloads
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
 
-  const configService = app.get(AppConfigService);   // ← Built-in one
-
-  const port = configService.getFromEnv<number>('SERVER_PORT') || 3000;
-
-  app.useGlobalPipes(GlobalValidationPipe);
-  app.useGlobalFilters(new AllExceptionsFilter());
-
+  // Enable CORS (adjust origins for production)
   app.enableCors({
-    origin: true,
+    origin: true,                // or specify allowed origins: ['http://localhost:4200']
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  // Optional: Global prefix for all routes
+  // app.setGlobalPrefix('api');
 
-  // Start background service
-  app.get(BackgroundNotificationService);
+  // Graceful shutdown support
+  app.enableShutdownHooks();
 
-  console.log(`🚀 Starting ai-home server on port ${port}...`);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   await app.listen(port);
 
-  console.log(`✅ ai-home server is running at http://localhost:${port}`);
-  console.log(`📊 Admin endpoints: http://localhost:${port}/api/admin`);
-  console.log(`🔌 Device webhook: http://localhost:${port}/api/webhook/device-event`);
+  Logger.log(`🚀 Home Assistant AI is running on: http://localhost:${port}`, 'Bootstrap');
 }
 
-bootstrap().catch((err) => {
-  console.error('❌ Failed to start server:', err);
+bootstrap().catch((error) => {
+  Logger.error('❌ Failed to start application', error, 'Bootstrap');
+  throw error;
+
   process.exit(1);
+
 });

@@ -1,139 +1,110 @@
-import { Module } from '@nestjs/common';
-import { AppConfigService } from './entities/app-config/app-config.service';
-import { ValidationService } from './validation/validation.service';
-import { AuditService } from './entities/monitoring/audit/audit.service';
+import { Module } from "@nestjs/common";
+import { AuditStore } from "./stores/audit/audit.store";
+import { AIAuditStore } from "./stores/ai-audit/ai-audit.store";
+import { LogStore } from "./stores/log/log.store";
+import { NotificationLogStore } from "./stores/notification-log/notification-log.store";
+import { NotificationQueueStore } from "./stores/notification-queue/notification-queue.store";
+import { ToolStore } from "./stores/tool/tool.store";
+import { UserStore } from "./stores/user/user.store";
+import { DeviceStore } from "./stores/device/device.store";
+import { CalendarStore } from "./stores/calendar/calendar.store";
+import { NoteStore } from "./stores/note/note.store";
+import { PendingActionStore } from "./stores/pending-action/pending-action.store";
+import { NotificationPreferenceStore } from "./stores/notification-preference/notification-preference.store";
+import { AppConfigService } from "./services/app-config.service";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { AppConfigStore } from "./stores/app-config/app-config.store";
+import knex, { Knex } from "knex";
+import * as pg from "pg";
+import { ConversationStore } from "./stores/conversation/conversation.store";
 
-import { TasksService } from './entities/task/tasks.service';
-import { TaskStore } from './entities/task/task.store';
-import { TasksController } from './entities/task/tasks.controller';
-
-import { UsersService } from './entities/user/user.service';
-import { UserStore } from './entities/user/user.store';
-import { UsersController } from './entities/user/user.controller';
-
-import { FactService } from './fact/fact.service';
-import { FactStore } from './fact/fact.store';
-
-import { DeviceService } from './entities/device/device.service';
-import { DeviceStore } from './entities/device/device.store';
-
-import { ConversationStateService } from './entities/conversation-state/conversation-state.service';
-
-import { TaskRequestsService } from './entities/task-request/task-requests.service';
-import { TaskRequestsController } from './entities/task-request/task-requests.controller';
-import { Knex } from 'knex';
-import knexConfig from '../../knexfile';
-import { KNEX_CONNECTION } from './database/knex.constants';
-import { ConfigService } from '@nestjs/config';
-import { BackgroundNotificationService } from '../integration/background-notification.service';
-import { TaskRequestStore } from './entities/task-request/task-request.store';
-import { UserPermissionsService } from './user-permissions/user-permissions.service';
-import { TaskRegistryService } from './task-registry/registry/task-registry.service';
-import { LogStore } from './entities/monitoring/log/log.store';
-import { LogService } from './entities/monitoring/log/log.serice';
-import { AuditStore } from './entities/monitoring/audit/audit.store';
-import { AIAuditService } from './entities/monitoring/ai-audit/ai-audit.service';
-import { AIAuditStore } from './entities/monitoring/ai-audit/ai-audit.store';
-import { AppConfigStore } from './entities/app-config/app-config.store';
-import { ConversationStateStore } from './entities/conversation-state/conversation-state.store';
-import { TransactionManager } from './database/transaction-manager';
-import { NotificationService } from './entities/notification/notification.service';
-import { NotificationStore } from './entities/notification/notification.store';
-
-/**
- * CoreModule (previously CommonModule + DomainModule).
- * 
- * This is the central core/domain layer containing:
- * - AppConfigService (unified strict configuration)
- * - AbstractEntityStore + all concrete stores
- * - ValidationService
- * - All domain entity services (TasksService, UsersService, FactsService, etc.)
- * - Relevant controllers
- * 
- * The previous DomainModule has been merged into this single CoreModule.
- * The domain/ folder and domain.module.ts have been removed.
- * All files from the previous common/ folder have been moved under the core/ structure.
- */
 @Module({
-  imports: [],
-  controllers: [
-    TasksController,
-    UsersController,
-    TaskRequestsController,
-  ],
+  imports: [ConfigModule],
   providers: [
     {
-      provide: KNEX_CONNECTION,
-      useFactory: (configService: ConfigService): Knex => {
-        const env = configService.get<string>('NODE_ENV') || 'development';
-        
-        const config = (knexConfig as any)[env] || knexConfig.development;
+      provide: "KNEX_CONNECTION",
+      useFactory: (configService: ConfigService) => {
+        // 1. Set parsers on the PG module directly
+        // JSONB OID is 3802, JSON OID is 114
+        pg.types.setTypeParser(3802, (val) => (val ? JSON.parse(val) : val));
+        pg.types.setTypeParser(114, (val) => (val ? JSON.parse(val) : val));
 
-        if (!config || !config.client) {
-          throw new Error(`Knex configuration for environment "${env}" is missing. Check knexfile.ts`);
-        }
+        const knexConfig: Knex.Config = {
+          client: "pg",
+          connection: {
+            host: configService.get<string>("DB_HOST"),
+            port: configService.get<number>("DB_PORT"),
+            user: configService.get<string>("DB_USER"),
+            password: configService.get<string>("DB_PASSWORD"),
+            database: configService.get<string>("DB_NAME"),
+          },
+          pool: { min: 2, max: 10 },
+        };
 
-        const knexInstance = require('knex')(config);
+        const instance = knex(knexConfig);
 
-        console.log(`✅ Knex connected to database: ${config.connection.database}`);
-        return knexInstance;
+        // 2. Use a 'start' event instead of 'query' for Knex 3.1
+        // This is more reliable for modifying bindings before they are sent
+        instance.on("start", (builder) => {
+          if (builder && builder._single && builder._single.insert) {
+            // Knex 3.x internal structure check
+          }
+        });
+
+        // 3. The fallback: if 'start' is too deep, stay with 'query' but
+        // make it idempotent (safe for multiple reloads)
+        instance.on("query", (query: any) => {
+          if (
+            ["update", "insert"].includes(query.method) &&
+            Array.isArray(query.bindings)
+          ) {
+            for (let i = 0; i < query.bindings.length; i++) {
+              if (Array.isArray(query.bindings[i])) {
+                query.bindings[i] = JSON.stringify(query.bindings[i]);
+              }
+            }
+          }
+        });
+
+        return instance;
       },
-      inject: [ConfigService],        // Use NestJS built-in ConfigService
+      inject: [ConfigService],
     },
-    TransactionManager,
 
-    // Config/Audit services provided directly (ConfigModule and AuditModule removed)
     AppConfigStore,
-    AppConfigService,
-    BackgroundNotificationService,
-    ValidationService,
-    AuditService,
     AuditStore,
-    TasksService,
-    TaskStore,
-    UsersService,
-    UserStore,
-    FactService,
-    FactStore,
-    DeviceService,
-    DeviceStore,
-    ConversationStateStore,
-    ConversationStateService,
-    TaskRequestsService,
-    TaskRequestStore,
-    UserPermissionsService,
-    TaskRegistryService,
-    LogStore,
-    LogService,
     AIAuditStore,
-    AIAuditService,
-    NotificationService,
-    NotificationStore,
+    ConversationStore,
+    LogStore,
+    NotificationLogStore,
+    NotificationQueueStore,
+    ToolStore,
+    UserStore,
+    DeviceStore,
+    CalendarStore,
+    NoteStore,
+    PendingActionStore,
+    NotificationPreferenceStore,
+
+    AppConfigService,
   ],
   exports: [
-    // Export everything needed by higher-level modules
-    KNEX_CONNECTION,
-    AppConfigService,
-    BackgroundNotificationService,
-    AppConfigStore,
-    ValidationService,
-    AuditService,
-    TasksService,
-    TaskStore,
-    UsersService,
+    "KNEX_CONNECTION",
+    AuditStore,
+    AIAuditStore,
+    ConversationStore,
+    LogStore,
+    NotificationLogStore,
+    NotificationQueueStore,
+    ToolStore,
     UserStore,
-    FactService,
-    FactStore,
-    DeviceService,
     DeviceStore,
-    ConversationStateService,
-    TaskRequestsService,
-    UserPermissionsService,
-    TaskRegistryService,
-    LogService,
-    AIAuditService,
-    TransactionManager,
-    NotificationService,
+    CalendarStore,
+    NoteStore,
+    PendingActionStore,
+    NotificationPreferenceStore,
+
+    AppConfigService,
   ],
 })
 export class CoreModule {}

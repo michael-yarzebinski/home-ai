@@ -1,0 +1,27 @@
+search-* → Fuzzy search / discovery. This actually reaches out to the external service for discovery.
+list-* → List all registered items of that type. These are items in the database
+get-* → Get detailed information about one item. These can reach our to external services OR return the entity, depending on whether an external service exists
+add-* → Add new content. This can add entities to the DB if they do NOT have an external service. Example: Add to notes --> add to a specific note. Recipes --> create a recipe in the database.
+update-* → Update content (the actual data). Updates the entity itself, regardless of whether it has external services
+register-* → Register/link a remote item into our database. This is NOT relevant for items without an external service.
+execute-* -> Perform a specific action on an item. This is NOT relevant for items without an external service.
+
+
+
+
+
+Additional Tools:
+
+
+
+set-notification-preferences <-- We probably need one to get the notification preferences lol
+
+
+
+daily-summary
+
+
+
+weekly-summary
+
+update-notification-preference, get-daily-summary, get-weekly-summary, and maybe get-weather

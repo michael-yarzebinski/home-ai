@@ -1,35 +1,38 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { CoreModule } from './core/core.module';
-import { IntegrationModule } from './integration/integration.module';
-import { HealthModule } from './health/health.module';
-import { ToolsModule } from './tools/tools.module';
-import { AIModule } from './ai/ai.module';
-import { OrchestratorModule } from './orchestrator/orchestrator.module';
-import { RemoteModule } from './remote/remote.module';
-import { FeaturesModule } from './features/features.module';
+// src/app.module.ts
+import { Module } from "@nestjs/common";
+import { ToolsModule } from "./tools/tool.module";
+import { CoreModule } from "./core/core.module";
+import { AIModule } from "./ai/ai.module";
+import { IntegrationsModule } from "./integrations/integrations.module";
+import { FeaturesModule } from "./features/features.module";
+import { BackgroundModule } from "./background/background.module";
+import { ConfigModule } from "@nestjs/config";
+import { HealthModule } from "./health/health.module";
+import { ClsModule } from "nestjs-cls";
 
 @Module({
   imports: [
-    // Global Configuration (official NestJS)
     ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '../../.env',
+      isGlobal: true, // Makes ConfigService available everywhere
+      envFilePath: "../../.env", // optional - adjust if you use a different path
     }),
 
-    HealthModule,
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        // Optional: you can pre-populate the currentISO here
+        // but it's cleaner to do it in the Orchestrator for AI tasks
+      },
+    }),
 
-    // Core Infrastructure
     CoreModule,
-
     AIModule,
-    OrchestratorModule,
-    IntegrationModule,
-    ToolsModule,
-
+    BackgroundModule,
     FeaturesModule,
-
-    RemoteModule,
+    IntegrationsModule,
+    ToolsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
