@@ -75,8 +75,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./apps/server:/app/apps/server
-      - ./apps/shared:/app/apps/shared
       - ./attachments:/app/attachments
     depends_on:
       postgres:

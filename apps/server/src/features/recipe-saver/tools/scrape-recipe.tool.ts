@@ -9,9 +9,12 @@ import { AppConfigService } from "src/core/services/app-config.service";
 import { ToolHandler } from "src/tools/abstract/tool-handler";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const ScrapeRecipeToolSchema = z.object({
-  url: z.string().url().describe("The full URL of the recipe webpage"),
+  url: z
+    .preprocess(ToolParameterUtils.toStringValue, z.string().url())
+    .describe("The full URL of the recipe webpage"),
 });
 
 export interface ScrapeRecipeResult {
@@ -30,8 +33,8 @@ export class ScrapeRecipeTool extends ToolHandler<
 > {
   readonly name = "scrape-recipe";
   readonly description =
-    "Extracts the clean, ad-free text content of a recipe webpage. " +
-    "Removes navigation, ads, and footers, returning only the title and core recipe text.";
+    "Fetch a recipe page from the web (external) and return clean title and body text plus a temporary PDF path. " +
+    "Use with standardize-recipe then add-recipe to store the recipe in Home AI.";
 
   readonly parameters = ScrapeRecipeToolSchema;
 

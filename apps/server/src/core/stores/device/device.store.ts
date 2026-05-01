@@ -18,6 +18,8 @@ export interface DeviceRecord {
   read_roles: string[];
   write_roles: string[];
   extra_metadata: any;
+  is_time_sensitive: boolean;
+  last_triggered_service: any | null;
   active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -31,13 +33,13 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
 
   async search(criteria: SearchCriteria): Promise<Paginated<Device>> {
     return {
-        items: [],
-        total: 0,
-        page: criteria.page,
-        pageSize: criteria.pageSize,
-        hasNext: false,
-        hasPrevious: false,
-      };
+      items: [],
+      total: 0,
+      page: criteria.page,
+      pageSize: criteria.pageSize,
+      hasNext: false,
+      hasPrevious: false,
+    };
   }
 
   async getBySearch(search: string): Promise<Device[]> {
@@ -45,16 +47,16 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
     const searchLike = `%${search.toLowerCase()}%`;
 
     const records = await this.active.where((builder) => {
-        builder
-          .whereILike('slug', searchLike)
-          .orWhereILike('friendly_name', searchLike)
-          .orWhereRaw('? = ANY(aliases)', [searchToLower]);
-      });
+      builder
+        .whereILike('slug', searchLike)
+        .orWhereILike('friendly_name', searchLike)
+        .orWhereRaw('? = ANY(aliases)', [searchToLower]);
+    });
 
     return records.map(r => this.recordToDomain(r));
   }
 
-  async getBySlug(slug: string) : Promise<Device | undefined> {
+  async getBySlug(slug: string): Promise<Device | undefined> {
     const record = await this.active.where('slug', slug).first();
 
     return record ? this.recordToDomain(record) : record;
@@ -71,6 +73,8 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       readRoles: record.read_roles as Role[],
       writeRoles: record.write_roles as Role[],
       extraMetadata: record.extra_metadata,
+      isTimeSensitive: record.is_time_sensitive,
+      lastTriggeredService: record.last_triggered_service ? record.last_triggered_service : undefined,
       active: record.active,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -88,6 +92,8 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       read_roles: domain.readRoles,
       write_roles: domain.writeRoles,
       extra_metadata: domain.extraMetadata,
+      is_time_sensitive: domain.isTimeSensitive,
+      last_triggered_service: domain.lastTriggeredService ? domain.lastTriggeredService : null,
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,

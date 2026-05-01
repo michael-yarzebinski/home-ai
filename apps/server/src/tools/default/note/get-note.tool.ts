@@ -1,19 +1,15 @@
 // src/tools/default/get-note.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
-
-const execAsync = promisify(exec);
 
 const GetNoteToolSchema = z.object({
   name: z
     .string()
     .min(1)
-    .describe('Exact name of the registered note to read (e.g. "Shopping List")'),
+    .describe('Exact `name` from list-notes (notes registered in Home AI). Do not guess.'),
 });
 
 export interface GetNoteResult {
@@ -29,9 +25,7 @@ export class GetNoteTool extends ToolHandler<typeof GetNoteToolSchema, GetNoteRe
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Read the full current content of a registered Apple Note. ' +
-    'Only use this tool if you already know the exact note name from a previous list-notes call. ' +
-    'Do not guess the note name. If unsure, call list-notes first.';
+    'Read the full content of an Apple Note that is registered in Home AI. Call list-notes first unless the exact `name` is already known.';
 
   readonly parameters = GetNoteToolSchema;
 
@@ -50,29 +44,21 @@ export class GetNoteTool extends ToolHandler<typeof GetNoteToolSchema, GetNoteRe
       end tell
     `;
 
-    try {
-      const { stdout } = await execAsync(`osascript -e '${script}'`);
-      const content = stdout.trim();
+    const result = await this.runAppleScript(script);
+    const content = result.trim();
 
-      if (content.startsWith('ERROR:')) {
-        return {
-          name: params.name,
-          content: '',
-          message: content,
-        };
-      }
-
-      return {
-        name: params.name,
-        content: content || '[Empty note]',
-        message: `Note "${params.name}" loaded successfully.`,
-      };
-    } catch (err: any) {
+    if (content.startsWith('ERROR:')) {
       return {
         name: params.name,
         content: '',
-        message: `Failed to read note "${params.name}": ${err.message}`,
+        message: content,
       };
     }
+
+    return {
+      name: params.name,
+      content: content || '[Empty note]',
+      message: `Note "${params.name}" loaded successfully.`,
+    };
   }
 }

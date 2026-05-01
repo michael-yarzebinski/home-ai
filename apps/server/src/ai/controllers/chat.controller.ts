@@ -5,6 +5,7 @@ import { UserStore } from "../../core/stores/user/user.store";
 import { IsString, IsNotEmpty, IsOptional, IsUUID } from "class-validator";
 import { v4 } from "uuid";
 import { OrchestratorService } from "../orchestrator/orchestrator.service";
+import { LLMModelTypes } from "../llm/llm.provider.sevice";
 
 export class ChatRequestDto {
   @IsString()
@@ -25,7 +26,7 @@ export class ChatController {
   constructor(
     private readonly orchestrator: OrchestratorService,
     private readonly userStore: UserStore,
-  ) {}
+  ) { }
 
   @Post()
   async chat(@Body() dto: ChatRequestDto) {
@@ -43,6 +44,7 @@ export class ChatController {
       user,
       dto.message.trim(),
       sessionId,
+      LLMModelTypes.IMMEDIATE,
     );
 
     return {

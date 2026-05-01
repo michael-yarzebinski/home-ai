@@ -3,10 +3,10 @@ import { ToolHandler } from "../../abstract/tool-handler";
 import { PendingActionStore } from "../../../core/stores/pending-action/pending-action.store";
 import { NotificationService } from "../../../core/services/notification.service";
 import { ToolStore } from "../../../core/stores/tool/tool.store";
-import { LLMServiceBase } from "../../../ai/abstract/llm.service.base";
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "../../decorators/tool.decorator";
+import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
 
 const ProposeActionToolSchema = z.object({
   toolName: z
@@ -49,7 +49,7 @@ export class ProposeActionTool extends ToolHandler<
     private readonly toolStore: ToolStore,
     private readonly pendingActionStore: PendingActionStore,
     private readonly notificationService: NotificationService,
-    private readonly llm: LLMServiceBase,
+    private readonly llmProviderService: LLMProviderService,
   ) {
     super();
   }
@@ -99,7 +99,7 @@ export class ProposeActionTool extends ToolHandler<
       }
     `;
 
-    const response = await this.llm.query({
+    const response = await this.llmProviderService.query({
       messages: [{ role: "system", content: generationPrompt }],
       jsonMode: true,
       context: {
@@ -107,7 +107,7 @@ export class ProposeActionTool extends ToolHandler<
         chatSessionId: context.chatSessionId,
         originalPrompt: `Generating messages for pending action #${pendingAction.readableId}`,
       },
-    });
+    }, LLMModelTypes.IMMEDIATE);
 
     let messages = {
       userFeedback: `I've sent your request (#${pendingAction.readableId}) for approval.`,

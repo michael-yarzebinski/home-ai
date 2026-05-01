@@ -5,8 +5,14 @@ import { HomeAssistantService } from '../../../integrations/home-assistant/home-
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
+import { DeviceStore } from '../../../core/stores/device/device.store';
 
 const ExecuteDeviceServiceToolSchema = z.object({
+  deviceId: z
+    .string()
+    .min(1)
+    .describe('The ID of the device to execute the service on'),
+
   domain: z
     .string()
     .min(1)
@@ -41,12 +47,14 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Call any Home Assistant service (e.g. light.turn_on, switch.turn_off, climate.set_temperature). ' +
-    'Use this tool when the user wants to control or change the state of a device.';
+    'Call a Home Assistant service for a device registered in Home AI (e.g. light.turn_on, switch.turn_off). ' +
+    'Use list-devices to resolve `deviceId` if needed; call get-device-state first to see available services.';
 
   readonly parameters = ExecuteDeviceServiceToolSchema;
 
-  constructor(private readonly haService: HomeAssistantService) {
+  constructor(
+    private readonly deviceStore: DeviceStore,
+    private readonly haService: HomeAssistantService) {
     super();
   }
 
@@ -54,18 +62,20 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
     params: z.infer<typeof ExecuteDeviceServiceToolSchema>,
     context: ToolContext,
   ): Promise<CallHaServiceResult> {
-    try {
-      const result = await this.haService.callService(params.domain, params.service, params.data || {});
+    const result = await this.haService.callService(params.domain, params.service, params.data || {});
+    await this.deviceStore.update(params.deviceId, {
+      lastTriggeredService: {
+        entityId: params.data?.entity_id ?? '',
+        service: params.service,
+        triggeredBy: context.userId,
+        timestamp: new Date(),
+        metadata: params.data,
+      },
+    });
 
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: err.message || 'Failed to call Home Assistant service',
-      };
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 }

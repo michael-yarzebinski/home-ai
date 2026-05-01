@@ -1,0 +1,186 @@
+import { Injectable } from "@nestjs/common";
+import { GoogleGenerativeAI, Content, Part } from "@google/generative-ai";
+import { LLMServiceBase } from "../../abstract/llm.service.base";
+import { LLMQueryParams, UnifiedMessage, UnifiedToolCall } from "../../types/llm-query-params";
+import { LLMResponse } from "../../types/llm-response";
+import { AIAuditStore } from "../../../core/stores/ai-audit/ai-audit.store";
+
+@Injectable()
+export class GeminiLLMService extends LLMServiceBase {
+  private genAI: GoogleGenerativeAI;
+  private model: string;
+
+  constructor(
+    protected readonly aiAuditStore: AIAuditStore,
+    private readonly modelConfig: {
+      model: string;
+      apiKey: string;
+    }
+  ) {
+    super(aiAuditStore);
+    this.model = modelConfig.model;
+    this.genAI = new GoogleGenerativeAI(modelConfig.apiKey);
+  }
+
+  async query(params: LLMQueryParams): Promise<LLMResponse> {
+    const startTime = Date.now();
+
+    // 1. Initialize the Model with Tools
+    const model = this.genAI.getGenerativeModel({
+      model: this.model,
+      tools: params.tools
+        ? [{ functionDeclarations: this.mapToolsToGemini(params.tools) }]
+        : [],
+      generationConfig: {
+        responseMimeType: params.jsonMode ? "application/json" : "text/plain",
+      },
+    });
+
+    // 2. Convert UnifiedMessages to Gemini "Content" format
+    const contents: Content[] = params.messages.map((msg) => this.mapMessageToContent(msg));
+
+    // 3. Send Request
+    const result = await model.generateContent({ contents });
+    const response = await result.response;
+
+    const latencyMs = Date.now() - startTime;
+
+    // 4. Parse the Response
+    const candidate = response.candidates?.[0];
+    const text = response.text()
+    const thoughtSignature = candidate?.content?.parts?.find(this.isThoughtSignaturePart)?.thoughtSignature;  // Is there a cleaner way?
+    const functionCalls = response.functionCalls();
+
+    const toolCalls: UnifiedToolCall[] | undefined = functionCalls?.map(
+      (call) => ({
+        id: Math.random().toString(36).substring(7), // Gemini doesn't always provide a call ID like OpenAI
+        name: call.name,
+        args: call.args,
+      }),
+    );
+
+    const finalResponse: LLMResponse = {
+      content: text,
+      toolCalls,
+      latencyMs,
+      usage: response.usageMetadata
+        ? {
+          promptTokens: response.usageMetadata.promptTokenCount,
+          completionTokens: response.usageMetadata.candidatesTokenCount,
+          totalTokens: response.usageMetadata.totalTokenCount,
+        }
+        : undefined,
+      metadata: {
+        thoughtSignature,
+      }
+    };
+
+    // 5. Log for Audit
+    await this.logInteraction(params, finalResponse);
+
+    return finalResponse;
+  }
+
+  /**
+   * Maps our Zod Shapes into Gemini Function Declarations
+   */
+  // src/ai/llm/cloud-llm.service.ts
+
+  private mapToolsToGemini(tools: any[]): any[] {
+    return tools.map((tool) => {
+      const properties: any = {};
+      const required: string[] = [];
+
+      // tool.inputSchema is the 'shape' from the Zod object
+      for (const [key, value] of Object.entries(tool.inputSchema)) {
+        const zodValue = value as any;
+
+        // Safety check: ensure _def exists
+        if (!zodValue._def) {
+          console.warn(`Tool ${tool.name} parameter ${key} is missing Zod definition.`);
+          continue;
+        }
+
+        // Map Zod types to JSON Schema types
+        let type = "string"; // fallback
+        const typeName = zodValue._def.typeName;
+
+        if (typeName === "ZodNumber") type = "number";
+        if (typeName === "ZodBoolean") type = "boolean";
+        if (typeName === "ZodArray") type = "array";
+        if (typeName === "ZodObject") type = "object";
+
+        properties[key] = {
+          type,
+          description: zodValue.description || "",
+        };
+
+        // In Zod, things are required unless specified as .optional()
+        if (typeName !== "ZodOptional") {
+          required.push(key);
+        }
+      }
+
+      return {
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: "object",
+          properties,
+          required,
+        },
+      };
+    });
+  }
+
+  /**
+   * Handles Thought Signatures for Gemini 3.1
+   */
+  private mapMessageToContent(msg: UnifiedMessage): Content {
+    const role = msg.role === 'assistant' ? 'model' : 'user';
+    const parts: any[] = [];
+
+    // 1. TOOL TURN (The Result)
+    if (msg.role === 'tool') {
+      parts.push({
+        functionResponse: {
+          name: msg.name!,
+          response: typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content,
+        },
+      });
+      return { role, parts };
+    }
+
+    // 2. ASSISTANT TURN (The Action)
+    if (msg.role === 'assistant') {
+      if (msg.toolCalls && msg.toolCalls.length > 0) {
+        return {
+          role,
+          parts: msg.toolCalls.map((call, index) => {
+            const part: any = {
+              functionCall: {
+                name: call.name,
+                args: call.args,
+              }
+            };
+
+            // Attach to the PART, not the functionCall object
+            if (index === 0 && msg.metadata?.thoughtSignature) {
+              part.thoughtSignature = msg.metadata.thoughtSignature;
+            }
+
+            return part;
+          })
+        };
+      }
+    }
+
+    // 3. TEXT TURN
+    parts.push({ text: msg.content || "" });
+    return { role, parts };
+  }
+
+  private isThoughtSignaturePart(part: any): part is Part & { thoughtSignature: string } {
+    return part && !!part.thoughtSignature;
+  }
+}

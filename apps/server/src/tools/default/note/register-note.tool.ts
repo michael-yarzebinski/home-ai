@@ -30,7 +30,7 @@ export class RegisterNoteTool extends ToolHandler<typeof RegisterNoteToolSchema,
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Register a new Apple Note or folder so the AI can use it. ' +
+    'Register an Apple Note or folder in Home AI so it can be listed and used by tools. ' +
     "Admin-only tool. If read/write roles are not provided, they default to the current user's role.";
 
   readonly parameters = RegisterNoteToolSchema;

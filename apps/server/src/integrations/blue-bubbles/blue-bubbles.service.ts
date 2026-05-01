@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../core/services/app-config.service';
 import { LogStore } from '../../core/stores/log/log.store';
 import axios from 'axios';
+import { v4 } from 'uuid';
 
 @Injectable()
 export class BlueBubblesService {
@@ -22,28 +23,21 @@ export class BlueBubblesService {
     }
 
     async sendMessage(to: string, message: string): Promise<void> {
-        try {
-            await axios.post(this.getAuthUrl('/api/v1/message'), {
-                recipient: to,
-                message,
-                isGroup: false,
-            });
-
-            await this.logStore.create({
-                userId: undefined,
-                severity: 'info',
-                message: `BlueBubbles message sent`,
-                metadata: { to, messageLength: message.length },
-            });
-        } catch (err: any) {
-            await this.logStore.create({
-                userId: undefined,
-                severity: 'error',
-                message: `Failed to send BlueBubbles message`,
-                metadata: { error: err.message, to },
-            });
-            throw err;
+        const payload = {
+            chatGuid: to.includes(';') ? to : `any;-;+${to.replace('+', '')}`,
+            message,
+            tempGuid: v4(),
+            method: 'private-api'
         }
+
+        await axios.post(this.getAuthUrl('/api/v1/message/text'), payload);
+
+        await this.logStore.create({
+            userId: undefined,
+            severity: 'info',
+            message: `BlueBubbles message sent`,
+            metadata: { to, messageLength: message.length },
+        });
     }
 
     /**
@@ -51,10 +45,10 @@ export class BlueBubblesService {
      */
     async startTyping(chatId: string): Promise<void> {
         try {
-            await axios.post(this.getAuthUrl('/api/v1/chat/typing'), {
-                chatId,
-                typing: true,
-            });
+            await axios.post(
+                this.getAuthUrl(`/api/v1/chat/${encodeURIComponent(chatId)}/typing`),
+                {},
+            );
         } catch (err: any) {
             await this.logStore.create({
                 severity: 'warn',
@@ -72,10 +66,9 @@ export class BlueBubblesService {
      */
     async stopTyping(chatId: string): Promise<void> {
         try {
-            await axios.post(this.getAuthUrl('/api/v1/chat/typing'), {
-                chatId,
-                typing: false,
-            });
+            await axios.delete(
+                this.getAuthUrl(`/api/v1/chat/${encodeURIComponent(chatId)}/typing`),
+            );
         } catch (err: any) {
             await this.logStore.create({
                 severity: 'warn',
@@ -91,12 +84,12 @@ export class BlueBubblesService {
     /**
      * Mark a chat or specific message as read.
      */
-    async markAsRead(chatId: string, messageId?: string): Promise<void> {
+    async markAsRead(chatId: string): Promise<void> {
         try {
-            const payload: any = { chatId };
-            if (messageId) payload.messageId = messageId;
-
-            await axios.post(this.getAuthUrl('/api/v1/chat/markRead'), payload);
+            await axios.post(
+                this.getAuthUrl(`/api/v1/chat/${encodeURIComponent(chatId)}/read`),
+                {},
+            );
         } catch (err: any) {
             await this.logStore.create({
                 severity: 'warn',
@@ -108,4 +101,5 @@ export class BlueBubblesService {
             });
         }
     }
+
 }

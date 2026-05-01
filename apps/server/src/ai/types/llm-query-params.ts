@@ -1,7 +1,8 @@
-// src/ai/types/llm-query-params.ts
-import { z } from "zod";
-
 export type MessageRole = "system" | "user" | "assistant" | "tool";
+
+export interface UnifiedMessageMetadata {
+  thoughtSignature?: string;  // For Gemini 3.1+ reasoning chains
+}
 
 export interface UnifiedMessage {
   role: MessageRole;
@@ -11,8 +12,7 @@ export interface UnifiedMessage {
   toolCalls?: UnifiedToolCall[];
   // Used for 'tool' role to provide the result back to the LLM
   toolCallId?: string;
-  // 2026 Standard: For Gemini 3.1+ reasoning chains
-  thoughtSignature?: string;
+  metadata?: UnifiedMessageMetadata;
   isError?: boolean;
 }
 

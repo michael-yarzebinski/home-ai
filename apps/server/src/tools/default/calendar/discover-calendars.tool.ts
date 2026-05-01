@@ -1,13 +1,11 @@
 // src/tools/default/discover-calendars.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
-
-const execAsync = promisify(exec);
+import { ToolUtils } from 'src/tools/utils/tool.utils';
+import { CalendarSummary, CalendarSummarySchema } from './types/calendar.types';
 
 const DiscoverCalendarsToolSchema = z.object({
   query: z
@@ -17,12 +15,8 @@ const DiscoverCalendarsToolSchema = z.object({
 });
 
 export interface DiscoverCalendarsResult {
-  calendars: Array<{
-    name: string;
-    friendlyName: string;
-    color?: string;
-  }>;
-  totalFound: number;
+  calendars: CalendarSummary[];
+  total: number;
   message: string;
 }
 
@@ -36,9 +30,8 @@ export class DiscoverCalendarsTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Discover and list all calendars that exist in the Apple Calendar app. ' +
-    'This tool reaches out to the external Calendar app (not just our internal database). ' +
-    'Use this tool when the user wants to register a new calendar into the Home AI system.';
+    'Discover calendars in the Apple Calendar app (external), for example before register-calendar in Home AI. ' +
+    'For calendars already registered in Home AI, prefer list-calendars (permission-filtered).';
 
   readonly parameters = DiscoverCalendarsToolSchema;
 
@@ -47,48 +40,46 @@ export class DiscoverCalendarsTool extends ToolHandler<
     context: ToolContext,
   ): Promise<DiscoverCalendarsResult> {
     const script = `
-      tell application "Calendar"
-        set theCalendars to every calendar
-        set calendarList to {}
-        
-        repeat with c in theCalendars
-          set calendarInfo to {
-            name: name of c,
-            color: color of c as string
-          }
-          copy calendarInfo to end of calendarList
-        end repeat
-        
-        return calendarList
-      end tell
+    tell application "Calendar"
+      set theCalendars to every calendar
+      set jsonOutput to "["
+      set firstCalendar to true
+
+      repeat with c in theCalendars
+        set myName to name of c
+        set {r, g, b} to color of c
+        set r8 to (r / 256) as integer
+        set g8 to (g / 256) as integer
+        set b8 to (b / 256) as integer
+        set colorValue to "rgb(" & r8 & "," & g8 & "," & b8 & ")"
+        set calendarString to "{\\"name\\":\\"" & myName & "\\",\\"friendlyName\\":\\"" & myName & "\\",\\"color\\":\\"" & colorValue & "\\"}"
+
+        if firstCalendar then
+          set jsonOutput to jsonOutput & calendarString
+          set firstCalendar to false
+        else
+          set jsonOutput to jsonOutput & "," & calendarString
+        end if
+      end repeat
+
+      set jsonOutput to jsonOutput & "]"
+      return jsonOutput
+    end tell
     `;
 
-    try {
-      const { stdout } = await execAsync(`osascript -e '${script}'`);
-      let rawCalendars = JSON.parse(stdout.trim() || '[]');
+    const result = await this.runAppleScript(script);
+    let calendars = ToolUtils.parseArray(result, CalendarSummarySchema);
 
-      if (params.query) {
-        const term = params.query.toLowerCase();
-        rawCalendars = rawCalendars.filter((c: any) => c.name.toLowerCase().includes(term));
-      }
-
-      const calendars = rawCalendars.map((c: any) => ({
-        name: c.name,
-        friendlyName: c.name,
-        color: c.color,
-      }));
-
-      return {
-        calendars,
-        totalFound: calendars.length,
-        message: `Found ${calendars.length} calendars in Apple Calendar.`,
-      };
-    } catch (err: any) {
-      return {
-        calendars: [],
-        totalFound: 0,
-        message: `Failed to discover calendars from Apple Calendar: ${err.message}`,
-      };
+    if (params.query) {
+      const term = params.query.toLowerCase();
+      calendars = calendars.filter((c) => c.name.toLowerCase().includes(term));
     }
+
+    return {
+      calendars,
+      total: calendars.length,
+      message: `Found ${calendars.length} calendars in Apple Calendar.`,
+    };
   }
+
 }

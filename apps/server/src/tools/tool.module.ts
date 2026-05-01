@@ -21,9 +21,10 @@ import { DiscoverNotesTool } from './default/note/discover-note.tool';
 import { GetNoteTool } from './default/note/get-note.tool';
 import { ListNotesTool } from './default/note/list-notes.tool';
 import { RegisterNoteTool } from './default/note/register-note.tool';
-import { AddNotificationPreferenceTool } from './default/notification-preference/add-notification-preference.tool';
-import { ListNotificationPreferencesTool } from './default/notification-preference/list-notification-preferences.tool';
-import { UpdateNotificationPreferenceTool } from './default/notification-preference/update-notification-preference.tool';
+import { AddAutomationRuleTool } from './default/automation-rule/add-automation-rule.tool';
+import { GetAutomationRulesTool } from './default/automation-rule/get-automation-rules.tool';
+import { ListAutomationRulesTool } from './default/automation-rule/list-automation-rules.tool';
+import { UpdateAutomationRuleTool } from './default/automation-rule/update-automation-rule.tool';
 import { GetWeatherTool } from './default/weather/get-weather.tool';
 import { ApproveActionTool } from './default/pending-action/approve-action.tool';
 import { ProposeActionTool } from './default/pending-action/propose-action.tool';
@@ -31,10 +32,12 @@ import { SendNotificationTool } from './default/send-notification.tool';
 import { IntegrationsModule } from 'src/integrations/integrations.module';
 import { ListPendingActionsTool } from './default/pending-action/list-pending-actions.tool';
 import { McpService } from '../ai/mcp/mcp.service';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     CoreModule,
+    AIModule,
     DiscoveryModule,
     FeaturesModule,
     IntegrationsModule,
@@ -61,9 +64,10 @@ import { McpService } from '../ai/mcp/mcp.service';
     GetNoteTool,
     ListNotesTool,
     RegisterNoteTool,
-    AddNotificationPreferenceTool,
-    ListNotificationPreferencesTool,
-    UpdateNotificationPreferenceTool,
+    AddAutomationRuleTool,
+    GetAutomationRulesTool,
+    ListAutomationRulesTool,
+    UpdateAutomationRuleTool,
     ApproveActionTool,
     ProposeActionTool,
     ListPendingActionsTool,

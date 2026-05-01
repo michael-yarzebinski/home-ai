@@ -22,7 +22,8 @@ export interface DiscoverDevicesResult {
     category?: string;
     entityIds: string[];
   }>;
-  totalFound: number;
+  suggestedSlug: string;
+  total: number;
   message: string;
 }
 
@@ -36,9 +37,8 @@ export class DiscoverDevicesTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Discover devices from Home Assistant by searching entity IDs, friendly names, or attributes. ' +
-    'This tool reaches out to the external Home Assistant service. ' +
-    'Use this when the user refers to a device by name and it may not yet be registered in our system.';
+    'Discover devices from Home Assistant (external) by entity ID, friendly name, or attributes—use before register-device in Home AI. ' +
+    'For devices already registered in Home AI, prefer list-devices (permission-filtered).';
 
   readonly parameters = DiscoverDevicesToolSchema;
 
@@ -51,18 +51,19 @@ export class DiscoverDevicesTool extends ToolHandler<
     context: ToolContext,
   ): Promise<DiscoverDevicesResult> {
     const allEntities = await this.haService.getAllEntities();
-
-    const searchTerm = params.query.toLowerCase().trim();
+    const normalizedQuery = this.normalize(params.query);
 
     const matchingEntities = Object.values(allEntities).filter((entity: HassEntity) => {
-      const entityId = entity.entity_id.toLowerCase();
-      const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-      const deviceClass = (entity.attributes?.device_class || '').toLowerCase();
+      // Normalize all searchable attributes
+      const normalizedId = this.normalize(entity.entity_id);
+      const normalizedName = this.normalize(entity.attributes?.friendly_name || '');
+      const normalizedClass = this.normalize(entity.attributes?.device_class || '');
 
+      // Check if the query exists anywhere in the normalized strings
       return (
-        entityId.includes(searchTerm) ||
-        friendlyName.includes(searchTerm) ||
-        deviceClass.includes(searchTerm)
+        normalizedId.includes(normalizedQuery) ||
+        normalizedName.includes(normalizedQuery) ||
+        normalizedClass.includes(normalizedQuery)
       );
     });
 
@@ -83,11 +84,50 @@ export class DiscoverDevicesTool extends ToolHandler<
     });
 
     const devices = Array.from(grouped.values());
+    const suggestedSlug = this.generateSuggestedSlug(matchingEntities.map(e => e.entity_id));
 
     return {
       devices,
-      totalFound: devices.length,
+      suggestedSlug,
+      total: devices.length,
       message: `Found ${devices.length} matching devices in Home Assistant.`,
     };
+  }
+
+  private normalize(text: string): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .trim()
+      // Replace underscores, hyphens, and spaces with nothing
+      .replace(/[\s_-]/g, '');
+  }
+
+  private generateSuggestedSlug(entityIds: string[]): string {
+    if (entityIds.length === 0) return 'unknown_device';
+    if (entityIds.length === 1) {
+      // Just strip the domain: "light.kitchen_main" -> "kitchen_main"
+      return entityIds[0].split('.')[1];
+    }
+
+    // 1. Strip domains: ["sensor.fridge_temp", "binary_sensor.fridge_door"] -> ["fridge_temp", "fridge_door"]
+    const objectIds = entityIds.map(id => id.split('.')[1]);
+
+    // 2. Find the common prefix/stem
+    // We'll sort to compare the most different strings first for efficiency
+    const sorted = [...objectIds].sort();
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    let i = 0;
+
+    while (i < first.length && first.charAt(i) === last.charAt(i)) {
+      i++;
+    }
+
+    // 3. Clean up trailing underscores: "fridge_" -> "fridge"
+    const stem = first.substring(0, i).replace(/_$/, '');
+
+    // Fallback: if no commonality, use the first object ID
+    return stem || objectIds[0];
   }
 }

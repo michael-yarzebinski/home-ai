@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { LLMServiceBase } from "../abstract/llm.service.base";
-import { LLMQueryParams, UnifiedToolCall } from "../types/llm-query-params";
-import { LLMResponse } from "../types/llm-response";
-import { AIAuditStore } from "../../core/stores/ai-audit/ai-audit.store";
-import { AppConfigService } from "../../core/services/app-config.service";
+import { LLMServiceBase } from "../../abstract/llm.service.base";
+import { LLMQueryParams, UnifiedToolCall } from "../../types/llm-query-params";
+import { LLMResponse } from "../../types/llm-response";
+import { AIAuditStore } from "../../../core/stores/ai-audit/ai-audit.store";
+import { AppConfigService } from "../../../core/services/app-config.service";
 import OpenAI from "openai";
 
 @Injectable()
@@ -12,22 +12,17 @@ export class LocalLLMService extends LLMServiceBase {
   private model: string;
 
   constructor(
-    protected readonly appConfigService: AppConfigService,
     protected readonly aiAuditStore: AIAuditStore,
+    private readonly modelConfig: {
+      model: string;
+      baseURL: string;
+    }
   ) {
     super(aiAuditStore);
 
-    const baseUrl = this.appConfigService.getFromEnv("LOCAL_LLM_URL");
-    this.model = this.appConfigService.getFromEnv("LOCAL_LLM_MODEL");
-
-    // Ollama's OpenAI-compatible API is hosted at /v1
-    // We append it here to ensure compatibility even if the env var is just the base URL
-    const sanitizedBaseUrl = baseUrl.endsWith("/v1")
-      ? baseUrl
-      : `${baseUrl.replace(/\/$/, "")}/v1`;
-
+    this.model = modelConfig.model;
     this.openai = new OpenAI({
-      baseURL: sanitizedBaseUrl,
+      baseURL: modelConfig.baseURL,
       apiKey: "ollama",
     });
   }

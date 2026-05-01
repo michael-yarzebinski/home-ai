@@ -5,33 +5,53 @@ import { DeviceStore } from 'src/core/stores/device/device.store';
 import { ToolHandler } from 'src/tools/abstract/tool-handler';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolContext } from 'src/tools/types/tool-context';
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 import { z } from 'zod';
 
 const RegisterDeviceToolSchema = z.object({
   slug: z
-    .string()
-    .min(1)
+    .preprocess(ToolParameterUtils.stripQuotes, z.string().min(1))
     .describe(
-      'Unique slug to identify all related Home Assistant entities — the link between our logical devices and Home Assistant entities',
+      'Unique identifier for the device. Use the slug provided by discover-devices (e.g., "living_room_fan") to ensure consistency.'
     ),
 
-  friendlyName: z.string().min(1).describe('Human-friendly name of the device'),
+  friendlyName: z
+    .preprocess(ToolParameterUtils.stripQuotes, z.string().min(1))
+    .describe('Human-friendly name of the device'),
 
-  room: z.string().optional().describe('Room where the device is located'),
+  room: z
+    .preprocess(
+      (v) => (ToolParameterUtils.isEmptyOptionalInput(v) ? undefined : ToolParameterUtils.stripQuotes(v)),
+      z.string().optional(),
+    )
+    .describe('Room where the device is located'),
 
-  category: z.string().optional().describe('Category/type of device'),
+  category: z
+    .preprocess(
+      (v) => (ToolParameterUtils.isEmptyOptionalInput(v) ? undefined : ToolParameterUtils.stripQuotes(v)),
+      z.string().optional(),
+    )
+    .describe('Category/type of device'),
 
-  aliases: z.array(z.string()).optional().describe('Alternative names the user might use'),
+  aliases: z
+    .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
+    .optional()
+    .describe('Alternative names the user might use'),
 
   readRoles: z
-    .array(z.string())
+    .preprocess(ToolParameterUtils.toRoleArray, z.array(z.nativeEnum(Role)))
     .optional()
     .describe("Roles that can read this device. If omitted, defaults to current user's role."),
 
   writeRoles: z
-    .array(z.string())
+    .preprocess(ToolParameterUtils.toRoleArray, z.array(z.nativeEnum(Role)))
     .optional()
     .describe("Roles that can control this device. If omitted, defaults to current user's role."),
+
+  isTimeSensitive: z
+    .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
+    .default(false)
+    .describe('Whether this device is time-sensitive. Optional; defaults to false.'),
 });
 
 export interface RegisterDeviceResult {
@@ -47,8 +67,8 @@ export class RegisterDeviceTool extends ToolHandler<typeof RegisterDeviceToolSch
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Register a new logical device so the AI can control and query it. ' +
-    'This links a Home Assistant device into our system. Admin-only tool.';
+    'Register a logical device in Home AI so it can be controlled and queried via tools. Use discover-devices first to find the Home Assistant entity. ' +
+    'Admin-only tool.';
 
   readonly parameters = RegisterDeviceToolSchema;
 
@@ -61,10 +81,10 @@ export class RegisterDeviceTool extends ToolHandler<typeof RegisterDeviceToolSch
     context: ToolContext,
   ): Promise<RegisterDeviceResult> {
     const readRoles = params.readRoles?.length
-      ? (params.readRoles as Role[])
+      ? params.readRoles
       : [context.userRole];
     const writeRoles = params.writeRoles?.length
-      ? (params.writeRoles as Role[])
+      ? params.writeRoles
       : [context.userRole];
 
     const device = await this.deviceStore.create({
@@ -75,6 +95,7 @@ export class RegisterDeviceTool extends ToolHandler<typeof RegisterDeviceToolSch
       aliases: params.aliases || [],
       readRoles,
       writeRoles,
+      isTimeSensitive: params.isTimeSensitive,
       extraMetadata: {},
     });
 

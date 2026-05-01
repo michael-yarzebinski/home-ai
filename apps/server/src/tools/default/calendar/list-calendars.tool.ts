@@ -27,7 +27,8 @@ export class ListCalendarsTool extends ToolHandler<typeof ListCalendarsToolSchem
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'List all calendars that are registered in the system. ' + 'Returns only calendars the current user has permission to see.';
+    'List calendars registered in Home AI; returns only calendars this user may see (canRead/canWrite on each row). ' +
+    'Use discover-calendars only when you need calendars from the Apple Calendar app before registering them in Home AI.';
 
   readonly parameters = ListCalendarsToolSchema;
 

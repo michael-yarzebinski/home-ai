@@ -4,14 +4,18 @@ import { ToolHandler } from "src/tools/abstract/tool-handler";
 import { ToolContext } from "src/tools/types/tool-context";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { IngredientStore } from "../stores/ingredients.store";
-import { LLMServiceBase } from "../../../ai/abstract/llm.service.base";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
+import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
 
 const StandardizeIngredientsSchema = z.object({
-  ingredients: z
-    .array(z.string())
-    .describe(
-      "An array of raw ingredient strings to be structured (e.g. ['2 cups flour', 'pinch of salt']).",
-    ),
+  ingredients: z.preprocess(
+    ToolParameterUtils.toStringArray,
+    z
+      .array(z.string())
+      .describe(
+        "An array of raw ingredient strings to be structured (e.g. ['2 cups flour', 'pinch of salt']).",
+      ),
+  ),
 });
 
 export interface StructuredIngredient {
@@ -30,12 +34,12 @@ export class StandardizeIngredientsTool extends ToolHandler<
   readonly name = "standardize-ingredients";
 
   readonly description =
-    "Converts a list of raw ingredient strings into structured JSON objects. Use this before calling add-recipe.";
+    "Turn raw ingredient lines into structured objects for add-recipe. Use before add-recipe when saving a recipe in Home AI.";
 
   readonly parameters = StandardizeIngredientsSchema;
 
   constructor(
-    private readonly llm: LLMServiceBase,
+    private readonly llmProviderService: LLMProviderService,
     private readonly ingredientStore: IngredientStore,
   ) {
     super();
@@ -74,7 +78,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
       - PREFER these existing names if they match: ${knownNames || "None"}.
     `;
 
-    const response = await this.llm.query({
+    const response = await this.llmProviderService.query({
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: JSON.stringify(params.ingredients) },
@@ -85,7 +89,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
         chatSessionId: context.chatSessionId,
         originalPrompt: `Standardizing ${params.ingredients.length} ingredients`,
       },
-    });
+    }, LLMModelTypes.IMMEDIATE);
 
     try {
       const parsed =

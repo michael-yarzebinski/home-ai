@@ -46,10 +46,10 @@ export abstract class AbstractEntityStore<
     }
 
     protected get active(): Knex.QueryBuilder<TRecord, TRecord[]> {
-        return this.table.where({ active : true });
+        return this.table.where({ active: true });
     }
 
-    protected activeOrInactive(includeInactive: boolean): Knex.QueryBuilder<TRecord, TRecord[]>  {
+    protected activeOrInactive(includeInactive: boolean): Knex.QueryBuilder<TRecord, TRecord[]> {
         return includeInactive ? this.table : this.active
     }
 

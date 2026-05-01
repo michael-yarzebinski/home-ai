@@ -1,37 +1,52 @@
 // src/tools/default/read-calendar-events.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
-
-const execAsync = promisify(exec);
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
+import { ToolUtils } from 'src/tools/utils/tool.utils';
+import { CalendarEvent, CalendarEventSchema } from './types/calendar.types';
 
 const GetCalendarEventsToolSchema = z.object({
-  dateQuery: z
-    .string()
-    .min(1)
+  startDate: z
+    .preprocess(
+      ToolParameterUtils.formatForAppleScriptDate,
+      z.string().min(1)
+    )
     .describe(
-      'Flexible date query: specific date, natural language, or range. Examples: "March 15th", "next Friday", "this weekend", "March 15th to March 20th", "tomorrow".',
+      'The start date/time for the search. Always provide this as a specific timestamp ' +
+      '(e.g., "2026-04-27 00:00:00"). If the user says "today", calculate the date based ' +
+      'on the current context time.'
+    ),
+
+  endDate: z
+    .preprocess(
+      (value) => {
+        if (!value || value === '' || value === null) return undefined;
+        return ToolParameterUtils.formatForAppleScriptDate(value);
+      },
+      z.string().optional()
+    )
+    .describe(
+      'The end date/time for the search. If the user specifies a range like "this weekend" ' +
+      'or "next week", calculate the specific end timestamp. If omitted, the tool ' +
+      'defaults to the end of the day specified in startDate.'
     ),
 
   calendarName: z
-    .string()
-    .optional()
-    .describe('Optional specific calendar name (e.g. "Family", "Work", "Personal")'),
+    .preprocess(
+      ToolParameterUtils.stripQuotes,
+      z.string()
+    )
+    .describe(
+      'Calendar `name` from list-calendars (calendars registered in Home AI). Call list-calendars first if unknown.',
+    ),
 });
 
 export interface GetCalendarEventsResult {
-  events: Array<{
-    title: string;
-    startTime: string;
-    endTime?: string;
-    location?: string;
-    calendar: string;
-  }>;
-  totalEvents: number;
+  events: CalendarEvent[];
+  total: number;
   message: string;
 }
 
@@ -45,8 +60,8 @@ export class GetCalendarEventsTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Read events from Apple Calendar for a specific date, natural language date, or date range. ' +
-    'Examples: "March 15th", "next Friday", "this weekend", "March 15th to March 20th", "tomorrow".';
+    'Read events from Apple Calendar for a time range. Always call list-calendars first and use a calendar `name` registered in Home AI (not friendlyName). ' +
+    'Compute concrete start/end timestamps from the user request.';
 
   readonly parameters = GetCalendarEventsToolSchema;
 
@@ -54,62 +69,63 @@ export class GetCalendarEventsTool extends ToolHandler<
     params: z.infer<typeof GetCalendarEventsToolSchema>,
     context: ToolContext,
   ): Promise<GetCalendarEventsResult> {
-    const calendarFilter = params.calendarName
-      ? `whose calendar is "${params.calendarName}"`
-      : '';
+    const calendarTarget = `calendar "${params.calendarName}"`
 
     const script = `
-      tell application "Calendar"
-        set theStartDate to date "${params.dateQuery}"
-        set theEndDate to theStartDate + 1 * days  -- default to 1 day if no range is given
+    tell application "Calendar"
+      set theStartDate to date "${params.startDate}"
+      ${params.endDate
+        ? `set theEndDate to date "${params.endDate}"`
+        : `set theEndDate to theStartDate + (24 * hours) - 1`
+      }
+      
+      set jsonOutput to "["
+      
+      -- If we are targeting one calendar, we wrap it in a list to use the same repeat logic
+      set targetCalendars to ${params.calendarName ? `{${calendarTarget}}` : calendarTarget}
+      
+      set firstEvent to true
+      
+      repeat with aCalendar in targetCalendars
+        set theEvents to (every event of aCalendar whose start date is greater than or equal to theStartDate and start date is less than or equal to theEndDate)
         
-        -- Try to detect ranges like "March 15th to March 20th"
-        set theQuery to "${params.dateQuery}"
-        if theQuery contains " to " or theQuery contains " - " then
-          set theEndDate to date (text -1 thru -1 of theQuery) -- crude, but works for many cases
-        end if
-        
-        set theEvents to every event ${calendarFilter} whose start date is greater than or equal to theStartDate and start date is less than or equal to theEndDate
-        
-        set eventList to {}
         repeat with anEvent in theEvents
-          set eventInfo to {
-            title: summary of anEvent,
-            startTime: start date of anEvent as string,
-            endTime: end date of anEvent as string,
-            location: location of anEvent,
-            calendar: calendar of anEvent
-          }
-          copy eventInfo to end of eventList
+          -- Get properties safely
+          set eUID to uid of anEvent
+          set eSummary to summary of anEvent
+          set eStart to start date of anEvent as string
+          set eEnd to end date of anEvent as string
+          set loc to location of anEvent
+          if loc is missing value then set loc to ""
+          
+          -- Building the JSON string piece by piece to avoid delimiter issues
+          set eventString to "{\\"uid\\":\\"" & eUID & "\\",\\"title\\":\\"" & eSummary & "\\",\\"startTime\\":\\"" & eStart & "\\",\\"endTime\\":\\"" & eEnd & "\\",\\"location\\":\\"" & loc & "\\",\\"calendar\\":\\"" & (name of aCalendar) & "\\"}"
+          
+          if firstEvent then
+            set jsonOutput to jsonOutput & eventString
+            set firstEvent to false
+          else
+            set jsonOutput to jsonOutput & "," & eventString
+          end if
         end repeat
-        
-        return eventList
-      end tell
-    `;
+      end repeat
+      
+      set jsonOutput to jsonOutput & "]"
+      return jsonOutput
+    end tell
+  `;
 
-    try {
-      const { stdout } = await execAsync(`osascript -e '${script}'`);
-      const rawEvents = JSON.parse(stdout.trim() || '[]');
+    // Note: Standard AppleScript returns a proprietary list format. 
+    // To move to production, we'll want to refactor this logic to JXA 
+    // so we can use JSON.stringify() inside the script. [cite: 231]
+    const result = await this.runAppleScript(script);
 
-      const events = rawEvents.map((e: any) => ({
-        title: e.title || 'Untitled Event',
-        startTime: e.startTime,
-        endTime: e.endTime,
-        location: e.location || undefined,
-        calendar: e.calendar || 'Calendar',
-      }));
+    const events = ToolUtils.parseArray(result, CalendarEventSchema);
 
-      return {
-        events,
-        totalEvents: events.length,
-        message: `Found ${events.length} events.`,
-      };
-    } catch (err: any) {
-      return {
-        events: [],
-        totalEvents: 0,
-        message: `Failed to read calendar: ${err.message}`,
-      };
-    }
+    return {
+      events,
+      total: events.length,
+      message: `Successfully retrieved ${events.length} events from ${params.calendarName ?? 'all calendars'}.`,
+    };
   }
 }

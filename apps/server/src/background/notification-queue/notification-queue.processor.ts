@@ -1,5 +1,5 @@
 // src/background/notification-queue.processor.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationQueueStore } from '../../core/stores/notification-queue/notification-queue.store';
 import { NotificationLogStore } from '../../core/stores/notification-log/notification-log.store';
@@ -15,7 +15,7 @@ export class NotificationQueueProcessor {
     private readonly blueBubblesService: BlueBubblesService,
     private readonly userStore: UserStore,
     private readonly logStore: LogStore,
-  ) {}
+  ) { }
 
   /**
    * Runs every minute to process queued notifications.
@@ -86,6 +86,8 @@ export class NotificationQueueProcessor {
           message: `Failed to process queued notification`,
           metadata: { notificationId: notification.id, error: err.message },
         });
+
+        continue;
       }
     }
 

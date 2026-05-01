@@ -4,7 +4,8 @@ import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
 import type { SearchCriteria } from '@home-ai/shared/search/search';
 import { Paginated } from '@home-ai/shared/search/pagination';
 import type { Log } from '@home-ai/shared/domain/log/log';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Insertable } from '@home-ai/shared/src/domain/helper/crud.helper';
 
 export interface LogRecord {
   id: string;
@@ -17,6 +18,8 @@ export interface LogRecord {
 
 @Injectable()
 export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
+  private logger = new Logger(LogStore.name);
+
   constructor(@Inject('KNEX_CONNECTION') knex: Knex,) {
     super(knex, { tableName: 'logs' });
   }
@@ -52,5 +55,10 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
       metadata: domain.metadata,
       created_at: domain.createdAt,
     };
+  }
+
+  async create(log: Insertable<Log>): Promise<Log> {
+    this.logger.log(log)
+    return super.create(log);
   }
 }

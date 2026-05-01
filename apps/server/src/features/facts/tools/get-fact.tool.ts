@@ -5,12 +5,12 @@ import { z } from 'zod';
 import { FactsStore } from '../stores/facts.store';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 
 const GetFactToolSchema = z.object({
   key: z
-    .string()
-    .min(1)
-    .describe('The exact key of the fact to retrieve (e.g. "Toms birthday", "wifi password", "garage code")'),
+    .preprocess(ToolParameterUtils.toStringValue, z.string().min(1))
+    .describe('Exact key from list-facts (facts registered in Home AI). Do not guess.'),
 });
 
 export interface GetFactResult {
@@ -26,9 +26,7 @@ export class GetFactTool extends ToolHandler<typeof GetFactToolSchema, GetFactRe
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Retrieve a specific fact by its exact key. ' +
-    'Only use this tool if you already know the exact key from a previous list-facts call. ' +
-    'Do not guess the key. If unsure, call list-facts first.';
+    'Retrieve a fact registered in Home AI by exact key. Call list-facts first unless the key is already known.';
 
   readonly parameters = GetFactToolSchema;
 

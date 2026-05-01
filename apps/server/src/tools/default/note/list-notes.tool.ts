@@ -27,9 +27,9 @@ export class ListNotesTool extends ToolHandler<typeof ListNotesToolSchema, ListN
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'List all notes and note folders that are registered in the system. ' +
-    'This is the recommended first step when the user asks about any note. ' +
-    'Always call this tool first unless you already know the exact note name from previous context.';
+    'List notes registered in Home AI; each row includes canRead/canWrite for this user. ' +
+    'Call this before get-note or add-to-note unless the exact registered name is already known. ' +
+    'Use discover-notes only when you need names from the Apple Notes app before registering the note in Home AI.';
 
   readonly parameters = ListNotesToolSchema;
 

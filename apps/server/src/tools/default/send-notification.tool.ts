@@ -52,8 +52,9 @@ export class SendNotificationTool extends ToolHandler<
     context: ToolContext,
   ): Promise<SendNotificationResult> {
     await this.notificationService.notifyUser(
-      context.userId,
       params.message,
+      params.userId,
+      context.userId,
       params.importance,
     );
 

@@ -2,7 +2,7 @@
 import { ClsStore } from 'nestjs-cls';
 import { Role } from '@home-ai/shared/domain/role/role';
 
-export interface HomeAiClsStore extends ClsStore {
+export interface HomeAIClsStore extends ClsStore {
   // --- Identity ---
   userId: string;
   userRole: Role;

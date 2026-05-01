@@ -18,10 +18,6 @@
     "baseUrl": ".",
     "paths": {
       "@home-ai/shared/*": ["apps/shared/src/*"],
-      "src/*": ["apps/server/src/*"]
-      // "@modelcontextprotocol/sdk/server/mcp.js": [
-      //   "node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"
-      // ]
     }
   }
 }

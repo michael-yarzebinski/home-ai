@@ -7,14 +7,23 @@ import { ToolContext } from 'src/tools/types/tool-context';
 import { z } from 'zod';
 
 const GetWeatherToolSchema = z.object({
-  forecastDays: z
-    .number()
-    .int()
-    .min(1)
-    .max(7)
-    .optional()
-    .default(2)
-    .describe('Number of days of forecast to include (1-7). Optional; defaults to 2.'),
+  forecastDays: z.preprocess(
+    (value) => {
+      if (typeof value === 'string') {
+        const parsed = Number(value.trim());
+        return Number.isNaN(parsed) ? value : parsed;
+      }
+      return value;
+    },
+    z
+      .number()
+      .int()
+      .min(1)
+      .max(7)
+      .optional()
+      .default(2)
+      .describe('Number of days of forecast to include (1-7). Optional; defaults to 2.'),
+  ),
 });
 
 export interface GetWeatherResult {

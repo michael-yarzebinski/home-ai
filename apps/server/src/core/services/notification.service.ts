@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ToolStore } from "../stores/tool/tool.store";
 import { UserStore } from "../stores/user/user.store";
 import { NotificationQueueStore } from "../stores/notification-queue/notification-queue.store";
+import { AppConfigService } from "./app-config.service";
 
 @Injectable()
 export class NotificationService {
@@ -11,7 +12,8 @@ export class NotificationService {
     private readonly toolStore: ToolStore,
     private readonly userStore: UserStore,
     private readonly notificationQueueStore: NotificationQueueStore,
-  ) {}
+    private readonly appConfigService: AppConfigService,
+  ) { }
 
   /**
    * Dispatches notifications to authorized users based on the tool's notifyRoles configuration.
@@ -25,13 +27,13 @@ export class NotificationService {
     requesterId: string,
     context:
       | {
-          isRequesting: true;
-          isNotifying: false;
-        }
+        isRequesting: true;
+        isNotifying: false;
+      }
       | {
-          isRequesting: false;
-          isNotifying: true;
-        },
+        isRequesting: false;
+        isNotifying: true;
+      },
     importance: string = "low",
   ): Promise<void> {
     try {
@@ -79,7 +81,8 @@ export class NotificationService {
     originalRequestUserId?: string,
     importance: string = "low",
   ): Promise<void> {
-    if (toNotifyUserId === originalRequestUserId) {
+    const automationUserId = await this.appConfigService.getFromDb<string>("AUTOMATION_USER_ID");
+    if (toNotifyUserId === originalRequestUserId || toNotifyUserId === automationUserId) {
       return;
     }
 

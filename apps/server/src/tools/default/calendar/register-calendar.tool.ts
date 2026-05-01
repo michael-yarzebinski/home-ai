@@ -6,6 +6,7 @@ import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { Role } from '@home-ai/shared/domain/role/role';
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 
 const RegisterCalendarToolSchema = z.object({
   name: z
@@ -13,8 +14,14 @@ const RegisterCalendarToolSchema = z.object({
     .min(1)
     .describe('Exact calendar name from Apple Calendar (e.g. "Family")'),
   friendlyName: z.string().optional().describe('Friendly display name (optional)'),
-  readRoles: z.array(z.string()).optional().describe('Roles that can read this calendar'),
-  writeRoles: z.array(z.string()).optional().describe('Roles that can write to this calendar'),
+  readRoles: z
+    .preprocess(ToolParameterUtils.toRoleArray, z.array(z.nativeEnum(Role)))
+    .optional()
+    .describe('Roles that can read this calendar (supports "all")'),
+  writeRoles: z
+    .preprocess(ToolParameterUtils.toRoleArray, z.array(z.nativeEnum(Role)))
+    .optional()
+    .describe('Roles that can write to this calendar (supports "all")'),
   color: z.string().optional().describe('Optional color for the calendar'),
 });
 
@@ -34,7 +41,7 @@ export class RegisterCalendarTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Register a new Apple Calendar so the AI can use it. ' +
+    'Register an Apple Calendar in Home AI so it can be listed and used by tools. ' +
     "Admin-only tool. If read/write roles are not provided, they default to the current user's role.";
 
   readonly parameters = RegisterCalendarToolSchema;
@@ -47,12 +54,8 @@ export class RegisterCalendarTool extends ToolHandler<
     params: z.infer<typeof RegisterCalendarToolSchema>,
     context: ToolContext,
   ): Promise<RegisterCalendarResult> {
-    const readRoles = params.readRoles?.length
-      ? (params.readRoles as Role[])
-      : [context.userRole];
-    const writeRoles = params.writeRoles?.length
-      ? (params.writeRoles as Role[])
-      : [context.userRole];
+    const readRoles = params.readRoles?.length ? params.readRoles : [context.userRole];
+    const writeRoles = params.writeRoles?.length ? params.writeRoles : [context.userRole];
 
     const calendar = await this.calendarStore.create({
       name: params.name,

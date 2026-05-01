@@ -8,24 +8,30 @@ import { RecipeStore } from "../stores/recipe.store";
 import { AppConfigService } from "src/core/services/app-config.service";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { Injectable } from "@nestjs/common";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const IngredientSchema = z.object({
-  name: z.string().min(1, "Ingredient name is required"),
-  quantity: z.number().optional(),
-  unit: z.string().optional(),
-  notes: z.string().optional(),
+  name: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Ingredient name is required")),
+  quantity: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  unit: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
+  notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
 });
 
 const AddRecipeToolSchema = z.object({
-  title: z.string().min(1, "Recipe title is required"),
-  ingredients: z.array(IngredientSchema).describe("The structured list of ingredients."),
-  instructions: z.string().min(10, "Instructions are too short"),
-  servings: z.number().optional(),
-  prepTimeMinutes: z.number().optional(),
-  cookTimeMinutes: z.number().optional(),
-  url: z.string().url().optional().or(z.literal("")),
-  notes: z.string().optional(),
-  temporaryPdfPath: z.string().min(1, "PDF path is required"),
+  title: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Recipe title is required")),
+  ingredients: z
+    .preprocess(ToolParameterUtils.toUnknownArray, z.array(IngredientSchema))
+    .describe("The structured list of ingredients."),
+  instructions: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(10, "Instructions are too short")),
+  servings: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  prepTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  cookTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  url: z.preprocess(ToolParameterUtils.toStringValue, z.string().url().optional().or(z.literal(""))),
+  notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
+  temporaryPdfPath: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(1, "PDF path is required"),
+  ),
 });
 
 export interface AddRecipeResult {
@@ -45,7 +51,7 @@ export class AddRecipeTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Create a new recipe record. IMPORTANT: You MUST call 'standardize-ingredients' or 'standardize-recipe' first.";
+    "Save a recipe registered in Home AI. Call standardize-ingredients or standardize-recipe first, then pass the resulting fields and temporaryPdfPath.";
 
   readonly parameters = AddRecipeToolSchema;
 

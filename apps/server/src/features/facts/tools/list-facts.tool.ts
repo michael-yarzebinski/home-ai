@@ -27,9 +27,8 @@ export class ListFactsTool extends ToolHandler<typeof ListFactsToolSchema, ListF
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'List all facts the current user has permission to see. ' +
-    'This is the recommended first step when the user asks about any stored fact. ' +
-    'Always call this tool first unless you already know the exact fact key from previous context.';
+    'List facts registered in Home AI; returns only facts this user may see (canRead/canWrite on each row). ' +
+    'Call this before get-fact or update-fact unless the exact key is already known.';
 
   readonly parameters = ListFactsToolSchema;
 

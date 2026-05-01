@@ -9,7 +9,7 @@ export class WeatherService {
 
   constructor(
     private readonly logStore: LogStore,
-  ) {}
+  ) { }
 
   /**
    * Get current weather + forecast for a given number of days.
@@ -39,7 +39,10 @@ export class WeatherService {
           current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_direction_10m',
           daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset',
           timezone: 'auto',
-          forecast_days: forecastDays,           // ← Now configurable
+          forecast_days: forecastDays,
+          temperature_unit: "fahrenheit",   // or "celsius"
+          wind_speed_unit: "mph",           // or "kmh", "ms", "kn"
+          precipitation_unit: "inch",       // or "mm"
         },
       });
 

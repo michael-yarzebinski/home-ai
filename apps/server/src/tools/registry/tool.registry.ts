@@ -73,7 +73,7 @@ export class ToolRegistry implements OnModuleInit {
       }
     }
 
-    return result;
+    return result.filter((t) => t.name !== "propose-action");
   }
 
   /**

@@ -36,7 +36,6 @@ export class McpService implements OnModuleInit {
   }
 
   async execute(name: string, args: any) {
-    try {
       // Pull user info from CLS (set by the Orchestrator)
       const userRole = this.cls.get<Role>("userRole");
 
@@ -56,12 +55,6 @@ export class McpService implements OnModuleInit {
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
-    } catch (error: any) {
-      return {
-        content: [{ type: "text", text: `Error: ${error.message}` }],
-        isError: true,
-      };
-    }
   }
 
   private getToolContext(): ToolContext {

@@ -2,7 +2,6 @@ import { User } from "@home-ai/shared/domain/user/user";
 import { Injectable } from "@nestjs/common";
 import { ClsService } from "nestjs-cls";
 import { LogStore } from "../../core/stores/log/log.store";
-import { LLMServiceBase } from "../abstract/llm.service.base";
 import { McpService } from "../mcp/mcp.service";
 import { ToolRegistry } from "../../tools/registry/tool.registry";
 import { UnifiedMessage } from "../types/llm-query-params";
@@ -10,24 +9,26 @@ import { AppConfigService } from "../../core/services/app-config.service";
 import { ChatMessage } from "@home-ai/shared/domain/conversation/converstation";
 import { ConversationStore } from "../../core/stores/conversation/conversation.store";
 import { NotificationService } from "../../core/services/notification.service";
+import { LLMModelTypes, LLMProviderService } from "../llm/llm.provider.sevice";
 
 @Injectable()
 export class OrchestratorService {
   constructor(
     private readonly cls: ClsService,
     private readonly mcp: McpService,
-    private readonly llm: LLMServiceBase,
+    private readonly llmProviderService: LLMProviderService,
     private readonly logStore: LogStore,
     private readonly toolRegistry: ToolRegistry,
     private readonly appConfigService: AppConfigService,
     private readonly conversationStore: ConversationStore,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   async handleEvent(
     user: User,
     input: string,
     externalId: string,
+    modelType: LLMModelTypes = LLMModelTypes.SOON,
   ): Promise<any> {
     return this.cls.run(async () => {
       const session = await this.conversationStore.getOrCreateSession(
@@ -72,11 +73,11 @@ export class OrchestratorService {
           inputSchema: t.handler.parameters.shape,
         }));
 
-        const response = await this.llm.query({
+        const response = await this.llmProviderService.query({
           messages,
           tools: llmTools,
           context: { userId: user.id, chatSessionId, originalPrompt: input },
-        });
+        }, modelType);
 
         await this.logStore.create({
           userId: user.id,
@@ -93,6 +94,7 @@ export class OrchestratorService {
           role: "assistant",
           content: response.content,
           toolCalls: response.toolCalls,
+          metadata: response.metadata,
         });
 
         if (!response.toolCalls || response.toolCalls.length === 0) {
@@ -292,8 +294,28 @@ export class OrchestratorService {
 
   private async generateSystemPrompt(user: User): Promise<string> {
     const aiName =
-      (await this.appConfigService.getFromDb("AI_NAME")) || "Home AI";
-    return `You are ${aiName}. User: ${user.name} (${user.role}). Always be concise. If an action is queued for approval, inform the user and provide the request ID.`;
+      await this.appConfigService.getFromDb("AI_NAME");
+    const date = new Date().toLocaleDateString();
+
+    return `
+## Identity
+You are ${aiName}. User: ${user.name} (${user.role}). Current Date: ${date}.
+Style: Professional, helpful, and extremely concise.
+
+## Operational Protocol: Discovery First
+You must follow a "Read-Before-Write" workflow for all data domains (Devices, Facts, Calendar, Notes).
+1. **Verification:** Before adding or registering any new item, you MUST call the relevant "get" or "discover" tool to check for existing entries.
+2. **Analysis:** Review the results for naming collisions or similar entries.
+
+## Conflict Resolution: Add vs. Update
+If a user asks to "add" or "save" information (like a Fact or Device) that already exists in the system:
+- **Do not create a duplicate.**
+- **Do not modify the name/slug** just to force an insertion.
+- **Action:** Inform the user that a similar entry exists and suggest UPDATING the existing record instead.
+- **Example:** "A fact about 'Dog Diet' already exists. Would you like me to update it with this new information?"
+
+## Approval Queue
+If an action is queued for approval, inform the user and provide the Request ID immediately.`
   }
 
   private async handleTimeout(

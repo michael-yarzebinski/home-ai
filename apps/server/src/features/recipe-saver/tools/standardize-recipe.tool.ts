@@ -4,14 +4,18 @@ import { ToolHandler } from "src/tools/abstract/tool-handler";
 import { ToolContext } from "src/tools/types/tool-context";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { IngredientStore } from "../stores/ingredients.store";
-import { LLMServiceBase } from "../../../ai/abstract/llm.service.base";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
+import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
 
 const StandardizeRecipeSchema = z.object({
-  rawText: z
-    .string()
-    .describe(
-      "The clean text content extracted from the webpage via the scrape-recipe tool",
-    ),
+  rawText: z.preprocess(
+    ToolParameterUtils.toRawText,
+    z
+      .string()
+      .describe(
+        "Clean recipe text from scrape-recipe (web, external), to structure before add-recipe in Home AI.",
+      ),
+  ),
 });
 
 export interface StructuredRecipe {
@@ -35,14 +39,14 @@ export class StandardizeRecipeTool extends ToolHandler<
   StructuredRecipe
 > {
   readonly name = "standardize-recipe";
-  
+
   readonly description =
-    "Converts raw scraped text into a fully structured JSON format. Output ingredients in the EXACT format required by add-recipe.";
+    "Turn scrape-recipe (or similar) text into structured fields for add-recipe. Output must match add-recipe so the recipe can be saved in Home AI.";
 
   readonly parameters = StandardizeRecipeSchema;
 
   constructor(
-    private readonly llm: LLMServiceBase,
+    private readonly llmProviderService: LLMProviderService,
     private readonly ingredientStore: IngredientStore,
   ) {
     super();
@@ -85,7 +89,7 @@ export class StandardizeRecipeTool extends ToolHandler<
       }
     `;
 
-    const response = await this.llm.query({
+    const response = await this.llmProviderService.query({
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: params.rawText },
@@ -96,12 +100,12 @@ export class StandardizeRecipeTool extends ToolHandler<
         chatSessionId: context.chatSessionId,
         originalPrompt: `Standardizing recipe extraction`,
       },
-    });
+    }, LLMModelTypes.IMMEDIATE);
 
     try {
       // The Orchestrator handles the heavy lifting, so we just parse the response
-      const parsed = typeof response.content === 'string' 
-        ? JSON.parse(response.content) 
+      const parsed = typeof response.content === 'string'
+        ? JSON.parse(response.content)
         : response.content;
 
       return {
@@ -109,8 +113,8 @@ export class StandardizeRecipeTool extends ToolHandler<
         servings: parsed.servings,
         prepTimeMinutes: parsed.prepTimeMinutes,
         cookTimeMinutes: parsed.cookTimeMinutes,
-        instructions: Array.isArray(parsed.instructions) 
-          ? parsed.instructions.join("\n") 
+        instructions: Array.isArray(parsed.instructions)
+          ? parsed.instructions.join("\n")
           : parsed.instructions,
         ingredients: parsed.ingredients,
       };

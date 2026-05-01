@@ -28,7 +28,8 @@ export class ListDevicesTool extends ToolHandler<typeof ListDevicesToolSchema, L
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'List all devices that are registered in the system. ' + 'Returns only devices the current user has permission to see.';
+    'List devices registered in Home AI; returns only devices this user may see (canRead/canWrite on each row). ' +
+    'Use discover-devices when the user refers to a Home Assistant entity not yet registered in Home AI.';
 
   readonly parameters = ListDevicesToolSchema;
 

@@ -1,6 +1,14 @@
 import { Insertable, Updatable } from '../helper/crud.helper';
 import { Role } from '../role/role';
 
+export interface DeviceLastTriggeredService {
+  entitiyId: string;
+  service: string;
+  triggeredBy: string;
+  timestamp: Date;
+  metadata?: any;
+}
+
 export interface Device {
   id: string;
   slug: string;
@@ -11,6 +19,8 @@ export interface Device {
   readRoles: Role[];
   writeRoles: Role[];
   extraMetadata: any;
+  isTimeSensitive: boolean;
+  lastTriggeredService?: DeviceLastTriggeredService;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

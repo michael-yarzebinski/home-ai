@@ -1,35 +1,38 @@
 // src/tools/default/add-event-to-calendar.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
-
-const execAsync = promisify(exec);
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 
 const AddEventToCalendarToolSchema = z.object({
-  title: z.string().min(1).describe('Title of the event'),
+  title: z.preprocess(ToolParameterUtils.stripQuotes, z.string().min(1)).describe('Title of the event'),
 
-  startTime: z
-    .string()
-    .min(1)
+  startDateTime: z
+    .preprocess(ToolParameterUtils.formatForAppleScriptDate, z.string().min(1))
     .describe(
-      'Start time of the event. Can be an ISO string or natural language (e.g. "2025-04-25 19:00").',
+      'Start date and time of the event. Can be an ISO string or natural language (e.g. "2025-04-25 19:00"); coerced to en-US for AppleScript.',
     ),
 
-  endTime: z.string().optional().describe('Optional end time of the event'),
+  endDateTime: z
+    .preprocess((value) => {
+      if (ToolParameterUtils.isEmptyOptionalInput(value)) return undefined;
+      return ToolParameterUtils.formatForAppleScriptDate(value);
+    }, z.string().optional())
+    .describe('End date and time of the event.  If the user does not provide an end time, use the start time plus 1 hour.'),
 
-  location: z.string().optional().describe('Optional location of the event'),
+  location: z.preprocess(ToolParameterUtils.stripQuotes, z.string().optional()).describe('Optional location of the event'),
 
-  notes: z.string().optional().describe('Optional notes or description for the event'),
+  notes: z.preprocess(ToolParameterUtils.stripQuotes, z.string().optional()).describe('Optional notes or description for the event'),
 
   calendarName: z
-    .string()
-    .optional()
+    .preprocess((value) => {
+      const s = ToolParameterUtils.stripQuotes(value);
+      return typeof s === 'string' && s.length > 0 ? s : undefined;
+    }, z.string())
     .describe(
-      'Name of the calendar to add the event to (e.g. "Family", "Work"). If omitted, uses default calendar.',
+      'Calendar `name` from list-calendars (calendars registered in Home AI; not friendlyName). Must be a calendar this user may write to.',
     ),
 });
 
@@ -49,7 +52,8 @@ export class AddEventToCalendarTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Add a new event to Apple Calendar. ' + 'Use this tool when the user wants to create a calendar event.';
+    'Add a new event to Apple Calendar. Always call list-calendars first; `calendarName` must match a calendar `name` registered in Home AI. ' +
+    'Do not pick names only from discover-calendars unless the user is registering that calendar in Home AI first.';
 
   readonly parameters = AddEventToCalendarToolSchema;
 
@@ -57,35 +61,16 @@ export class AddEventToCalendarTool extends ToolHandler<
     params: z.infer<typeof AddEventToCalendarToolSchema>,
     context: ToolContext,
   ): Promise<AddEventToCalendarResult> {
-    const calendar = params.calendarName ? `calendar "${params.calendarName}"` : 'default calendar';
 
-    const script = `
-      tell application "Calendar"
-        set theEvent to make new event at end of ${calendar} with properties {
-          summary: "${params.title.replace(/"/g, '\\"')}",
-          start date: date "${params.startTime}",
-          ${params.endTime ? `end date: date "${params.endTime}",` : ''}
-          ${params.location ? `location: "${params.location.replace(/"/g, '\\"')}",` : ''}
-          ${params.notes ? `description: "${params.notes.replace(/"/g, '\\"')}"` : ''}
-        }
-        return uid of theEvent
-      end tell
-    `;
+    const script = `tell application "Calendar" to tell calendar "${params.calendarName}" to return uid of (make new event with properties {summary:"${params.title}", start date:date "${params.startDateTime}"${params.endDateTime ? `, end date:date "${params.endDateTime}"` : ''}${params.location ? `, location:"${params.location}"` : ''}${params.notes ? `, description:"${params.notes}"` : ''}})`;
+    
+    const result = await this.runAppleScript(script);
+    const eventId = result.trim();
 
-    try {
-      const { stdout } = await execAsync(`osascript -e '${script}'`);
-      const eventId = stdout.trim();
-
-      return {
-        success: true,
-        message: `✅ Event "${params.title}" has been added to the calendar.`,
-        eventId: eventId || undefined,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: `Failed to add event to calendar: ${err.message}`,
-      };
-    }
+    return {
+      success: true,
+      message: `✅ Event "${params.title}" has been added to the calendar.`,
+      eventId: eventId || undefined,
+    };
   }
 }

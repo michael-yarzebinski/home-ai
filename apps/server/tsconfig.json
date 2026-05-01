@@ -6,18 +6,20 @@
     "baseUrl": "./",
     "paths": {
       "src/*": ["./src/*"],
-      "@home-ai/shared/*": ["../shared/src/*"]
-      // "@modelcontextprotocol/sdk/server/mcp.js": [
-      //   "../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"
-      // ]
+      // Questionable change by cursor to remove this.
+      // "@home-ai/shared/*": ["../shared/src/*"]
+      "@home-ai/shared/*": ["../shared/dist/*"],
+      "@home-ai/shared/src/*": ["../shared/dist/*"]
+
     },
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "references": [
-    {
-      "path": "../shared"
-    }
-  ],
+  // Questionable change by cursor to remove this.
+  // "references": [
+  //   {
+  //     "path": "../shared"
+  //   }
+  // ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

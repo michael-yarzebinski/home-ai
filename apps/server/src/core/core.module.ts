@@ -10,13 +10,14 @@ import { DeviceStore } from "./stores/device/device.store";
 import { CalendarStore } from "./stores/calendar/calendar.store";
 import { NoteStore } from "./stores/note/note.store";
 import { PendingActionStore } from "./stores/pending-action/pending-action.store";
-import { NotificationPreferenceStore } from "./stores/notification-preference/notification-preference.store";
 import { AppConfigService } from "./services/app-config.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AppConfigStore } from "./stores/app-config/app-config.store";
 import knex, { Knex } from "knex";
 import * as pg from "pg";
 import { ConversationStore } from "./stores/conversation/conversation.store";
+import { NotificationService } from "./services/notification.service";
+import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.store";
 
 @Module({
   imports: [ConfigModule],
@@ -84,9 +85,10 @@ import { ConversationStore } from "./stores/conversation/conversation.store";
     CalendarStore,
     NoteStore,
     PendingActionStore,
-    NotificationPreferenceStore,
+    AutomationRuleStore,
 
     AppConfigService,
+    NotificationService,
   ],
   exports: [
     "KNEX_CONNECTION",
@@ -102,9 +104,10 @@ import { ConversationStore } from "./stores/conversation/conversation.store";
     CalendarStore,
     NoteStore,
     PendingActionStore,
-    NotificationPreferenceStore,
+    AutomationRuleStore,
 
     AppConfigService,
+    NotificationService,
   ],
 })
-export class CoreModule {}
+export class CoreModule { }

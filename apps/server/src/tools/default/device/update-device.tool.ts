@@ -41,8 +41,7 @@ export class UpdateDeviceTool extends ToolHandler<typeof UpdateDeviceToolSchema,
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Update an existing registered device. ' +
-    'You can update friendly name, room, category, aliases, roles, or extra metadata.';
+    'Update a device registered in Home AI (friendly name, room, category, aliases, roles, or extra metadata).';
 
   readonly parameters = UpdateDeviceToolSchema;
 

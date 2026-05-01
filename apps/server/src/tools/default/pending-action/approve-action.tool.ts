@@ -7,6 +7,7 @@ import { LLMServiceBase } from '../../../ai/abstract/llm.service.base';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from '../../decorators/tool.decorator';
+import { LLMModelTypes, LLMProviderService } from '../../../ai/llm/llm.provider.sevice';
 
 const ApproveActionToolSchema = z.object({
   readableId: z
@@ -38,7 +39,7 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
     private readonly pendingActionStore: PendingActionStore,
     private readonly toolRegistry: ToolRegistry,
     private readonly notificationService: NotificationService,
-    private readonly llm: LLMServiceBase,
+    private readonly llmProviderService: LLMProviderService,
   ) {
     super();
   }
@@ -96,14 +97,14 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
         RETURN PLAIN TEXT ONLY.
       `;
 
-      const aiResponse = await this.llm.query({
+      const aiResponse = await this.llmProviderService.query({
         messages: [{ role: 'system', content: generationPrompt }],
         context: {
           userId: context.userId,
           chatSessionId: context.chatSessionId,
           originalPrompt: `Generating approval notification for #${pendingAction.readableId}`
         }
-      });
+      }, LLMModelTypes.IMMEDIATE);
 
       const notifyMsg = typeof aiResponse.content === 'string' ? aiResponse.content : "Your request was approved and executed!";
 

@@ -6,32 +6,31 @@ import { FactsStore } from '../stores/facts.store';
 import { Role } from '@home-ai/shared/domain/role/role';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
+import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 
 const AddFactToolSchema = z.object({
   key: z
-    .string()
-    .min(1)
+    .preprocess(ToolParameterUtils.toStringValue, z.string().min(1))
     .describe(
       'A short, unique identifier using snake_case or simple words. No sentences. (e.g. "mikes_favorite_food", "wifi_password")',
     ),
 
   value: z
-    .string()
-    .min(1)
+    .preprocess(ToolParameterUtils.toStringValue, z.string().min(1))
     .describe('The specific value. Be concise but complete. (e.g. "Pizza", "1234-5678")'),
 
   tags: z
-    .array(z.string())
+    .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
     .optional()
     .describe('Lowercase category tags. (e.g. ["preferences", "security"])'),
 
   readRoles: z
-    .array(z.string())
+    .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
     .optional()
     .describe("Roles that can read this fact. If omitted, defaults to current user's role."),
 
   writeRoles: z
-    .array(z.string())
+    .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
     .optional()
     .describe("Roles that can update this fact. If omitted, defaults to current user's role."),
 });
@@ -49,8 +48,7 @@ export class AddFactTool extends ToolHandler<typeof AddFactToolSchema, AddFactRe
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Add a new fact to the knowledge base. ' +
-    'ONLY use this if you have verified the fact does not already exist using get_fact or list_facts';
+    'Add a new fact registered in Home AI. Confirm the key does not already exist via list-facts or get-fact before calling.';
 
   readonly parameters = AddFactToolSchema;
 

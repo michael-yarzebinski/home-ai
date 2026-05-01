@@ -9,6 +9,7 @@ import {
 import { UserStore } from "src/core/stores/user/user.store";
 import { McpService } from "src/ai/mcp/mcp.service";
 import { OrchestratorService } from "../../ai/orchestrator/orchestrator.service";
+import { LLMModelTypes } from "../../ai/llm/llm.provider.sevice";
 
 @Controller("bluebubbles")
 export class BlueBubblesController {
@@ -18,17 +19,17 @@ export class BlueBubblesController {
     private readonly mcpService: McpService,
     private readonly orchestratorService: OrchestratorService,
     private readonly logStore: LogStore,
-  ) {}
+  ) { }
 
   @Post("webhook")
   async handleIncomingMessage(@Body() payload: BlueBubblesWebhookPayload) {
-    this.logStore.create({
-      severity: "info",
-      message: "New message received from BlueBubbles",
-      metadata: {
-        payload,
-      },
-    });
+    // this.logStore.create({
+    //   severity: "info",
+    //   message: "New message received from BlueBubbles",
+    //   metadata: {
+    //     payload,
+    //   },
+    // });
 
     if (payload.type !== "new-message") {
       await this.logStore.create({
@@ -45,19 +46,11 @@ export class BlueBubblesController {
     const blueBubblesData = payload.data as BlueBubblesMessageData;
 
     if (blueBubblesData.isFromMe) {
-      await this.logStore.create({
-        severity: "info",
-        message: `Message from BlueBubbles is for me.  Skipping...`,
-        metadata: {
-          payload,
-        },
-      });
-
       return { success: true };
     }
 
     // Extract key information from BlueBubbles payload
-    const chatId = blueBubblesData.chat.guid;
+    const chatId = blueBubblesData.chat?.guid ?? blueBubblesData.chats?.[0]?.guid;
     const messageText = blueBubblesData.text;
     const phoneNumber = blueBubblesData.handle.address;
 
@@ -90,19 +83,36 @@ export class BlueBubblesController {
 
     // 1. Immediately show typing indicator
     await this.blueBubblesService.startTyping(chatId);
-    // 2. Process the message with the LLM Runner
-    const result = await this.orchestratorService.handleEvent(
-      user,
-      messageText,
-      chatId,
-    );
+    let result: any;
+    try {
+      // 2. Process the message with the LLM Runner
+      result = await this.orchestratorService.handleEvent(
+        user,
+        messageText,
+        chatId,
+        LLMModelTypes.IMMEDIATE,
+      );
+    }
+    catch (error) {
+      await this.logStore.create({
+        userId: user.id,
+        severity: "error",
+        message: `Error processing BlueBubbles message`,
+        metadata: { error: (error as any).message },
+      });
+      await this.blueBubblesService.stopTyping(chatId);
+      await this.blueBubblesService.sendMessage(chatId, "We've hit a road block...  Please try again later.");
+      return { success: false };
+    }
 
     // 3. Stop typing and send the reply
     await this.blueBubblesService.stopTyping(chatId);
-    await this.blueBubblesService.sendMessage(chatId, result.content);
+    await this.blueBubblesService.sendMessage(chatId, result.response);
+
+
 
     await this.logStore.create({
-      userId: undefined,
+      userId: user.id,
       severity: "info",
       message: `Successfully processed BlueBubbles message`,
       metadata: {

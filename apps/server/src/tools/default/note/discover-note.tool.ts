@@ -1,13 +1,10 @@
 // src/tools/default/discover-notes.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
-
-const execAsync = promisify(exec);
+import { ToolUtils } from 'src/tools/utils/tool.utils';
 
 const DiscoverNotesToolSchema = z.object({
   query: z
@@ -16,12 +13,14 @@ const DiscoverNotesToolSchema = z.object({
     .describe('Optional search term to filter notes by name'),
 });
 
+const DiscoverNoteItemSchema = z.object({
+  name: z.string().min(1),
+  id: z.string().min(1),
+});
+
 export interface DiscoverNotesResult {
-  notes: Array<{
-    name: string;
-    friendlyName?: string;
-  }>;
-  totalFound: number;
+  notes: z.infer<typeof DiscoverNoteItemSchema>[];
+  total: number;
   message: string;
 }
 
@@ -32,9 +31,8 @@ export class DiscoverNotesTool extends ToolHandler<typeof DiscoverNotesToolSchem
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Discover and list all notes and note folders that exist in the Apple Notes app. ' +
-    'This tool reaches out to the external Notes app (not just our internal database). ' +
-    'Use this tool when the user wants to register a new note or folder into the Home AI system.';
+    'Discover notes in the Apple Notes app (external), for example before register-note in Home AI. ' +
+    'For notes already registered in Home AI, prefer list-notes (permission-filtered).';
 
   readonly parameters = DiscoverNotesToolSchema;
 
@@ -44,45 +42,31 @@ export class DiscoverNotesTool extends ToolHandler<typeof DiscoverNotesToolSchem
   ): Promise<DiscoverNotesResult> {
     const script = `
       tell application "Notes"
-        set theNotes to every note
-        set noteList to {}
-        
-        repeat with n in theNotes
-          set noteInfo to {
-            name: name of n
-          }
-          copy noteInfo to end of noteList
+        set noteNames to name of every note
+        set noteIDs to id of every note
+
+        set noteOutput to "["
+        repeat with i from 1 to count of noteNames
+          if i > 1 then set noteOutput to noteOutput & ","
+          set noteOutput to noteOutput & "{\\"name\\":\\"" & (item i of noteNames) & "\\",\\"id\\":\\"" & (item i of noteIDs) & "\\"}"
         end repeat
-        
-        return noteList
+        set noteOutput to noteOutput & "]"
+
+        return noteOutput
       end tell
-    `;
+    `.trim();
 
-    try {
-      const { stdout } = await execAsync(`osascript -e '${script}'`);
-      let rawNotes = JSON.parse(stdout.trim() || '[]');
-
-      if (params.query) {
-        const term = params.query.toLowerCase();
-        rawNotes = rawNotes.filter((n: any) => n.name.toLowerCase().includes(term));
-      }
-
-      const notes = rawNotes.map((n: any) => ({
-        name: n.name,
-        friendlyName: n.name,
-      }));
-
-      return {
-        notes,
-        totalFound: notes.length,
-        message: `Found ${notes.length} notes in Apple Notes.`,
-      };
-    } catch (err: any) {
-      return {
-        notes: [],
-        totalFound: 0,
-        message: `Failed to discover notes from Apple Notes: ${err.message}`,
-      };
+    const result = await this.runAppleScript(script);
+    let notes = ToolUtils.parseArray(result, DiscoverNoteItemSchema);
+    if (params.query) {
+      const term = params.query.toLowerCase();
+      notes = notes.filter((n) => n.name.toLowerCase().includes(term));
     }
+
+    return {
+      notes,
+      total: notes.length,
+      message: `Found ${notes.length} notes.`,
+    };
   }
 }
