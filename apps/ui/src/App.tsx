@@ -1,14 +1,45 @@
-import { SHARED_PACKAGE_VERSION } from '@home-ai/shared/version';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/auth-context';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { AppLayout } from '@/components/layout/app-layout';
+import { Login } from '@/pages/auth/login';
+import { AdminDashboard } from '@/pages/admin/dashboard';
+import { EntitySearch } from '@/pages/admin/entity-search';
+import { Chat } from '@/pages/user/chat';
+import { SettingsAutomationRules } from '@/pages/user/settings/automation-rules';
+
+const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/',
+    element: <ProtectedRoute><AppLayout><AdminDashboard /></AppLayout></ProtectedRoute>,
+  },
+  {
+    path: '/entities',
+    element: <ProtectedRoute><AppLayout><EntitySearch /></AppLayout></ProtectedRoute>,
+  },
+  {
+    path: '/chat',
+    element: <ProtectedRoute><AppLayout><Chat /></AppLayout></ProtectedRoute>,
+  },
+  {
+    path: '/settings/automation-rules',
+    element: <ProtectedRoute><AppLayout><SettingsAutomationRules /></AppLayout></ProtectedRoute>,
+  },
+  // Catch-all → dashboard (ProtectedRoute will redirect to /login if unauthenticated)
+  {
+    path: '*',
+    element: <ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>,
+  },
+]);
 
 export function App() {
   return (
-    <main className="app">
-      <h1>Home AI</h1>
-      <p className="muted">Web UI (Vite + React)</p>
-      <p className="badge">@home-ai/shared {SHARED_PACKAGE_VERSION}</p>
-      <p className="hint">
-        API calls to <code>/api/...</code> are proxied to <code>http://localhost:3000</code> in dev.
-      </p>
-    </main>
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   );
 }

@@ -1,42 +1,50 @@
-:root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: #e8eaed;
-  background: #12141a;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  margin: 0;
-  min-height: 100vh;
-}
+@layer base {
+  :root {
+    --background: 222 18% 9%;
+    --foreground: 213 31% 91%;
 
-.app {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
+    --card: 222 18% 11%;
+    --card-foreground: 213 31% 91%;
 
-.muted {
-  color: #9aa0a6;
-  margin-top: 0;
-}
+    --popover: 222 18% 11%;
+    --popover-foreground: 213 31% 91%;
 
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  background: #1e2230;
-  font-size: 0.85rem;
-}
+    --primary: 210 100% 56%;
+    --primary-foreground: 222 18% 9%;
 
-.hint {
-  color: #9aa0a6;
-  font-size: 0.9rem;
-}
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 213 31% 91%;
 
-code {
-  background: #1e2230;
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  font-size: 0.9em;
+    --muted: 222 18% 16%;
+    --muted-foreground: 215 16% 57%;
+
+    --accent: 222 18% 16%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 213 31% 91%;
+
+    --border: 222 18% 18%;
+    --input: 222 18% 18%;
+    --ring: 210 100% 56%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
 }

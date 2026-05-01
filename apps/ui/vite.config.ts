@@ -11,6 +11,17 @@ export default defineConfig({
     // Bundle shared from source (per-module); avoids relying on CJS dist interop in Rollup.
     alias: {
       '@home-ai/shared': path.resolve(uiRoot, '../shared/src'),
+      '@': path.resolve(uiRoot, './src'),
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+        },
+      },
     },
   },
   server: {
