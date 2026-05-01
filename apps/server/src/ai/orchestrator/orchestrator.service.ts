@@ -6,7 +6,7 @@ import { McpService } from "../mcp/mcp.service";
 import { ToolRegistry } from "../../tools/registry/tool.registry";
 import { UnifiedMessage } from "../types/llm-query-params";
 import { AppConfigService } from "../../core/services/app-config.service";
-import { ChatMessage } from "@home-ai/shared/domain/conversation/converstation";
+import { ChatMessage, LLMRole } from "@home-ai/shared/domain/conversation/converstation";
 import { ConversationStore } from "../../core/stores/conversation/conversation.store";
 import { NotificationService } from "../../core/services/notification.service";
 import { LLMModelTypes, LLMProviderService } from "../llm/llm.provider.sevice";
@@ -40,7 +40,7 @@ export class OrchestratorService {
       this.initializeClsContext(user, input, chatSessionId);
 
       const userMessage: ChatMessage = {
-        role: "user",
+        role: LLMRole.USER,
         content: input,
         timestamp: new Date(),
       };
@@ -91,7 +91,7 @@ export class OrchestratorService {
         });
 
         messages.push({
-          role: "assistant",
+          role: LLMRole.ASSISTANT,
           content: response.content,
           toolCalls: response.toolCalls,
           metadata: response.metadata,
@@ -103,7 +103,7 @@ export class OrchestratorService {
               ? response.content
               : JSON.stringify(response.content);
           await this.conversationStore.addMessage(chatSessionId, {
-            role: "assistant",
+            role: LLMRole.ASSISTANT,
             content: finalContent,
             timestamp: new Date(),
           });
@@ -332,7 +332,7 @@ If an action is queued for approval, inform the user and provide the Request ID 
       metadata: { chatSessionId, loopCount },
     });
     await this.conversationStore.addMessage(chatSessionId, {
-      role: "assistant",
+      role: LLMRole.ASSISTANT,
       content: timeoutError,
       timestamp: new Date(),
     });

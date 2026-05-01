@@ -1,16 +1,19 @@
 import { Insertable, Updatable } from '../helper/crud.helper';
-import { Role } from '../role/role';
+import { RoleSchema } from '../role/role';
+import { z } from 'zod';
 
-export interface Note {
-  id: string;
-  name: string;
-  friendlyName: string;
-  aliases: string[];
-  readRoles: Role[];
-  writeRoles: Role[];
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export const NoteSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  friendlyName: z.string(),
+  aliases: z.array(z.string()),
+  readRoles: z.array(RoleSchema),
+  writeRoles: z.array(RoleSchema),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Note = z.infer<typeof NoteSchema>;
 export type InsertableNote = Insertable<Note>;
 export type UpdatableNote = Updatable<Note>;

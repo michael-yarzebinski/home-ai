@@ -1,17 +1,20 @@
 import { Insertable, Updatable } from '../helper/crud.helper';
-import { Role } from '../role/role';
+import { RoleSchema } from '../role/role';
+import { z } from 'zod';
 
-export interface Tool {
-  id: string;
-  name: string;
-  friendlyName: string;
-  hints?: string;
-  requestRoles: Role[];
-  writeRoles: Role[];
-  notifyRoles: Role[];
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export const ToolSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  friendlyName: z.string(),
+  hints: z.string().optional(),
+  requestRoles: z.array(RoleSchema),
+  writeRoles: z.array(RoleSchema),
+  notifyRoles: z.array(RoleSchema),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type Tool = z.infer<typeof ToolSchema>;
 export type InsertableTool = Insertable<Tool>;
 export type UpdatableTool = Updatable<Tool>;

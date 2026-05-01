@@ -1,15 +1,18 @@
 import { Insertable, Updatable } from '../helper/crud.helper';
+import { z } from 'zod';
 
-export interface NotificationPreference {
-  id: string;
-  userId: string;
-  triggerType: string;
-  triggerConfig: any;
-  messageTemplate: string;
-  importance: string;
-  active: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export const NotificationPreferenceSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  triggerType: z.string(),
+  triggerConfig: z.unknown(),
+  messageTemplate: z.string(),
+  importance: z.string(),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type NotificationPreference = z.infer<typeof NotificationPreferenceSchema>;
 export type InsertableNotificationPreference = Insertable<NotificationPreference>;
 export type UpdatableNotificationPreference = Updatable<NotificationPreference>;

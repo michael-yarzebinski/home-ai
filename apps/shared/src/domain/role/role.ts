@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export enum Role {
     ADMIN = 'admin',
     PARENT = 'parent',
@@ -6,3 +8,5 @@ export enum Role {
     READONLY = 'readonly',
     AUTOMATION = 'automation',
 }
+
+export const RoleSchema = z.nativeEnum(Role);

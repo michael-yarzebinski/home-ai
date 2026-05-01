@@ -75,7 +75,7 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
 
     try {
       // 3. Deterministic Execution (Associate with the Approver's context)
-      const result = await originalTool.handler.execute(pendingAction.proposedArgs, context);
+      const result = await originalTool.handler.execute(pendingAction.proposedArgs as any, context);
 
       // 4. Update Status in DB
       await this.pendingActionStore.approve(pendingAction.id, context.userId);
