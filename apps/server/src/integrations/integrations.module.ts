@@ -10,11 +10,13 @@ import { HomeAssistantService } from "./home-assistant/home-assistant.service";
 // Controllers
 import { BlueBubblesController } from "./blue-bubbles/blue-bubbles.controller";
 import { WeatherService } from "./weather/weather.service";
+import { RelayService } from "./relay/relay.service";
+import { HttpModule } from "@nestjs/axios";
 
 @Module({
-  imports: [CoreModule, AIModule],
+  imports: [CoreModule, AIModule, HttpModule],
   controllers: [BlueBubblesController],
-  providers: [BlueBubblesService, HomeAssistantService, WeatherService],
-  exports: [BlueBubblesService, HomeAssistantService, WeatherService],
+  providers: [BlueBubblesService, HomeAssistantService, RelayService, WeatherService],
+  exports: [BlueBubblesService, HomeAssistantService, RelayService, WeatherService],
 })
-export class IntegrationsModule {}
+export class IntegrationsModule { }

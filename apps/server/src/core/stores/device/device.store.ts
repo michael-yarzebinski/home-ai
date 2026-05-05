@@ -1,9 +1,7 @@
-// core/stores/device/device.store.ts
 import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Device } from '@home-ai/shared/domain/device/device';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
+import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
+import type { Device, InsertableDevice, UpdatableDevice } from '@home-ai/shared/domain/device/device';
+
 import { AuditStore } from '../audit/audit.store';
 import { Inject, Injectable } from '@nestjs/common';
 import { Role } from '@home-ai/shared/domain/role/role';
@@ -26,41 +24,53 @@ export interface DeviceRecord {
 }
 
 @Injectable()
-export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
+export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord, InsertableDevice, UpdatableDevice> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'devices', entityType: 'devices' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Device>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  // ---------------------------------------------------------------------------
+  // Row-level access control
+  // ---------------------------------------------------------------------------
+
+  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    // No user = admin/internal context — sees all devices.
+    if (!user) return query;
+    // Regular users only see devices their role is allowed to read.
+    return query.whereRaw('? = ANY(read_roles)', [user.role]);
   }
 
-  async getBySearch(search: string): Promise<Device[]> {
-    const searchToLower = search.toLocaleLowerCase();
-    const searchLike = `%${search.toLowerCase()}%`;
+  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    // No user = admin/internal context — unrestricted.
+    if (!user) return query;
+    // Regular users can only mutate devices their role is allowed to write.
+    return query.whereRaw('? = ANY(write_roles)', [user.role]);
+  }
 
-    const records = await this.active.where((builder) => {
-      builder
-        .whereILike('slug', searchLike)
-        .orWhereILike('friendly_name', searchLike)
-        .orWhereRaw('? = ANY(aliases)', [searchToLower]);
-    });
+  // ---------------------------------------------------------------------------
+  // Full-text search
+  // ---------------------------------------------------------------------------
 
-    return records.map(r => this.recordToDomain(r));
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b
+        .whereILike('slug', like)
+        .orWhereILike('friendly_name', like)
+        .orWhereILike('room', like)
+        .orWhereILike('category', like)
+        .orWhereRaw('? = ANY(aliases)', [search.toLowerCase()]),
+    );
   }
 
   async getBySlug(slug: string): Promise<Device | undefined> {
     const record = await this.active.where('slug', slug).first();
-
-    return record ? this.recordToDomain(record) : record;
+    return record ? this.recordToDomain(record) : undefined;
   }
+
+  // ---------------------------------------------------------------------------
+  // Mapping
+  // ---------------------------------------------------------------------------
 
   protected recordToDomain(record: DeviceRecord): Device {
     return {
@@ -74,7 +84,7 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       writeRoles: record.write_roles as Role[],
       extraMetadata: record.extra_metadata,
       isTimeSensitive: record.is_time_sensitive,
-      lastTriggeredService: record.last_triggered_service ? record.last_triggered_service : undefined,
+      lastTriggeredService: record.last_triggered_service ?? undefined,
       active: record.active,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -93,7 +103,7 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       write_roles: domain.writeRoles,
       extra_metadata: domain.extraMetadata,
       is_time_sensitive: domain.isTimeSensitive,
-      last_triggered_service: domain.lastTriggeredService ? domain.lastTriggeredService : null,
+      last_triggered_service: domain.lastTriggeredService ?? null,
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,

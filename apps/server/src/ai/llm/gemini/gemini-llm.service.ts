@@ -47,8 +47,8 @@ export class GeminiLLMService extends LLMServiceBase {
 
     // 4. Parse the Response
     const candidate = response.candidates?.[0];
-    const text = response.text()
-    const thoughtSignature = candidate?.content?.parts?.find(this.isThoughtSignaturePart)?.thoughtSignature;  // Is there a cleaner way?
+    const rawText = response.text();
+    const thoughtSignature = candidate?.content?.parts?.find(this.isThoughtSignaturePart)?.thoughtSignature;
     const functionCalls = response.functionCalls();
 
     const toolCalls: UnifiedToolCall[] | undefined = functionCalls?.map(
@@ -58,6 +58,22 @@ export class GeminiLLMService extends LLMServiceBase {
         args: call.args,
       }),
     );
+
+    // Gemini 2.5 Flash (and other thinking models) can return an empty text part
+    // on the final turn after tool use — the model put all its output into reasoning
+    // (thoughtSignature) and emitted no visible content. When this happens with no
+    // function calls we make one targeted follow-up asking for a plain-text reply,
+    // keeping this quirk fully contained inside the provider.
+    let text = rawText?.trim() ?? '';
+    if (!text && (!toolCalls || toolCalls.length === 0)) {
+      const summaryContents: Content[] = [
+        ...contents,
+        { role: 'model', parts: [{ text: '' }] },
+        { role: 'user', parts: [{ text: 'Please respond with a brief plain-text summary of what you just did or your answer.' }] },
+      ];
+      const summaryResult = await model.generateContent({ contents: summaryContents });
+      text = summaryResult.response.text()?.trim() || 'Done.';
+    }
 
     const finalResponse: LLMResponse = {
       content: text,

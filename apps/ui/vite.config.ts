@@ -8,6 +8,8 @@ const uiRoot = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react()],
   resolve: {
+    // Single zod instance for UI + shared source (avoids subtle duplicate-schema issues).
+    dedupe: ['zod'],
     // Bundle shared from source (per-module); avoids relying on CJS dist interop in Rollup.
     alias: {
       '@home-ai/shared': path.resolve(uiRoot, '../shared/src'),

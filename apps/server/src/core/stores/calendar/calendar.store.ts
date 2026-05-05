@@ -1,9 +1,8 @@
 // core/stores/calendar/calendar.store.ts
 import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Calendar } from '@home-ai/shared/domain/calendar/calendar';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
+
+import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
+import type { Calendar, InsertableCalendar, UpdatableCalendar } from '@home-ai/shared/domain/calendar/calendar';
 import { AuditStore } from '../audit/audit.store';
 import { Inject, Injectable } from '@nestjs/common';
 import { Role } from '@home-ai/shared/domain/role/role';
@@ -22,21 +21,26 @@ export interface CalendarRecord {
 }
 
 @Injectable()
-export class CalendarStore extends AbstractEntityStore<Calendar, CalendarRecord> {
+export class CalendarStore extends AbstractEntityStore<Calendar, CalendarRecord, InsertableCalendar, UpdatableCalendar> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'calendars', entityType: 'calendars' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Calendar>> {
-    // Basic implementation — expand as needed
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw('? = ANY(read_roles)', [user.role]);
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw('? = ANY(write_roles)', [user.role]);
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('name', like).orWhereILike('friendly_name', like),
+    );
   }
 
   protected recordToDomain(record: CalendarRecord): Calendar {

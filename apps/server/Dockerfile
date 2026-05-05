@@ -32,7 +32,13 @@ RUN npm run build:docker
 # STAGE 2: Runtime
 FROM node:20-alpine AS runner
 
+RUN apk add --no-cache curl
+
+RUN apk add --no-cache curl openssh-client
+
 WORKDIR /app
+
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 
 # Install production dependencies only
 COPY package.json package-lock.json* ./

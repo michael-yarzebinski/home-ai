@@ -5,6 +5,7 @@ import { ToolContext } from 'src/tools/types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const UpdateCalendarEventToolSchema = z.object({
   uid: z
@@ -74,6 +75,11 @@ export class UpdateCalendarEventTool extends ToolHandler<
 
   readonly parameters = UpdateCalendarEventToolSchema;
 
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
+
   async execute(
     params: z.infer<typeof UpdateCalendarEventToolSchema>,
     context: ToolContext,
@@ -124,7 +130,7 @@ tell application "Calendar"
 end tell
 `;
 
-    await this.runAppleScript(script);
+    await this.relayService.runAppleScript(script);
 
     return {
       success: true,

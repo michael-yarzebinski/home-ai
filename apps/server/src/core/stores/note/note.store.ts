@@ -1,10 +1,9 @@
 // core/stores/note/note.store.ts
 import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Note } from '@home-ai/shared/domain/note/note';
+
+import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
+import type { Note, InsertableNote, UpdatableNote } from '@home-ai/shared/domain/note/note';
 import { AuditStore } from '../audit/audit.store';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { SearchCriteria } from '@home-ai/shared/search/search';
 import { Inject, Injectable } from '@nestjs/common';
 import { Role } from '@home-ai/shared/domain/role/role';
 
@@ -21,20 +20,26 @@ export interface NoteRecord {
 }
 
 @Injectable()
-export class NoteStore extends AbstractEntityStore<Note, NoteRecord> {
+export class NoteStore extends AbstractEntityStore<Note, NoteRecord, InsertableNote, UpdatableNote> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'notes', entityType: 'notes' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Note>> {
-    return {
-        items: [],
-        total: 0,
-        page: criteria.page,
-        pageSize: criteria.pageSize,
-        hasNext: false,
-        hasPrevious: false,
-      };
+  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw('? = ANY(read_roles)', [user.role]);
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw('? = ANY(write_roles)', [user.role]);
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('name', like).orWhereILike('friendly_name', like),
+    );
   }
 
   protected recordToDomain(record: NoteRecord): Note {

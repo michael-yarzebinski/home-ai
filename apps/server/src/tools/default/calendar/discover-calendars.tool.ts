@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolUtils } from 'src/tools/utils/tool.utils';
 import { CalendarSummary, CalendarSummarySchema } from './types/calendar.types';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const DiscoverCalendarsToolSchema = z.object({
   query: z
@@ -34,6 +35,11 @@ export class DiscoverCalendarsTool extends ToolHandler<
     'For calendars already registered in Home AI, prefer list-calendars (permission-filtered).';
 
   readonly parameters = DiscoverCalendarsToolSchema;
+
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
 
   async execute(
     params: z.infer<typeof DiscoverCalendarsToolSchema>,
@@ -67,7 +73,7 @@ export class DiscoverCalendarsTool extends ToolHandler<
     end tell
     `;
 
-    const result = await this.runAppleScript(script);
+    const result = await this.relayService.runAppleScript(script);
     let calendars = ToolUtils.parseArray(result, CalendarSummarySchema);
 
     if (params.query) {

@@ -21,9 +21,45 @@ export abstract class AbstractMonitoringStore<
     this.tableName = options.tableName
   }
 
-  abstract search(criteria: SearchCriteria<TSearchCriteria>): Promise<Paginated<TDomain>>;
+  /** Override to add ilike filtering on text columns. */
+  protected applyTextSearch(query: Knex.QueryBuilder, text: string): Knex.QueryBuilder {
+    return query;
+  }
+
   protected abstract recordToDomain(record: TRecord): TDomain;
   protected abstract domainToRecord(domain: TDomain): TRecord;
+
+  async search(criteria: SearchCriteria<TSearchCriteria>): Promise<Paginated<TDomain>> {
+    let query = this.table.clone();
+
+    const text = (criteria as SearchCriteriaBase).query?.trim();
+    if (text) {
+      query = this.applyTextSearch(query, text);
+    }
+
+    const [countResult, records] = await Promise.all([
+      (this.knex(this.tableName) as Knex.QueryBuilder)
+        .modify((q) => { if (text) this.applyTextSearch(q, text); })
+        .count({ count: '*' })
+        .first(),
+      query
+        .orderBy('created_at', 'desc')
+        .limit(criteria.pageSize)
+        .offset((criteria.page - 1) * criteria.pageSize),
+    ]);
+
+    const total = Number((countResult as { count?: string })?.count ?? 0);
+    const items = (records as TRecord[]).map((r) => this.recordToDomain(r));
+
+    return {
+      items,
+      total,
+      page: criteria.page,
+      pageSize: criteria.pageSize,
+      hasNext: criteria.page * criteria.pageSize < total,
+      hasPrevious: criteria.page > 1,
+    };
+  }
 
   protected get table(): Knex.QueryBuilder<TRecord, TRecord[]> {
     return this.knex(this.tableName);

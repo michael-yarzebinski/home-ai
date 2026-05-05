@@ -1,17 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Knex } from "knex";
-import {
-  SearchCriteria,
-  SearchCriteriaBase,
-} from "@home-ai/shared/search/search";
-import { Paginated } from "@home-ai/shared/search/pagination";
 import { AppConfigService } from "../../services/app-config.service";
-import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import { AbstractEntityStore, type RequestUser } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../audit/audit.store";
 import {
   Conversation,
   ChatMessage,
-} from "@home-ai/shared/src/domain/conversation/converstation";
+} from "@home-ai/shared/domain/conversation/converstation";
 
 /**
  * Database Record Type
@@ -55,18 +50,25 @@ export class ConversationStore extends AbstractEntityStore<
 
   /**
    * Domain -> Record Mapping
+   *
+   * Returning `undefined` for a field causes AbstractEntityStore.update's patch
+   * step to strip it, so partial updates (e.g. touching only lastActivity) do
+   * NOT overwrite unrelated columns like messages.
    */
   protected domainToRecord(domain: Partial<Conversation>): ConversationRecord {
     return {
       id: domain.id || crypto.randomUUID(),
-      external_id: domain.externalId!,
-      user_id: domain.userId!,
-      messages: JSON.stringify(domain.messages || []),
+      external_id: domain.externalId as string,
+      user_id: domain.userId as string,
+      // Only serialise when explicitly provided — undefined means "don't touch this column"
+      messages: domain.messages !== undefined
+        ? JSON.stringify(domain.messages)
+        : (undefined as unknown as string),
       last_activity: domain.lastActivity
         ? new Date(domain.lastActivity)
         : new Date(),
       is_active: domain.isActive ?? true,
-      summary: domain.summary || null,
+      summary: domain.summary !== undefined ? domain.summary ?? null : (undefined as unknown as null),
       active: true,
       created_at: new Date(),
       updated_at: new Date(),
@@ -91,20 +93,26 @@ export class ConversationStore extends AbstractEntityStore<
     };
   }
 
-  /**
-   * Implementation of abstract search
-   */
-  async search(
-    criteria: SearchCriteria<SearchCriteriaBase>,
-  ): Promise<Paginated<Conversation>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.where('user_id', user.id);
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.where('user_id', user.id);
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('external_id', like).orWhereILike('summary', like),
+    );
+  }
+
+  /** Show most recently active conversations first. */
+  protected override get defaultOrder() {
+    return { column: 'last_activity', direction: 'desc' as const };
   }
 
   /**
@@ -127,8 +135,12 @@ export class ConversationStore extends AbstractEntityStore<
       const diff = now.getTime() - latestConversation.lastActivity.getTime();
 
       if (diff < this.conversationSessionTimeoutMs) {
-        // Update activity timestamp in DB
-        return await this.update(latestConversation.id, { lastActivity: now });
+        // Touch only the activity timestamp — do NOT go through AbstractEntityStore.update
+        // which would run domainToRecord on a partial object and wipe the messages column.
+        await this.table
+          .where({ id: latestConversation.id })
+          .update({ last_activity: now, updated_at: now } as any);
+        return { ...latestConversation, lastActivity: now };
       }
     }
 

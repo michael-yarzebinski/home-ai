@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Pencil } from 'lucide-react';
+import { Loader2, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 import { Role } from '@home-ai/shared/domain/role/role';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -31,9 +32,9 @@ export interface EntityModalProps {
   config: EntityConfig;
   /** Entity being viewed/edited (omit for 'add') */
   entity?: Record<string, unknown>;
-  onSave?: (data: Record<string, unknown>) => void;
-  onDelete?: (entity: Record<string, unknown>) => void;
-  onRestore?: (entity: Record<string, unknown>) => void;
+  onSave?: (data: Record<string, unknown>) => Promise<void>;
+  onDelete?: (entity: Record<string, unknown>) => Promise<void>;
+  onRestore?: (entity: Record<string, unknown>) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,11 +96,7 @@ export function EntityModal({
             canEdit={canEdit}
             isActive={isActive}
             onEdit={() => setMode('edit')}
-            onRestore={
-              onRestore && !isActive
-                ? () => { onRestore(entity); onClose(); }
-                : undefined
-            }
+            onRestore={onRestore && !isActive ? () => onRestore(entity) : undefined}
             onClose={onClose}
           />
         )}
@@ -112,10 +109,10 @@ export function EntityModal({
             entity={mode === 'edit' ? entity : undefined}
             mode={mode}
             isReadOnly={mode === 'edit' && !isActive}
-            onSave={(data) => { onSave?.(data); onClose(); }}
+            onSave={onSave ?? (() => Promise.resolve())}
             onClose={onClose}
-            onDelete={onDelete && entity ? () => { onDelete(entity); onClose(); } : undefined}
-            onRestore={onRestore && entity && !isActive ? () => { onRestore(entity); onClose(); } : undefined}
+            onDelete={onDelete && entity ? () => onDelete(entity) : undefined}
+            onRestore={onRestore && entity && !isActive ? () => onRestore(entity) : undefined}
           />
         )}
       </DialogContent>
@@ -133,11 +130,26 @@ interface ViewPanelProps {
   canEdit: boolean;
   isActive: boolean;
   onEdit: () => void;
-  onRestore?: () => void;
+  onRestore?: () => Promise<void>;
   onClose: () => void;
 }
 
 function ViewPanel({ config, entity, canEdit, isActive, onEdit, onRestore, onClose }: ViewPanelProps) {
+  const [pending, setPending] = useState(false);
+
+  const handleRestore = async () => {
+    if (!onRestore) return;
+    setPending(true);
+    try {
+      await onRestore();
+      toast.success(`${config.label} restored`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
   type Row = { label: string; value: ReactNode };
   const rows: Row[] = [];
 
@@ -194,9 +206,11 @@ function ViewPanel({ config, entity, canEdit, isActive, onEdit, onRestore, onClo
         <div>
           {!isActive && onRestore && (
             <button
-              onClick={onRestore}
-              className="px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors"
+              onClick={() => void handleRestore()}
+              disabled={pending}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
             >
+              {pending && <Loader2 size={13} className="animate-spin" />}
               Restore
             </button>
           )}
@@ -233,15 +247,16 @@ interface FormPanelProps {
   entity?: Record<string, unknown>;
   mode: 'add' | 'edit';
   isReadOnly: boolean;
-  onSave: (data: Record<string, unknown>) => void;
+  onSave: (data: Record<string, unknown>) => Promise<void>;
   onClose: () => void;
-  onDelete?: () => void;
-  onRestore?: () => void;
+  onDelete?: () => Promise<void>;
+  onRestore?: () => Promise<void>;
 }
 
 function FormPanel({ config, entity, mode, isReadOnly, onSave, onClose, onDelete, onRestore }: FormPanelProps) {
   const fields = config.formFields ?? [];
   const schema = config.formSchema;
+  const [pending, setPending] = useState(false);
 
   const defaultValues = buildDefaultValues(fields, entity ?? config.defaultFormValues?.() ?? {});
 
@@ -252,8 +267,53 @@ function FormPanel({ config, entity, mode, isReadOnly, onSave, onClose, onDelete
     defaultValues,
   });
 
-  const onSubmit = (data: Record<string, unknown>) => {
-    onSave(data);
+  const onSubmit = async (data: Record<string, unknown>) => {
+    // Convert comma-separated tag strings back to arrays for the API
+    const coerced = { ...data };
+    for (const field of fields) {
+      if (field.type === 'tags' && typeof coerced[field.name] === 'string') {
+        const raw = coerced[field.name] as string;
+        coerced[field.name] = raw.split(',').map((t) => t.trim()).filter(Boolean);
+      }
+    }
+    setPending(true);
+    try {
+      await onSave(coerced);
+      toast.success(mode === 'add' ? `${config.label} created` : `${config.label} saved`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setPending(true);
+    try {
+      await onDelete();
+      toast.success(`${config.label} deleted`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!onRestore) return;
+    setPending(true);
+    try {
+      await onRestore();
+      toast.success(`${config.label} restored`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -387,18 +447,22 @@ function FormPanel({ config, entity, mode, isReadOnly, onSave, onClose, onDelete
           {!isReadOnly && onDelete && (
             <button
               type="button"
-              onClick={onDelete}
-              className="px-4 py-2 rounded-md text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+              onClick={() => void handleDelete()}
+              disabled={pending}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
             >
+              {pending && <Loader2 size={13} className="animate-spin" />}
               Delete
             </button>
           )}
           {isReadOnly && onRestore && (
             <button
               type="button"
-              onClick={onRestore}
-              className="px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors"
+              onClick={() => void handleRestore()}
+              disabled={pending}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
             >
+              {pending && <Loader2 size={13} className="animate-spin" />}
               Restore
             </button>
           )}
@@ -409,7 +473,8 @@ function FormPanel({ config, entity, mode, isReadOnly, onSave, onClose, onDelete
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            disabled={pending}
+            className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
           >
             {isReadOnly ? 'Close' : 'Cancel'}
           </button>
@@ -417,8 +482,10 @@ function FormPanel({ config, entity, mode, isReadOnly, onSave, onClose, onDelete
             <button
               type="button"
               onClick={form.handleSubmit(onSubmit)}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              disabled={pending}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
+              {pending && <Loader2 size={13} className="animate-spin" />}
               {mode === 'add' ? 'Create' : 'Save Changes'}
             </button>
           )}

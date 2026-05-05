@@ -115,7 +115,7 @@ export class OrchestratorService {
             metadata: { loopCount },
           });
 
-          return { sessionId: chatSessionId, response: response.content };
+          return { sessionId: chatSessionId, response: finalContent };
         }
 
         for (const toolCall of response.toolCalls) {

@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { RoleSchema } from '../role/role';
 import { z } from 'zod';
 
@@ -15,5 +14,9 @@ export const FactSchema = z.object({
 });
 
 export type Fact = z.infer<typeof FactSchema>;
-export type InsertableFact = Insertable<Fact>;
-export type UpdatableFact = Updatable<Fact>;
+
+export const InsertableFactSchema = FactSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableFactSchema = InsertableFactSchema.partial();
+
+export type InsertableFact = z.infer<typeof InsertableFactSchema>;
+export type UpdatableFact = z.infer<typeof UpdatableFactSchema>;

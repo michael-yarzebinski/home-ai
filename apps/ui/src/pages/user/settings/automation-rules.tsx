@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Zap } from 'lucide-react';
-import { ENTITY_CONFIG_MAP, type EntityConfig } from '@/pages/admin/entity-search/entity-configs';
+import { ENTITY_CONFIG_MAP } from '@/pages/admin/entity-search/entity-configs';
 import { EntityTable } from '@/pages/admin/entity-search/entity-table';
 import { AutomationRuleModal } from './automation-rule-modal';
-import { MOCK_USER } from '@/mock/user';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/auth-context';
 import type { AutomationRule } from '@home-ai/shared/domain/automation-rule/automation-rule';
 
 // ---------------------------------------------------------------------------
@@ -16,33 +17,23 @@ type ModalState =
   | { open: true; mode: 'view' | 'edit'; rule: Record<string, unknown> };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Constants
 // ---------------------------------------------------------------------------
 
-function findAndMutate(arr: Record<string, unknown>[], id: unknown, patch: Record<string, unknown>) {
-  const item = arr.find((r) => r['id'] === id);
-  if (item) Object.assign(item, patch);
-}
+/** User-facing automation rules endpoint (scoped to JWT user) */
+const USER_API_BASE = '/v1';
+const AUTOMATION_RULES_PATH = 'automation-rules';
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export function SettingsAutomationRules() {
+  const { user } = useAuth();
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [tableKey, setTableKey] = useState(0);
 
-  const baseConfig = ENTITY_CONFIG_MAP['automation-rule'];
-
-  // Scope to current user only
-  const config = useMemo<EntityConfig>(
-    () => ({
-      ...baseConfig,
-      mockData: () => baseConfig.mockData().filter((r) => r['userId'] === MOCK_USER.id),
-    }),
-    [baseConfig],
-  );
-
+  const config = ENTITY_CONFIG_MAP['automation-rule'];
   const refreshTable = () => setTableKey((k) => k + 1);
 
   // ── Modal openers ─────────────────────────────────────────────────────
@@ -57,31 +48,22 @@ export function SettingsAutomationRules() {
 
   // ── Mutations ─────────────────────────────────────────────────────────
 
-  const handleSave = (data: Partial<AutomationRule>) => {
-    const source = baseConfig.mockData();
+  const handleSave = async (data: Partial<AutomationRule>) => {
     if (modal.open && modal.mode === 'edit' && 'rule' in modal) {
-      findAndMutate(source, modal.rule['id'], { ...data, updatedAt: new Date() });
+      await api.put(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}/${modal.rule['id']}`, data);
     } else {
-      source.push({
-        id: `ar_${Date.now()}`,
-        userId: MOCK_USER.id,
-        active: true,
-        lastRun: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...(data as Record<string, unknown>),
-      });
+      await api.post(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}`, data);
     }
     refreshTable();
   };
 
-  const handleDelete = (rule: Record<string, unknown>) => {
-    findAndMutate(baseConfig.mockData(), rule['id'], { active: false, updatedAt: new Date() });
+  const handleDelete = async (rule: Record<string, unknown>) => {
+    await api.delete(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}/${rule['id']}`);
     refreshTable();
   };
 
-  const handleRestore = (rule: Record<string, unknown>) => {
-    findAndMutate(baseConfig.mockData(), rule['id'], { active: true, updatedAt: new Date() });
+  const handleRestore = async (rule: Record<string, unknown>) => {
+    await api.post(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}/${rule['id']}/restore`);
     refreshTable();
   };
 
@@ -95,12 +77,12 @@ export function SettingsAutomationRules() {
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold text-foreground leading-tight">Automation Rules</h1>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
-            {MOCK_USER.name} · Triggers, actions, and schedules
+            {user?.name ?? 'My'} · Triggers, actions, and schedules
           </p>
         </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Table — uses user-facing /v1/automation-rules endpoint ── */}
       <div className="flex-1 flex flex-col overflow-hidden bg-background">
         <EntityTable
           key={`ar-settings-${tableKey}`}
@@ -108,6 +90,7 @@ export function SettingsAutomationRules() {
           onRowClick={handleRowClick}
           onEdit={handleEdit}
           onAdd={handleAdd}
+          apiBase={USER_API_BASE}
         />
       </div>
 

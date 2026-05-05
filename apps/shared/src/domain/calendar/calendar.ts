@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { RoleSchema } from '../role/role';
 import { z } from 'zod';
 
@@ -16,5 +15,9 @@ export const CalendarSchema = z.object({
 });
 
 export type Calendar = z.infer<typeof CalendarSchema>;
-export type InsertableCalendar = Insertable<Calendar>;
-export type UpdatableCalendar = Updatable<Calendar>;
+
+export const InsertableCalendarSchema = CalendarSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableCalendarSchema = InsertableCalendarSchema.partial();
+
+export type InsertableCalendar = z.infer<typeof InsertableCalendarSchema>;
+export type UpdatableCalendar = z.infer<typeof UpdatableCalendarSchema>;

@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from "../helper/crud.helper";
 import { RoleSchema } from "../role/role";
 import { z } from 'zod';
 
@@ -17,5 +16,17 @@ export const UserSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
-export type InsertableUser = Insertable<User>;
-export type UpdatableUser = Updatable<User>;
+
+// Full insertable type — includes accessCodeHash for internal (store-level) use.
+export const InsertableUserSchema = UserSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableUserSchema = InsertableUserSchema.partial();
+
+export type InsertableUser = z.infer<typeof InsertableUserSchema>;
+export type UpdatableUser = z.infer<typeof UpdatableUserSchema>;
+
+// API-safe variants — accessCodeHash managed via dedicated endpoint.
+export const InsertableUserApiSchema = InsertableUserSchema.omit({ accessCodeHash: true });
+export const UpdatableUserApiSchema = InsertableUserApiSchema.partial();
+
+export type InsertableUserApi = z.infer<typeof InsertableUserApiSchema>;
+export type UpdatableUserApi = z.infer<typeof UpdatableUserApiSchema>;

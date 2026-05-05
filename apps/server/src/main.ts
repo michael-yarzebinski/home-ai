@@ -26,7 +26,7 @@ async function bootstrap() {
   });
 
   // Optional: Global prefix for all routes
-  // app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api');
 
   // Graceful shutdown support
   app.enableShutdownHooks();

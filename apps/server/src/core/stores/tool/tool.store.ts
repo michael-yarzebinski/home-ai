@@ -1,9 +1,7 @@
 // src/core/stores/tool/tool.store.ts
 import type { Knex } from 'knex';
 import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Tool } from '@home-ai/shared/domain/tool/tool';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
+import type { Tool, InsertableTool, UpdatableTool } from '@home-ai/shared/domain/tool/tool';
 import { AuditStore } from '../audit/audit.store';
 import { Inject, Injectable } from '@nestjs/common';
 import { Role } from '@home-ai/shared/domain/role/role';
@@ -22,20 +20,24 @@ export interface ToolRecord {
 }
 
 @Injectable()
-export class ToolStore extends AbstractEntityStore<Tool, ToolRecord> {
+export class ToolStore extends AbstractEntityStore<Tool, ToolRecord, InsertableTool, UpdatableTool> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'tools', entityType: 'tools' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Tool>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query; // Admin-managed.
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query;
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('name', like).orWhereILike('friendly_name', like).orWhereILike('hints', like),
+    );
   }
 
   protected recordToDomain(record: ToolRecord): Tool {
@@ -57,6 +59,7 @@ export class ToolStore extends AbstractEntityStore<Tool, ToolRecord> {
       id: domain.id,
       name: domain.name,
       friendly_name: domain.friendlyName,
+      hints: domain.hints,
       request_roles: domain.requestRoles,
       write_roles: domain.writeRoles,
       notify_roles: domain.notifyRoles,

@@ -1,8 +1,6 @@
 // core/stores/notification-log/notification-log.store.ts
 import type { Knex } from 'knex';
 import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
 import type  { NotificationLog } from '@home-ai/shared/domain/notification-log/notification-log';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -19,15 +17,8 @@ export class NotificationLogStore extends AbstractMonitoringStore<NotificationLo
     super(knex, { tableName: 'notification_log' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<NotificationLog>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected applyTextSearch(query: Knex.QueryBuilder, text: string): Knex.QueryBuilder {
+    return query.whereILike('message', `%${text}%`);
   }
 
   protected recordToDomain(record: NotificationLogRecord): NotificationLog {

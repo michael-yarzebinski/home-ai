@@ -1,5 +1,6 @@
 // src/integrations/bluebubbles/bluebubbles.controller.ts
 import { Controller, Post, Body } from "@nestjs/common";
+import { Public } from "src/common/decorators/public.decorator";
 import { BlueBubblesService } from "./blue-bubbles.service";
 import { LogStore } from "../../core/stores/log/log.store";
 import {
@@ -7,21 +8,20 @@ import {
   BlueBubblesWebhookPayload,
 } from "./types/blue-bubble-webhook-payload";
 import { UserStore } from "src/core/stores/user/user.store";
-import { McpService } from "src/ai/mcp/mcp.service";
 import { OrchestratorService } from "../../ai/orchestrator/orchestrator.service";
 import { LLMModelTypes } from "../../ai/llm/llm.provider.sevice";
 
-@Controller("bluebubbles")
+@Controller("v1/bluebubbles")
 export class BlueBubblesController {
   constructor(
     private readonly userStore: UserStore,
     private readonly blueBubblesService: BlueBubblesService,
-    private readonly mcpService: McpService,
     private readonly orchestratorService: OrchestratorService,
     private readonly logStore: LogStore,
   ) { }
 
   @Post("webhook")
+  @Public()
   async handleIncomingMessage(@Body() payload: BlueBubblesWebhookPayload) {
     // this.logStore.create({
     //   severity: "info",

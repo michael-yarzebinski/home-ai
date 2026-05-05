@@ -17,10 +17,31 @@ import knex, { Knex } from "knex";
 import * as pg from "pg";
 import { ConversationStore } from "./stores/conversation/conversation.store";
 import { NotificationService } from "./services/notification.service";
+import { DashboardService } from "./services/dashboard.service";
+import { AuthService } from "./services/auth.service";
 import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.store";
+import { JwtModule } from "@nestjs/jwt";
+import { PassportModule } from "@nestjs/passport";
+import { JwtStrategy } from "./auth/jwt.strategy";
+import { AuthController } from "./controllers/auth.controller";
+import { AutomationRulesController } from "./controllers/automation-rules.controller";
+import { ChatSessionsController } from "./controllers/chat-sessions.controller";
+import { PendingActionsController } from "./controllers/pending-actions.controller";
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '12h' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthController, AutomationRulesController, ChatSessionsController, PendingActionsController],
   providers: [
     {
       provide: "KNEX_CONNECTION",
@@ -88,10 +109,16 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
     AutomationRuleStore,
 
     AppConfigService,
+    AuthService,
+    DashboardService,
+    JwtStrategy,
     NotificationService,
   ],
   exports: [
     "KNEX_CONNECTION",
+    // TODO
+    // Convert this to a reader
+    AppConfigStore,
     AuditStore,
     AIAuditStore,
     ConversationStore,
@@ -107,6 +134,9 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
     AutomationRuleStore,
 
     AppConfigService,
+    AuthService,
+    DashboardService,
+    JwtModule,
     NotificationService,
   ],
 })

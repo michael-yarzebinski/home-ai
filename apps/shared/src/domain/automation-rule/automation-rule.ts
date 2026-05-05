@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from "../helper/crud.helper";
 import { z } from 'zod';
 
 export enum TriggerType {
@@ -84,5 +83,8 @@ export const AutomationRuleSchema = z.object({
 
 export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
 
-export type InsertableAutomationRule = Insertable<AutomationRule>;
-export type UpdatableAutomationRule = Updatable<AutomationRule>;
+export const InsertableAutomationRuleSchema = AutomationRuleSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableAutomationRuleSchema = InsertableAutomationRuleSchema.partial();
+
+export type InsertableAutomationRule = z.infer<typeof InsertableAutomationRuleSchema>;
+export type UpdatableAutomationRule = z.infer<typeof UpdatableAutomationRuleSchema>;

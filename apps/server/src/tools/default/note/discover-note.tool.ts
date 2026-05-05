@@ -5,6 +5,7 @@ import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolUtils } from 'src/tools/utils/tool.utils';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const DiscoverNotesToolSchema = z.object({
   query: z
@@ -36,6 +37,10 @@ export class DiscoverNotesTool extends ToolHandler<typeof DiscoverNotesToolSchem
 
   readonly parameters = DiscoverNotesToolSchema;
 
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
   async execute(
     params: z.infer<typeof DiscoverNotesToolSchema>,
     context: ToolContext,
@@ -56,7 +61,7 @@ export class DiscoverNotesTool extends ToolHandler<typeof DiscoverNotesToolSchem
       end tell
     `.trim();
 
-    const result = await this.runAppleScript(script);
+    const result = await this.relayService.runAppleScript(script);
     let notes = ToolUtils.parseArray(result, DiscoverNoteItemSchema);
     if (params.query) {
       const term = params.query.toLowerCase();

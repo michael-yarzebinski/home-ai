@@ -28,14 +28,4 @@ export abstract class ToolHandler<
    * The actual business logic of the tool.
    */
   abstract execute(params: z.infer<TParams>, context: any): Promise<TResult>;
-
-  async runAppleScript(appleScript: string): Promise<string> {
-    // We use <<'EOF' to treat the script as a raw string in the shell.
-    // This prevents the shell from trying to interpret backslashes or quotes.
-    const command = `osascript <<'EOF'\n${appleScript}\nEOF`;
-
-    const { stdout } = await execAsync(command);
-
-    return stdout.trim();
-  }
 }

@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { z } from 'zod';
 
 export const AppConfigSchema = z.object({
@@ -12,5 +11,9 @@ export const AppConfigSchema = z.object({
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;
-export type InsertableAppConfig = Insertable<AppConfig>;
-export type UpdatableAppConfig = Updatable<AppConfig>;
+
+export const InsertableAppConfigSchema = AppConfigSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableAppConfigSchema = InsertableAppConfigSchema.partial();
+
+export type InsertableAppConfig = z.infer<typeof InsertableAppConfigSchema>;
+export type UpdatableAppConfig = z.infer<typeof UpdatableAppConfigSchema>;

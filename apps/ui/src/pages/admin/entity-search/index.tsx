@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Database } from 'lucide-react';
 import { ENTITY_CONFIG_MAP, ENTITY_CONFIGS } from './entity-configs';
 import { EntityNav } from './entity-nav';
 import { EntityTable } from './entity-table';
 import { EntityModal, type ModalMode } from './entity-modal';
+import { api } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Modal state union
@@ -15,82 +16,71 @@ type ModalState =
   | { open: true; initialMode: Exclude<ModalMode, 'add'>; entity: Record<string, unknown> };
 
 // ---------------------------------------------------------------------------
-// Helpers for mock mutations (soft-delete / restore / upsert)
-// ---------------------------------------------------------------------------
-
-function findAndMutate(arr: Record<string, unknown>[], id: unknown, patch: Record<string, unknown>) {
-  const item = arr.find((r) => r['id'] === id);
-  if (item) Object.assign(item, patch);
-}
-
-// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 const INITIAL_KEY = ENTITY_CONFIGS[0].key;
+const ADMIN_BASE = '/v1/admin';
 
 export function EntitySearch() {
   const [selectedKey, setSelectedKey] = useState(INITIAL_KEY);
   const [modal, setModal] = useState<ModalState>({ open: false });
-  // Incrementing this forces the table to remount and re-read mock data
   const [tableKey, setTableKey] = useState(0);
 
   const config = ENTITY_CONFIG_MAP[selectedKey];
   const refreshTable = () => setTableKey((k) => k + 1);
 
-  // ── Navigation ────────────────────────────────────────────────────────
+  // ── Navigation ─────────────────────────────────────────────────────────
 
   const handleSelectEntity = (key: string) => {
     setSelectedKey(key);
     setModal({ open: false });
   };
 
-  // ── Modal openers ─────────────────────────────────────────────────────
+  // ── Modal openers ──────────────────────────────────────────────────────
 
-  const handleRowClick = (entity: Record<string, unknown>) => {
+  const handleRowClick = (entity: Record<string, unknown>) =>
     setModal({ open: true, initialMode: 'view', entity });
-  };
 
-  const handleEdit = (entity: Record<string, unknown>) => {
+  const handleEdit = (entity: Record<string, unknown>) =>
     setModal({ open: true, initialMode: 'edit', entity });
-  };
 
-  const handleAdd = () => {
-    setModal({ open: true, initialMode: 'add' });
-  };
+  const handleAdd = () => setModal({ open: true, initialMode: 'add' });
 
-  // ── Save (mock upsert) ────────────────────────────────────────────────
+  // ── Save (create / update) ─────────────────────────────────────────────
+  // Errors propagate to the modal which shows a toast; success → modal closes + table refreshes.
 
-  const handleSave = (data: Record<string, unknown>) => {
-    const source = config.mockData() as Record<string, unknown>[];
-    if (modal.open && modal.initialMode === 'edit' && 'entity' in modal) {
-      findAndMutate(source, modal.entity['id'], { ...data, updatedAt: new Date() });
-    } else {
-      // Mock create: push with synthetic id + timestamps
-      source.push({
-        id: `new_${Date.now()}`,
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...data,
-      });
-    }
-    refreshTable();
-  };
+  const handleSave = useCallback(
+    async (data: Record<string, unknown>) => {
+      if (modal.open && modal.initialMode === 'edit' && 'entity' in modal) {
+        await api.put(`${ADMIN_BASE}/${config.apiPath}/${modal.entity['id']}`, data);
+      } else {
+        await api.post(`${ADMIN_BASE}/${config.apiPath}`, data);
+      }
+      refreshTable();
+    },
+    [modal, config.apiPath],
+  );
 
-  // ── Soft-delete ───────────────────────────────────────────────────────
+  // ── Soft-delete ────────────────────────────────────────────────────────
 
-  const handleDelete = (entity: Record<string, unknown>) => {
-    findAndMutate(config.mockData(), entity['id'], { active: false, updatedAt: new Date() });
-    refreshTable();
-  };
+  const handleDelete = useCallback(
+    async (entity: Record<string, unknown>) => {
+      await api.delete(`${ADMIN_BASE}/${config.apiPath}/${entity['id']}`);
+      refreshTable();
+    },
+    [config.apiPath],
+  );
 
-  // ── Restore ───────────────────────────────────────────────────────────
+  // ── Restore ────────────────────────────────────────────────────────────
 
-  const handleRestore = (entity: Record<string, unknown>) => {
-    findAndMutate(config.mockData(), entity['id'], { active: true, updatedAt: new Date() });
-    refreshTable();
-  };
+  const handleRestore = useCallback(
+    async (entity: Record<string, unknown>) => {
+      await api.post(`${ADMIN_BASE}/${config.apiPath}/${entity['id']}/restore`);
+      refreshTable();
+    },
+    [config.apiPath],
+  );
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden -mt-6 -mb-6">
@@ -124,7 +114,6 @@ export function EntitySearch() {
             )}
           </div>
 
-          {/* Table — key forces remount on entity switch or data mutation */}
           <EntityTable
             key={`${selectedKey}-${tableKey}`}
             config={config}

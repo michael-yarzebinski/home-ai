@@ -7,6 +7,7 @@ import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
 import { ToolUtils } from 'src/tools/utils/tool.utils';
 import { CalendarEvent, CalendarEventSchema } from './types/calendar.types';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const GetCalendarEventsToolSchema = z.object({
   startDate: z
@@ -65,6 +66,11 @@ export class GetCalendarEventsTool extends ToolHandler<
 
   readonly parameters = GetCalendarEventsToolSchema;
 
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
+
   async execute(
     params: z.infer<typeof GetCalendarEventsToolSchema>,
     context: ToolContext,
@@ -118,7 +124,7 @@ export class GetCalendarEventsTool extends ToolHandler<
     // Note: Standard AppleScript returns a proprietary list format. 
     // To move to production, we'll want to refactor this logic to JXA 
     // so we can use JSON.stringify() inside the script. [cite: 231]
-    const result = await this.runAppleScript(script);
+    const result = await this.relayService.runAppleScript(script);
 
     const events = ToolUtils.parseArray(result, CalendarEventSchema);
 

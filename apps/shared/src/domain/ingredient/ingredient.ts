@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { z } from 'zod';
 
 export const IngredientSchema = z.object({
@@ -14,5 +13,9 @@ export const IngredientSchema = z.object({
 });
 
 export type Ingredient = z.infer<typeof IngredientSchema>;
-export type InsertableIngredient = Insertable<Ingredient>;
-export type UpdatableIngredient = Updatable<Ingredient>;
+
+export const InsertableIngredientSchema = IngredientSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableIngredientSchema = InsertableIngredientSchema.partial();
+
+export type InsertableIngredient = z.infer<typeof InsertableIngredientSchema>;
+export type UpdatableIngredient = z.infer<typeof UpdatableIngredientSchema>;

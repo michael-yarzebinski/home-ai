@@ -1,6 +1,5 @@
 // src/integrations/home-assistant/home-assistant.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/log/log.store";
 import { DeviceStore } from "src/core/stores/device/device.store";

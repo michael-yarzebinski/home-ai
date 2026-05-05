@@ -14,4 +14,4 @@ import { NotificationQueueProcessor } from './notification-queue/notification-qu
     NotificationQueueProcessor,
   ],
 })
-export class BackgroundModule {}
+export class BackgroundModule { }

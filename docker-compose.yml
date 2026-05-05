@@ -1,4 +1,21 @@
 services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: home-ai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - home-ai-network
+
   postgres:
     image: postgres:16-alpine
     container_name: ai-home-postgres
@@ -72,20 +89,45 @@ services:
     ports:
       - "3000:3000"
     env_file: .env
+    environment:
+      - DB_HOST=postgres
+      - RELAY_URL=http://host.docker.internal:3100
+      - BLUEBUBBLES_URL=http://host.docker.internal:1234
+      - HOME_ASSISTANT_URL=http://host.docker.internal:8123
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./attachments:/app/attachments
+      # Nest ConfigModule + knex use ../../.env from apps/server → /app/.env
+      - ./.env:/app/.env:ro
+      - ./home_ai_id_rsa:/root/.ssh/id_ed25519:ro
     depends_on:
       postgres:
         condition: service_healthy
       ollama:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    networks:
+      - home-ai-network
+
+  home-ai-ui:
+    build:
+      context: .
+      dockerfile: ./apps/ui/Dockerfile
+    container_name: home-ai-ui
+    restart: unless-stopped
+    ports:
+      - "${UI_PORT:-8080}:80"
+    depends_on:
+      home-ai:
+        condition: service_healthy
     networks:
       - home-ai-network
 
@@ -111,3 +153,4 @@ networks:
 volumes:
   postgres-data:
   ollama-data:
+  redis-data:

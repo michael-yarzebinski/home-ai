@@ -4,6 +4,7 @@ import { ToolHandler } from '../../abstract/tool-handler';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const AddToNoteToolSchema = z.object({
   name: z
@@ -28,6 +29,11 @@ export class AddToNoteTool extends ToolHandler<typeof AddToNoteToolSchema, AddTo
     'Always call list-notes first and use the exact `name` from that response—do not guess from Apple Notes alone.';
 
   readonly parameters = AddToNoteToolSchema;
+
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
 
   async execute(
     params: z.infer<typeof AddToNoteToolSchema>,
@@ -82,7 +88,7 @@ export class AddToNoteTool extends ToolHandler<typeof AddToNoteToolSchema, AddTo
     `;
     }
 
-    await this.runAppleScript(script);
+    await this.relayService.runAppleScript(script);
 
     return {
       success: true,

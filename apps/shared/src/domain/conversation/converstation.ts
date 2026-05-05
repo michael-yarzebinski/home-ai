@@ -28,3 +28,9 @@ export const ConversationSchema = z.object({
 });
 
 export type Conversation = z.infer<typeof ConversationSchema>;
+
+export const ChatRequestSchema = z.object({
+  message: z.string().min(1),
+  chatSessionId: z.string().optional(),
+});
+export type ChatRequest = z.infer<typeof ChatRequestSchema>;

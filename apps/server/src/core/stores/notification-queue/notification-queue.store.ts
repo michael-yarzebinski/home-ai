@@ -1,9 +1,8 @@
 // src/core/stores/notification-queue/notification-queue.store.ts
 import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { NotificationQueue } from '@home-ai/shared/domain/notification-queue/notification-queue';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
+
+import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
+import type { NotificationQueue, InsertableNotificationQueue, UpdatableNotificationQueue } from '@home-ai/shared/domain/notification-queue/notification-queue';
 import { AuditStore } from '../audit/audit.store';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -19,20 +18,26 @@ export interface NotificationQueueRecord {
 }
 
 @Injectable()
-export class NotificationQueueStore extends AbstractEntityStore<NotificationQueue, NotificationQueueRecord> {
+export class NotificationQueueStore extends AbstractEntityStore<NotificationQueue, NotificationQueueRecord, InsertableNotificationQueue, UpdatableNotificationQueue> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'notification_queue', entityType: 'notification_queue' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<NotificationQueue>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query; // Admin sees all.
+    return query.where('user_id', user.id);
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.where('user_id', user.id);
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('message', like).orWhereILike('importance', like),
+    );
   }
 
   protected recordToDomain(record: NotificationQueueRecord): NotificationQueue {

@@ -1,9 +1,7 @@
 // src/features/recipes/recipes.store.ts
 import type { Knex } from 'knex';
 import { AbstractEntityStore } from '../../../core/stores/abstract/abstract-entity.store';
-import type { Recipe } from '@home-ai/shared/domain/recipe/recipe';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
+import type { Recipe, InsertableRecipe, UpdatableRecipe } from '@home-ai/shared/domain/recipe/recipe';
 import { AuditStore } from '../../../core/stores/audit/audit.store';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -21,20 +19,24 @@ export interface RecipeRecord {
 }
 
 @Injectable()
-export class RecipeStore extends AbstractEntityStore<Recipe, RecipeRecord> {
+export class RecipeStore extends AbstractEntityStore<Recipe, RecipeRecord, InsertableRecipe, UpdatableRecipe> {
   constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: 'recipes', entityType: 'recipes' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Recipe>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query; // Admin-managed library content.
+  }
+
+  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query;
+  }
+
+  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike('title', like).orWhereILike('url', like),
+    );
   }
 
   protected recordToDomain(record: RecipeRecord): Recipe {

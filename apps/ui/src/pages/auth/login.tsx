@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -120,30 +120,26 @@ export function Login() {
     setTimeout(() => setShake(false), 500);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (submitting) return;
 
     setError(null);
     setSubmitting(true);
-
-    // Small artificial delay so it feels intentional
-    setTimeout(() => {
-      const result = login(name, code);
-      if (result.success) {
-        navigate('/', { replace: true });
-      } else {
-        setError(result.error ?? 'Invalid credentials.');
-        triggerShake();
-      }
-      setSubmitting(false);
-    }, 300);
-  };
+    const result = await login(name, code);
+    if (result.success) {
+      navigate('/', { replace: true });
+    } else {
+      setError(result.error ?? 'Invalid credentials.');
+      triggerShake();
+    }
+    setSubmitting(false);
+  }, [submitting, login, name, code, navigate]); // eslint-disable-line
 
   // Submit when PIN is fully filled
   useEffect(() => {
     if (code.length === PIN_LENGTH && name.trim()) {
-      handleSubmit();
+      void handleSubmit();
     }
   }, [code]); // eslint-disable-line
 

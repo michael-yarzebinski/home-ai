@@ -81,7 +81,7 @@ export class NotificationService {
     originalRequestUserId?: string,
     importance: string = "low",
   ): Promise<void> {
-    const automationUserId = await this.appConfigService.getFromDb<string>("AUTOMATION_USER_ID");
+    const automationUserId = await this.appConfigService.getFromEnv<string>("AUTOMATION_USER_ID");
     if (toNotifyUserId === originalRequestUserId || toNotifyUserId === automationUserId) {
       return;
     }

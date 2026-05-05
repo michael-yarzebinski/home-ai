@@ -5,6 +5,7 @@ import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const AddEventToCalendarToolSchema = z.object({
   title: z.preprocess(ToolParameterUtils.stripQuotes, z.string().min(1)).describe('Title of the event'),
@@ -57,6 +58,11 @@ export class AddEventToCalendarTool extends ToolHandler<
 
   readonly parameters = AddEventToCalendarToolSchema;
 
+
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
   async execute(
     params: z.infer<typeof AddEventToCalendarToolSchema>,
     context: ToolContext,
@@ -64,7 +70,7 @@ export class AddEventToCalendarTool extends ToolHandler<
 
     const script = `tell application "Calendar" to tell calendar "${params.calendarName}" to return uid of (make new event with properties {summary:"${params.title}", start date:date "${params.startDateTime}"${params.endDateTime ? `, end date:date "${params.endDateTime}"` : ''}${params.location ? `, location:"${params.location}"` : ''}${params.notes ? `, description:"${params.notes}"` : ''}})`;
     
-    const result = await this.runAppleScript(script);
+    const result = await this.relayService.runAppleScript(script);
     const eventId = result.trim();
 
     return {

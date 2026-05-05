@@ -1,8 +1,6 @@
 // core/stores/ai-audit/ai-audit.store.ts
 import type { Knex } from 'knex';
 import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
 import type { AIAudit } from '@home-ai/shared/domain/ai-audit/ai-audit';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -24,15 +22,11 @@ export class AIAuditStore extends AbstractMonitoringStore<AIAudit, AIAuditRecord
     super(knex, { tableName: 'ai_audit' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<AIAudit>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected applyTextSearch(query: Knex.QueryBuilder, text: string): Knex.QueryBuilder {
+    const like = `%${text}%`;
+    return query.where((b) =>
+      b.whereILike('user_message', like).orWhereILike('final_response', like),
+    );
   }
 
   protected recordToDomain(record: AIAuditRecord): AIAudit {

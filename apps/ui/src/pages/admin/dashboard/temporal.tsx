@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -22,17 +21,12 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  LOG_SEVERITY,
-  TEMPORAL_STATS,
-  TOOL_CALL_STATS,
-  TREND_DATA,
-  type TimePeriod,
-} from '@/mock/dashboard';
+import type { DashboardPeriod, DashboardResult, TimeBucket } from '@home-ai/shared/domain/admin/dashboard/dashboard';
 
 // ---------------------------------------------------------------------------
-// Chart colour palette (CSS vars don't work inside SVG fill attrs)
+// Chart colour palette
 // ---------------------------------------------------------------------------
 const C = {
   primary: '#3b9eff',
@@ -46,62 +40,108 @@ const C = {
 
 type ChartType = 'bar' | 'line';
 type DataSource = 'ai' | 'logs';
-const TIME_PERIODS: TimePeriod[] = ['1H', '12H', '24H', '7D', '30D'];
+
+const PERIODS: { value: DashboardPeriod; label: string }[] = [
+  { value: '1h', label: '1H' },
+  { value: '24h', label: '24H' },
+  { value: '7d', label: '7D' },
+  { value: '30d', label: '30D' },
+  { value: '90d', label: '90D' },
+];
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
+interface TemporalIntelligenceProps {
+  period: DashboardPeriod;
+  onPeriodChange: (p: DashboardPeriod) => void;
+  data: DashboardResult['temporal'] | null;
+  loading: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatBucketLabel(timestamp: string, period: DashboardPeriod): string {
+  const d = new Date(timestamp);
+  if (period === '1h') return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (period === '24h') return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (period === '7d') return d.toLocaleDateString('en-US', { weekday: 'short' });
+  if (period === '30d') return String(d.getDate());
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function bucketsToChartData(buckets: TimeBucket[], period: DashboardPeriod) {
+  return buckets.map((b) => ({
+    label: formatBucketLabel(b.timestamp, period),
+    ai: b.aiAudit,
+    logs: b.logs,
+  }));
+}
+
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
 
 // ---------------------------------------------------------------------------
 // Section
 // ---------------------------------------------------------------------------
 
-export function TemporalIntelligence() {
-  const [period, setPeriod] = useState<TimePeriod>('24H');
+export function TemporalIntelligence({
+  period,
+  onPeriodChange,
+  data,
+  loading,
+}: TemporalIntelligenceProps) {
+  const aiTotal = data?.buckets.reduce((s, b) => s + b.aiAudit, 0) ?? 0;
+  const logsTotal = data?.logsBySeverity.total ?? 0;
 
   return (
     <section>
-      {/* Header row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 flex-shrink-0">
             <Clock className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-foreground leading-tight">
-              Temporal Intelligence
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              System-wide metrics and AI-audit telemetry
-            </p>
+            <h2 className="text-base font-semibold text-foreground leading-tight">Temporal Intelligence</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">System-wide metrics and AI-audit telemetry</p>
           </div>
         </div>
-        <TimeFilter period={period} onChange={setPeriod} />
+        <TimeFilter period={period} onChange={onPeriodChange} />
       </div>
 
-      {/* Content grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Left column */}
         <div className="flex flex-col gap-4">
           <StatCard
             label="AI QUERIES"
-            value={TEMPORAL_STATS.aiQueries.value.toLocaleString()}
-            trend={TEMPORAL_STATS.aiQueries.trend}
+            value={aiTotal.toLocaleString()}
             icon={<Brain size={14} />}
+            loading={loading}
           />
           <StatCard
             label="LOGS PROCESSED"
-            value={fmtCompact(TEMPORAL_STATS.logsProcessed.value)}
+            value={fmtCompact(logsTotal)}
             badge="Live"
             icon={<Activity size={14} />}
+            loading={loading}
           />
-          <ToolAuditList />
+          <AuditBreakdown data={data} loading={loading} />
         </div>
 
         {/* Middle: trend chart */}
         <div className="md:col-span-2">
-          <TrendChart period={period} />
+          <TrendChart data={data} period={period} loading={loading} />
         </div>
 
         {/* Right: health gauge */}
         <div>
-          <HealthGauge />
+          <HealthGauge data={data} loading={loading} />
         </div>
       </div>
     </section>
@@ -116,23 +156,23 @@ function TimeFilter({
   period,
   onChange,
 }: {
-  period: TimePeriod;
-  onChange: (p: TimePeriod) => void;
+  period: DashboardPeriod;
+  onChange: (p: DashboardPeriod) => void;
 }) {
   return (
     <div className="flex rounded-md border border-border overflow-hidden flex-shrink-0">
-      {TIME_PERIODS.map((p) => (
+      {PERIODS.map((p) => (
         <button
-          key={p}
-          onClick={() => onChange(p)}
+          key={p.value}
+          onClick={() => onChange(p.value)}
           className={cn(
             'px-3 py-1.5 text-[11px] font-medium transition-colors',
-            p === period
+            p.value === period
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent',
           )}
         >
-          {p}
+          {p.label}
         </button>
       ))}
     </div>
@@ -149,12 +189,14 @@ function StatCard({
   trend,
   badge,
   icon,
+  loading,
 }: {
   label: string;
   value: string;
   trend?: number;
   badge?: string;
   icon: React.ReactNode;
+  loading?: boolean;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -165,22 +207,21 @@ function StatCard({
         <span className="text-muted-foreground/50">{icon}</span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-foreground tabular-nums">{value}</span>
-        {trend !== undefined && (
-          <span
-            className={cn(
-              'flex items-center gap-0.5 text-xs font-medium',
-              trend > 0 ? 'text-green-500' : 'text-red-500',
+        {loading ? (
+          <span className="h-7 w-16 rounded bg-border/60 animate-pulse inline-block" />
+        ) : (
+          <>
+            <span className="text-2xl font-bold text-foreground tabular-nums">{value}</span>
+            {trend !== undefined && (
+              <span className={cn('flex items-center gap-0.5 text-xs font-medium', trend > 0 ? 'text-green-500' : 'text-red-500')}>
+                {trend > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                {trend > 0 ? '+' : ''}{trend}%
+              </span>
             )}
-          >
-            {trend > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-            {trend > 0 ? '+' : ''}{trend}%
-          </span>
-        )}
-        {badge && (
-          <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide">
-            {badge}
-          </span>
+            {badge && (
+              <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide">{badge}</span>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -188,49 +229,51 @@ function StatCard({
 }
 
 // ---------------------------------------------------------------------------
-// Tool audit list
+// Audit breakdown (replaces tool call list)
 // ---------------------------------------------------------------------------
 
-function ToolAuditList() {
+function AuditBreakdown({
+  data,
+  loading,
+}: {
+  data: DashboardResult['temporal'] | null;
+  loading: boolean;
+}) {
+  const rows = data ? [
+    { name: 'AI queries', count: data.buckets.reduce((s, b) => s + b.aiAudit, 0) },
+    { name: 'System audit', count: data.buckets.reduce((s, b) => s + b.audit, 0) },
+    { name: 'Notification logs', count: data.buckets.reduce((s, b) => s + b.notificationLog, 0) },
+  ] : [];
+
   return (
     <div className="rounded-lg border border-border bg-card p-4 flex-1">
       <div className="flex items-center gap-1.5 mb-3">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Audit: Tool Calls
+          Audit Breakdown
         </span>
       </div>
-      <div className="flex flex-col gap-2">
-        {TOOL_CALL_STATS.map((tool) => (
-          <div key={tool.name} className="flex items-center justify-between gap-2">
-            <span className="text-xs font-mono text-muted-foreground truncate">
-              .{tool.name}
-            </span>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs font-semibold text-foreground tabular-nums">
-                {tool.count}
-              </span>
-              {tool.trend === null ? (
-                <span className="text-[10px] text-muted-foreground/50">stable</span>
-              ) : (
-                <span
-                  className={cn(
-                    'text-[10px] font-medium',
-                    tool.trend > 0 ? 'text-green-500' : 'text-red-500',
-                  )}
-                >
-                  {tool.trend > 0 ? '+' : ''}{tool.trend}%
-                </span>
-              )}
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-4 rounded bg-border/60 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((row) => (
+            <div key={row.name} className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground truncate">{row.name}</span>
+              <span className="text-xs font-semibold text-foreground tabular-nums">{row.count.toLocaleString()}</span>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Trend chart (bar / line toggle, AI / Logs data source toggle)
+// Tooltip
 // ---------------------------------------------------------------------------
 
 function ChartTooltip({
@@ -255,11 +298,23 @@ function ChartTooltip({
   );
 }
 
-function TrendChart({ period }: { period: TimePeriod }) {
+// ---------------------------------------------------------------------------
+// Trend chart
+// ---------------------------------------------------------------------------
+
+function TrendChart({
+  data,
+  period,
+  loading,
+}: {
+  data: DashboardResult['temporal'] | null;
+  period: DashboardPeriod;
+  loading: boolean;
+}) {
   const [chartType, setChartType] = useState<ChartType>('bar');
   const [source, setSource] = useState<DataSource>('ai');
 
-  const data = TREND_DATA[period];
+  const chartData = data ? bucketsToChartData(data.buckets, period) : [];
   const dataKey = source === 'ai' ? 'ai' : 'logs';
   const color = source === 'ai' ? C.primary : C.cyan;
   const label = source === 'ai' ? 'AI Queries' : 'Logs';
@@ -270,42 +325,13 @@ function TrendChart({ period }: { period: TimePeriod }) {
     tickLine: false as const,
   };
 
-  const chartContent =
-    chartType === 'bar' ? (
-      <BarChart data={data} barCategoryGap="35%">
-        <CartesianGrid vertical={false} stroke={C.grid} />
-        <XAxis dataKey="label" {...axisProps} />
-        <YAxis {...axisProps} width={32} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-        <Bar dataKey={dataKey} name={label} fill={color} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-      </BarChart>
-    ) : (
-      <LineChart data={data}>
-        <CartesianGrid vertical={false} stroke={C.grid} />
-        <XAxis dataKey="label" {...axisProps} />
-        <YAxis {...axisProps} width={32} />
-        <Tooltip content={<ChartTooltip />} />
-        <Line
-          dataKey={dataKey}
-          name={label}
-          stroke={color}
-          strokeWidth={2}
-          dot={false}
-          activeDot={{ r: 3, fill: color }}
-          isAnimationActive={false}
-        />
-      </LineChart>
-    );
-
   return (
     <div className="rounded-lg border border-border bg-card p-4 h-full flex flex-col">
-      {/* Chart header */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
           Trend Analysis
         </span>
         <div className="flex items-center gap-2">
-          {/* Data source toggle */}
           <div className="flex rounded border border-border overflow-hidden">
             {(['ai', 'logs'] as DataSource[]).map((s) => (
               <button
@@ -313,68 +339,98 @@ function TrendChart({ period }: { period: TimePeriod }) {
                 onClick={() => setSource(s)}
                 className={cn(
                   'px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition-colors',
-                  s === source
-                    ? 'bg-accent text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
+                  s === source ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {s === 'ai' ? 'AI' : 'Logs'}
               </button>
             ))}
           </div>
-          {/* Chart type toggle */}
-          <div className="flex gap-0.5">
+          <div className="flex rounded border border-border overflow-hidden">
             <button
               onClick={() => setChartType('bar')}
-              title="Bar chart"
               className={cn(
-                'p-1.5 rounded transition-colors',
-                chartType === 'bar'
-                  ? 'text-foreground bg-accent'
-                  : 'text-muted-foreground hover:text-foreground',
+                'p-1.5 transition-colors',
+                chartType === 'bar' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              <BarChart2 size={13} />
+              <BarChart2 size={12} />
             </button>
             <button
               onClick={() => setChartType('line')}
-              title="Line chart"
               className={cn(
-                'p-1.5 rounded transition-colors',
-                chartType === 'line'
-                  ? 'text-foreground bg-accent'
-                  : 'text-muted-foreground hover:text-foreground',
+                'p-1.5 transition-colors',
+                chartType === 'line' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              <LineChartIcon size={13} />
+              <LineChartIcon size={12} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="flex-1 min-h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
-          {chartContent}
-        </ResponsiveContainer>
+      <div className="flex-1 min-h-[160px]">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-32 rounded bg-border/40 animate-pulse" />
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground/50">
+            No data for selected period
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === 'bar' ? (
+              <BarChart data={chartData} barCategoryGap="35%">
+                <CartesianGrid vertical={false} stroke={C.grid} />
+                <XAxis dataKey="label" {...axisProps} />
+                <YAxis {...axisProps} width={32} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey={dataKey} name={label} fill={color} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+              </BarChart>
+            ) : (
+              <LineChart data={chartData}>
+                <CartesianGrid vertical={false} stroke={C.grid} />
+                <XAxis dataKey="label" {...axisProps} />
+                <YAxis {...axisProps} width={32} />
+                <Tooltip content={<ChartTooltip />} />
+                <Line
+                  dataKey={dataKey}
+                  name={label}
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3, fill: color }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Log severity gauge
+// Health / severity gauge
 // ---------------------------------------------------------------------------
 
-function HealthGauge() {
-  const errorTotal = LOG_SEVERITY.error + LOG_SEVERITY.critical;
-  const total = LOG_SEVERITY.info + LOG_SEVERITY.warn + errorTotal;
+function HealthGauge({
+  data,
+  loading,
+}: {
+  data: DashboardResult['temporal'] | null;
+  loading: boolean;
+}) {
+  const sev = data?.logsBySeverity ?? { info: 0, warn: 0, error: 0, total: 0 };
+  const total = sev.total || 1;
   const pct = (n: number) => ((n / total) * 100).toFixed(1);
 
   const segments = [
-    { name: 'INFO', count: LOG_SEVERITY.info, fill: C.primary },
-    { name: 'WARN', count: LOG_SEVERITY.warn, fill: C.amber },
-    { name: 'ERROR', count: errorTotal, fill: C.red },
+    { name: 'INFO', count: sev.info, fill: C.primary },
+    { name: 'WARN', count: sev.warn, fill: C.amber },
+    { name: 'ERROR', count: sev.error, fill: C.red },
   ];
 
   return (
@@ -383,72 +439,62 @@ function HealthGauge() {
         Log Severity
       </span>
 
-      <div className="flex flex-col items-center gap-4 flex-1">
-        {/* Donut */}
-        <div className="relative w-[156px] h-[156px] flex-shrink-0">
-          <PieChart width={156} height={156}>
-            <Pie
-              data={segments.map((s) => ({ name: s.name, value: s.count }))}
-              cx={78}
-              cy={78}
-              innerRadius={50}
-              outerRadius={70}
-              startAngle={90}
-              endAngle={-270}
-              dataKey="value"
-              paddingAngle={3}
-              strokeWidth={0}
-              isAnimationActive={false}
-            >
-              {segments.map((s, i) => (
-                <Cell key={i} fill={s.fill} />
-              ))}
-            </Pie>
-          </PieChart>
-
-          {/* Center: total count */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-xl font-bold text-foreground leading-none tabular-nums">
-              {fmtCompact(total)}
-            </span>
-            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide mt-0.5">
-              total logs
-            </span>
+      {loading ? (
+        <div className="flex flex-col items-center gap-4 flex-1">
+          <div className="w-[156px] h-[156px] rounded-full bg-border/40 animate-pulse" />
+          <div className="flex flex-col gap-2.5 w-full">
+            {[1, 2, 3].map((i) => <div key={i} className="h-4 rounded bg-border/40 animate-pulse" />)}
           </div>
         </div>
-
-        {/* Legend: name | % | count */}
-        <div className="flex flex-col gap-2.5 w-full">
-          {segments.map((s) => (
-            <div key={s.name} className="flex items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 rounded-sm flex-shrink-0"
-                style={{ background: s.fill }}
-              />
-              <span className="text-[11px] text-muted-foreground flex-1">{s.name}</span>
-              <span className="text-[10px] text-muted-foreground/50 tabular-nums w-10 text-right">
-                {pct(s.count)}%
-              </span>
-              <span
-                className="text-xs font-semibold tabular-nums w-12 text-right"
-                style={{ color: s.fill }}
+      ) : (
+        <div className="flex flex-col items-center gap-4 flex-1">
+          <div className="relative w-[156px] h-[156px] flex-shrink-0">
+            <PieChart width={156} height={156}>
+              <Pie
+                data={segments.map((s) => ({ name: s.name, value: s.count || 1 }))}
+                cx={78}
+                cy={78}
+                innerRadius={50}
+                outerRadius={70}
+                startAngle={90}
+                endAngle={-270}
+                dataKey="value"
+                paddingAngle={3}
+                strokeWidth={0}
+                isAnimationActive={false}
               >
-                {s.count.toLocaleString()}
+                {segments.map((s, i) => (
+                  <Cell key={i} fill={s.fill} />
+                ))}
+              </Pie>
+            </PieChart>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-xl font-bold text-foreground leading-none tabular-nums">
+                {fmtCompact(sev.total)}
+              </span>
+              <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide mt-0.5">
+                total logs
               </span>
             </div>
-          ))}
+          </div>
+
+          <div className="flex flex-col gap-2.5 w-full">
+            {segments.map((s) => (
+              <div key={s.name} className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ background: s.fill }} />
+                <span className="text-[11px] text-muted-foreground flex-1">{s.name}</span>
+                <span className="text-[10px] text-muted-foreground/50 tabular-nums w-10 text-right">
+                  {pct(s.count)}%
+                </span>
+                <span className="text-xs font-semibold tabular-nums w-12 text-right" style={{ color: s.fill }}>
+                  {s.count.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
 }

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   TriggerType,
   ActionType,
@@ -31,9 +32,9 @@ export interface AutomationRuleModalProps {
   mode: AutomationRuleModalMode;
   /** Existing rule when editing/viewing */
   rule?: Record<string, unknown>;
-  onSave?: (data: Partial<AutomationRule>) => void;
-  onDelete?: (rule: Record<string, unknown>) => void;
-  onRestore?: (rule: Record<string, unknown>) => void;
+  onSave?: (data: Partial<AutomationRule>) => Promise<void>;
+  onDelete?: (rule: Record<string, unknown>) => Promise<void>;
+  onRestore?: (rule: Record<string, unknown>) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,9 +262,48 @@ export function AutomationRuleModal({
 
   const triggerType = form.watch('triggerType');
 
-  const onSubmit = (values: FormValues) => {
-    onSave?.(formToRule(values));
-    onClose();
+  const [pending, setPending] = useState(false);
+
+  const onSubmit = async (values: FormValues) => {
+    if (!onSave) return;
+    setPending(true);
+    try {
+      await onSave(formToRule(values));
+      toast.success(mode === 'add' ? 'Automation rule created' : 'Automation rule saved');
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete || !rule) return;
+    setPending(true);
+    try {
+      await onDelete(rule);
+      toast.success('Automation rule deleted');
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!onRestore || !rule) return;
+    setPending(true);
+    try {
+      await onRestore(rule);
+      toast.success('Automation rule restored');
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPending(false);
+    }
   };
 
   const ruleName = rule
@@ -496,18 +536,22 @@ export function AutomationRuleModal({
             {!isReadOnly && onDelete && rule && (
               <button
                 type="button"
-                onClick={() => { onDelete(rule); onClose(); }}
-                className="px-4 py-2 rounded-md text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+                onClick={() => void handleDelete()}
+                disabled={pending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               >
+                {pending && <Loader2 size={13} className="animate-spin" />}
                 Delete
               </button>
             )}
             {isReadOnly && onRestore && rule && (
               <button
                 type="button"
-                onClick={() => { onRestore(rule); onClose(); }}
-                className="px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors"
+                onClick={() => void handleRestore()}
+                disabled={pending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-green-400 border border-green-500/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
               >
+                {pending && <Loader2 size={13} className="animate-spin" />}
                 Restore
               </button>
             )}
@@ -516,7 +560,8 @@ export function AutomationRuleModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              disabled={pending}
+              className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
             >
               {isReadOnly ? 'Close' : 'Cancel'}
             </button>
@@ -524,8 +569,10 @@ export function AutomationRuleModal({
               <button
                 type="button"
                 onClick={form.handleSubmit(onSubmit)}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                disabled={pending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
+                {pending && <Loader2 size={13} className="animate-spin" />}
                 {mode === 'add' ? 'Create Rule' : 'Save Changes'}
               </button>
             )}

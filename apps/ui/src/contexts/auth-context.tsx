@@ -1,27 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { api, apiToken, SESSION_KEY } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface AuthUser {
+  id: string;
   name: string;
+  /** User role from JWT */
+  role: string;
   /** Two-letter initials, upper-cased */
   initials: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  /** Returns success/error; validates name non-empty and code ≥ 4 digits */
-  login: (name: string, code: string) => { success: boolean; error?: string };
+  /** Calls POST /v1/auth/login, stores JWT, returns success/error */
+  login: (name: string, code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
 // ---------------------------------------------------------------------------
-// Storage key
+// Helpers
 // ---------------------------------------------------------------------------
-
-const SESSION_KEY = 'home-ai:session';
 
 function toInitials(name: string): string {
   return name
@@ -37,20 +39,24 @@ function loadSession(): AuthUser | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { name?: string };
-    if (!parsed.name) return null;
-    return { name: parsed.name, initials: toInitials(parsed.name) };
+    const parsed = JSON.parse(raw) as { id?: string; name?: string; role?: string };
+    if (!parsed.id || !parsed.name) return null;
+    return {
+      id: parsed.id,
+      name: parsed.name,
+      role: parsed.role ?? 'guest',
+      initials: toInitials(parsed.name),
+    };
   } catch {
     return null;
   }
 }
 
 function saveSession(user: AuthUser) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ name: user.name }));
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({ id: user.id, name: user.name, role: user.role }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -68,22 +74,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session) setUser(session);
   }, []);
 
-  const login = useCallback((name: string, code: string): { success: boolean; error?: string } => {
-    const trimmed = name.trim();
-    if (!trimmed) return { success: false, error: 'Name is required.' };
+  const login = useCallback(
+    async (name: string, code: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const result = await api.post<{
+          accessToken: string;
+          userId: string;
+          name: string;
+          role: string;
+        }>('/v1/auth/login', { name, code });
 
-    const codeClean = code.trim();
-    if (!/^\d+$/.test(codeClean)) return { success: false, error: 'Code must contain only digits.' };
-    if (codeClean.length < 4) return { success: false, error: 'Code must be at least 4 digits.' };
+        apiToken.set(result.accessToken);
 
-    const authUser: AuthUser = { name: trimmed, initials: toInitials(trimmed) };
-    saveSession(authUser);
-    setUser(authUser);
-    return { success: true };
-  }, []);
+        const authUser: AuthUser = {
+          id: result.userId,
+          name: result.name,
+          role: result.role,
+          initials: toInitials(result.name),
+        };
+        saveSession(authUser);
+        setUser(authUser);
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: (err as Error).message };
+      }
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
-    clearSession();
+    apiToken.clear();
     setUser(null);
   }, []);
 

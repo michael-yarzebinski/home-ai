@@ -1,8 +1,6 @@
 // core/stores/log/log.store.ts
 import type { Knex } from 'knex';
 import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
 import type { Log } from '@home-ai/shared/domain/log/log';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Insertable } from '@home-ai/shared/src/domain/helper/crud.helper';
@@ -24,15 +22,11 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
     super(knex, { tableName: 'logs' });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Log>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected applyTextSearch(query: Knex.QueryBuilder, text: string): Knex.QueryBuilder {
+    const like = `%${text}%`;
+    return query.where((b) =>
+      b.whereILike('message', like).orWhereILike('severity', like),
+    );
   }
 
   protected recordToDomain(record: LogRecord): Log {

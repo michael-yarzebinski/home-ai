@@ -44,6 +44,8 @@ export interface EntityConfig {
   key: string;
   label: string;
   pluralLabel: string;
+  /** Path segment used in admin API calls: /v1/admin/{apiPath}/search etc. */
+  apiPath: string;
   /** Read-only monitoring entity — no add/edit modal */
   isMonitoring?: boolean;
   /** Allowed to create new entities (default: true for non-monitoring) */
@@ -52,8 +54,8 @@ export interface EntityConfig {
   formFields?: FormFieldDef[];
   formSchema?: z.ZodTypeAny;
   defaultFormValues?: () => Record<string, unknown>;
-  /** Flat array of mock data — cast to Record<string, unknown>[] at call site */
-  mockData: () => Record<string, unknown>[];
+  /** Legacy mock data — kept for backwards compat, not used in live mode */
+  mockData?: () => Record<string, unknown>[];
   quickAction?: QuickAction;
 }
 
@@ -121,6 +123,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'ai-audit',
+    apiPath: 'ai-audit',
     label: 'AI Audit',
     pluralLabel: 'AI Audits',
     isMonitoring: true,
@@ -136,6 +139,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'audit',
+    apiPath: 'audit',
     label: 'Audit',
     pluralLabel: 'Audit Logs',
     isMonitoring: true,
@@ -152,6 +156,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'log',
+    apiPath: 'logs',
     label: 'Log',
     pluralLabel: 'System Logs',
     isMonitoring: true,
@@ -171,6 +176,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'notification-log',
+    apiPath: 'notification-log',
     label: 'Notification Log',
     pluralLabel: 'Notification Logs',
     isMonitoring: true,
@@ -186,6 +192,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'app-config',
+    apiPath: 'app-config',
     label: 'App Config',
     pluralLabel: 'App Configs',
     mockData: () => MOCK_APP_CONFIGS as unknown as Record<string, unknown>[],
@@ -208,6 +215,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'automation-rule',
+    apiPath: 'automation-rules',
     label: 'Automation Rule',
     pluralLabel: 'Automation Rules',
     mockData: () => MOCK_AUTOMATION_RULES as unknown as Record<string, unknown>[],
@@ -242,6 +250,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'calendar',
+    apiPath: 'calendars',
     label: 'Calendar',
     pluralLabel: 'Calendars',
     mockData: () => MOCK_CALENDARS as unknown as Record<string, unknown>[],
@@ -273,6 +282,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'device',
+    apiPath: 'devices',
     label: 'Device',
     pluralLabel: 'Devices',
     mockData: () => MOCK_DEVICES as unknown as Record<string, unknown>[],
@@ -309,6 +319,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'fact',
+    apiPath: 'facts',
     label: 'Fact',
     pluralLabel: 'Facts',
     mockData: () => MOCK_FACTS as unknown as Record<string, unknown>[],
@@ -339,6 +350,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'note',
+    apiPath: 'notes',
     label: 'Note',
     pluralLabel: 'Notes',
     mockData: () => MOCK_NOTES as unknown as Record<string, unknown>[],
@@ -368,6 +380,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'notification-queue',
+    apiPath: 'notification-queue',
     label: 'Notification Queue',
     pluralLabel: 'Notification Queue',
     canCreate: false,
@@ -409,6 +422,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'recipe',
+    apiPath: 'recipes',
     label: 'Recipe',
     pluralLabel: 'Recipes',
     mockData: () => MOCK_RECIPES as unknown as Record<string, unknown>[],
@@ -439,6 +453,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'tool',
+    apiPath: 'tools',
     label: 'Tool',
     pluralLabel: 'Tools',
     canCreate: false,
@@ -467,6 +482,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
 
   {
     key: 'user',
+    apiPath: 'users',
     label: 'User',
     pluralLabel: 'Users',
     mockData: () => MOCK_USERS as unknown as Record<string, unknown>[],

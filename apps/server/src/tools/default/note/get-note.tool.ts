@@ -4,6 +4,7 @@ import { ToolHandler } from '../../abstract/tool-handler';
 import type { ToolContext } from '../../types/tool-context';
 import { Injectable } from '@nestjs/common';
 import { Tool } from 'src/tools/decorators/tool.decorator';
+import { RelayService } from '../../../integrations/relay/relay.service';
 
 const GetNoteToolSchema = z.object({
   name: z
@@ -29,6 +30,11 @@ export class GetNoteTool extends ToolHandler<typeof GetNoteToolSchema, GetNoteRe
 
   readonly parameters = GetNoteToolSchema;
 
+  constructor(private readonly relayService: RelayService) {
+    super();
+  }
+
+
   async execute(
     params: z.infer<typeof GetNoteToolSchema>,
     context: ToolContext,
@@ -44,7 +50,7 @@ export class GetNoteTool extends ToolHandler<typeof GetNoteToolSchema, GetNoteRe
       end tell
     `;
 
-    const result = await this.runAppleScript(script);
+    const result = await this.relayService.runAppleScript(script);
     const content = result.trim();
 
     if (content.startsWith('ERROR:')) {
