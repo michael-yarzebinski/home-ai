@@ -27,6 +27,8 @@ import { AuthController } from "./controllers/auth.controller";
 import { AutomationRulesController } from "./controllers/automation-rules.controller";
 import { ChatSessionsController } from "./controllers/chat-sessions.controller";
 import { PendingActionsController } from "./controllers/pending-actions.controller";
+import { DeviceEventStore } from "./stores/device/device-event.store";
+import { BullModule } from "@nestjs/bullmq";
 
 @Module({
   imports: [
@@ -39,6 +41,9 @@ import { PendingActionsController } from "./controllers/pending-actions.controll
         signOptions: { expiresIn: '12h' },
       }),
       inject: [ConfigService],
+    }),
+    BullModule.registerQueue({
+      name: 'ha-events',
     }),
   ],
   controllers: [AuthController, AutomationRulesController, ChatSessionsController, PendingActionsController],
@@ -92,7 +97,6 @@ import { PendingActionsController } from "./controllers/pending-actions.controll
       },
       inject: [ConfigService],
     },
-
     AppConfigStore,
     AuditStore,
     AIAuditStore,
@@ -113,11 +117,11 @@ import { PendingActionsController } from "./controllers/pending-actions.controll
     DashboardService,
     JwtStrategy,
     NotificationService,
+    DeviceEventStore,
   ],
   exports: [
     "KNEX_CONNECTION",
-    // TODO
-    // Convert this to a reader
+    BullModule,
     AppConfigStore,
     AuditStore,
     AIAuditStore,
@@ -138,6 +142,7 @@ import { PendingActionsController } from "./controllers/pending-actions.controll
     DashboardService,
     JwtModule,
     NotificationService,
+    DeviceEventStore,
   ],
 })
 export class CoreModule { }

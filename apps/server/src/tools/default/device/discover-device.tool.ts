@@ -1,7 +1,7 @@
 // src/tools/default/discover-devices.tool.ts
 import { z } from 'zod';
 import { ToolHandler } from '../../abstract/tool-handler';
-import { HomeAssistantService } from '../../../integrations/home-assistant/home-assistant.service';
+import { HomeAssistantService } from '../../../integrations/home-assistant/services/home-assistant.service';
 import type { ToolContext } from '../../types/tool-context';
 import type { HassEntity } from 'home-assistant-js-websocket';
 import { Injectable } from '@nestjs/common';

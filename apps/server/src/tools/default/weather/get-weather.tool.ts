@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from 'src/core/services/app-config.service';
-import { WeatherService } from 'src/integrations/weather/weather.service';
+import { WeatherService } from 'src/integrations/weather/service/weather.service';
 import { ToolHandler } from 'src/tools/abstract/tool-handler';
 import { Tool } from 'src/tools/decorators/tool.decorator';
 import { ToolContext } from 'src/tools/types/tool-context';
 import { z } from 'zod';
+import { WeatherRequest, WeatherTimePeriod } from '../../../integrations/weather/types/weather-request';
 
 const GetWeatherToolSchema = z.object({
+  timePeriod: z.enum(WeatherTimePeriod).optional().default(WeatherTimePeriod.CURRENT),
   forecastDays: z.preprocess(
     (value) => {
       if (typeof value === 'string') {
@@ -56,7 +58,10 @@ export class GetWeatherTool extends ToolHandler<typeof GetWeatherToolSchema, Get
     context: ToolContext,
   ): Promise<GetWeatherResult> {
     const zipCode = await this.appConfigService.getFromDb<string>('ZIP_CODE');
-    const days = params.forecastDays ?? 2;
+    const weatherRequest: WeatherRequest = {
+      timePeriod: params.timePeriod,
+      days: params.forecastDays,
+    };
 
     if (!zipCode) {
       return {
@@ -65,19 +70,12 @@ export class GetWeatherTool extends ToolHandler<typeof GetWeatherToolSchema, Get
       };
     }
 
-    try {
-      const weather = await this.weatherService.getWeather(zipCode, days);
+    const weather = await this.weatherService.getWeather(zipCode, weatherRequest);
 
-      return {
-        success: true,
-        weather,
-        message: `Weather for ${zipCode} retrieved (${days} day forecast).`,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: `Failed to get weather: ${err.message}`,
-      };
-    }
+    return {
+      success: true,
+      weather,
+      message: `Weather for ${zipCode} retrieved (${weatherRequest.days} day forecast).`,
+    };
   }
 }
