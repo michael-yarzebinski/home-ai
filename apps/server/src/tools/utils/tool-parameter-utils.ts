@@ -78,6 +78,22 @@ export class ToolParameterUtils {
     return [value];
   }
 
+  static toObject(value: unknown, emptyFallback: object = {}): unknown {
+    if (ToolParameterUtils.isEmptyOptionalInput(value)) return emptyFallback;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return emptyFallback;
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+          return parsed;
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
   static toRawText(value: unknown): unknown {
     if (value === null || value === undefined) return value;
     if (typeof value === "string") return value;
@@ -111,7 +127,7 @@ export class ToolParameterUtils {
     if (!s) return value;
     const d = new Date(s);
     if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString("en-US").replace(',', '');  // For Apple Script.  Replace 4/30/2026, 7:00:00 PM --> 4/30/2026 7:00:00 PM
+    return d.toLocaleString("en-US").replace(",", ""); // For Apple Script.  Replace 4/30/2026, 7:00:00 PM --> 4/30/2026 7:00:00 PM
   }
 
   static toRoleArray(value: unknown): unknown {
@@ -128,7 +144,9 @@ export class ToolParameterUtils {
     if (normalized.includes("all")) return [...ToolParameterUtils.ALL_ROLES];
 
     const mapped = normalized.map((role) => ToolParameterUtils.toRole(role));
-    return mapped.every((role): role is Role => role !== undefined) ? mapped : value;
+    return mapped.every((role): role is Role => role !== undefined)
+      ? mapped
+      : value;
   }
 
   private static toRole(value: string): Role | undefined {

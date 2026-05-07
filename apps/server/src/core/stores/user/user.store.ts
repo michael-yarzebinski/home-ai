@@ -1,8 +1,12 @@
 // src/core/stores/user/user.store.ts
 import type { Knex } from "knex";
 import { AbstractEntityStore } from "../abstract/abstract-entity.store";
-import type { User, InsertableUser, UpdatableUser } from "@home-ai/shared/domain/user/user";
-import { AuditStore } from "../audit/audit.store";
+import type {
+  User,
+  InsertableUser,
+  UpdatableUser,
+} from "@home-ai/shared/domain/user/user";
+import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { Role } from "@home-ai/shared/domain/role/role";
 
@@ -21,7 +25,12 @@ export interface UserRecord {
 }
 
 @Injectable()
-export class UserStore extends AbstractEntityStore<User, UserRecord, InsertableUser, UpdatableUser> {
+export class UserStore extends AbstractEntityStore<
+  User,
+  UserRecord,
+  InsertableUser,
+  UpdatableUser
+> {
   constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: "users", entityType: "users" });
   }
@@ -34,10 +43,13 @@ export class UserStore extends AbstractEntityStore<User, UserRecord, InsertableU
     return query;
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('name', like).orWhereILike('phone_number', like),
+      b.whereILike("name", like).orWhereILike("phone_number", like),
     );
   }
 

@@ -1,7 +1,7 @@
 // src/tools/decorators/tool.decorator.ts
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from "@nestjs/common";
 
-export const TOOL_METADATA = 'TOOL_METADATA';
+export const TOOL_METADATA = "TOOL_METADATA";
 
 /**
  * Simple metadata decorator.

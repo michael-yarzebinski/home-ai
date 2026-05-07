@@ -1,11 +1,11 @@
 export interface EventQueueItem {
-    entityId: string;
-    oldState: string;
-    newState: string;
-    ruleIds: string[];
+  entityId: string;
+  oldState: string;
+  newState: string;
+  ruleIds: string[];
 }
 
 export interface EventQueueBuffer {
-    events: EventQueueItem[];
-    ruleIds: string[];
+  events: EventQueueItem[];
+  ruleIds: string[];
 }

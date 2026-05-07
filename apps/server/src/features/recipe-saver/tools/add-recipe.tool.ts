@@ -11,22 +11,46 @@ import { Injectable } from "@nestjs/common";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const IngredientSchema = z.object({
-  name: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Ingredient name is required")),
-  quantity: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  name: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(1, "Ingredient name is required"),
+  ),
+  quantity: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
   unit: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
   notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
 });
 
 const AddRecipeToolSchema = z.object({
-  title: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Recipe title is required")),
+  title: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(1, "Recipe title is required"),
+  ),
   ingredients: z
     .preprocess(ToolParameterUtils.toUnknownArray, z.array(IngredientSchema))
     .describe("The structured list of ingredients."),
-  instructions: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(10, "Instructions are too short")),
-  servings: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  prepTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  cookTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  url: z.preprocess(ToolParameterUtils.toStringValue, z.string().url().optional().or(z.literal(""))),
+  instructions: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(10, "Instructions are too short"),
+  ),
+  servings: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  prepTimeMinutes: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  cookTimeMinutes: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  url: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().url().optional().or(z.literal("")),
+  ),
   notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
   temporaryPdfPath: z.preprocess(
     ToolParameterUtils.toStringValue,
@@ -65,7 +89,7 @@ export class AddRecipeTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof AddRecipeToolSchema>,
-    context: ToolContext,
+    _context: ToolContext,
   ): Promise<AddRecipeResult> {
     try {
       // Create the base recipe record
@@ -84,13 +108,19 @@ export class AddRecipeTool extends ToolHandler<
 
       // Handle PDF movement from temporary storage to permanent storage
       const finalPdfFilename = `${readableId}.pdf`;
-      const finalPdfPath = path.join(attachmentsDir, "recipes", finalPdfFilename);
+      const finalPdfPath = path.join(
+        attachmentsDir,
+        "recipes",
+        finalPdfFilename,
+      );
 
       try {
         await fs.access(params.temporaryPdfPath);
         await fs.rename(params.temporaryPdfPath, finalPdfPath);
-      } catch (e) {
-        console.warn(`[AddRecipeTool] PDF file not found at ${params.temporaryPdfPath}. Skipping rename.`);
+      } catch {
+        console.warn(
+          `[AddRecipeTool] PDF file not found at ${params.temporaryPdfPath}. Skipping rename.`,
+        );
       }
 
       // Save standardized ingredients

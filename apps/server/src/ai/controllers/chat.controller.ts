@@ -5,7 +5,10 @@ import { OrchestratorService } from "../orchestrator/orchestrator.service";
 import { LLMModelTypes } from "../llm/llm.provider.sevice";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
-import { ChatRequestSchema, type ChatRequest } from "@home-ai/shared/domain/conversation/converstation";
+import {
+  ChatRequestSchema,
+  type ChatRequest,
+} from "@home-ai/shared/domain/conversation/converstation";
 import type { AuthUser } from "../../core/auth/jwt.strategy";
 
 @Controller("v1/chat")
@@ -13,7 +16,7 @@ export class ChatController {
   constructor(
     private readonly orchestrator: OrchestratorService,
     private readonly userStore: UserStore,
-  ) { }
+  ) {}
 
   @Post()
   async chat(

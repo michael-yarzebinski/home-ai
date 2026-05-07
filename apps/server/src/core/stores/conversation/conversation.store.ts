@@ -1,8 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Knex } from "knex";
 import { AppConfigService } from "../../services/app-config.service";
-import { AbstractEntityStore, type RequestUser } from "../abstract/abstract-entity.store";
-import { AuditStore } from "../audit/audit.store";
+import {
+  AbstractEntityStore,
+  type RequestUser,
+} from "../abstract/abstract-entity.store";
+import { AuditStore } from "../monitoring/audit/audit.store";
 import {
   Conversation,
   ChatMessage,
@@ -61,14 +64,18 @@ export class ConversationStore extends AbstractEntityStore<
       external_id: domain.externalId as string,
       user_id: domain.userId as string,
       // Only serialise when explicitly provided — undefined means "don't touch this column"
-      messages: domain.messages !== undefined
-        ? JSON.stringify(domain.messages)
-        : (undefined as unknown as string),
+      messages:
+        domain.messages !== undefined
+          ? JSON.stringify(domain.messages)
+          : (undefined as unknown as string),
       last_activity: domain.lastActivity
         ? new Date(domain.lastActivity)
         : new Date(),
       is_active: domain.isActive ?? true,
-      summary: domain.summary !== undefined ? domain.summary ?? null : (undefined as unknown as null),
+      summary:
+        domain.summary !== undefined
+          ? (domain.summary ?? null)
+          : (undefined as unknown as null),
       active: true,
       created_at: new Date(),
       updated_at: new Date(),
@@ -93,26 +100,35 @@ export class ConversationStore extends AbstractEntityStore<
     };
   }
 
-  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('external_id', like).orWhereILike('summary', like),
+      b.whereILike("external_id", like).orWhereILike("summary", like),
     );
   }
 
   /** Show most recently active conversations first. */
   protected override get defaultOrder() {
-    return { column: 'last_activity', direction: 'desc' as const };
+    return { column: "last_activity", direction: "desc" as const };
   }
 
   /**

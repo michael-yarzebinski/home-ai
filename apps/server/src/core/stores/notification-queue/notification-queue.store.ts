@@ -1,10 +1,17 @@
 // src/core/stores/notification-queue/notification-queue.store.ts
-import type { Knex } from 'knex';
+import type { Knex } from "knex";
 
-import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
-import type { NotificationQueue, InsertableNotificationQueue, UpdatableNotificationQueue } from '@home-ai/shared/domain/notification-queue/notification-queue';
-import { AuditStore } from '../audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  AbstractEntityStore,
+  type RequestUser,
+} from "../abstract/abstract-entity.store";
+import type {
+  NotificationQueue,
+  InsertableNotificationQueue,
+  UpdatableNotificationQueue,
+} from "@home-ai/shared/domain/notification-queue/notification-queue";
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
 
 export interface NotificationQueueRecord {
   id: string;
@@ -18,25 +25,42 @@ export interface NotificationQueueRecord {
 }
 
 @Injectable()
-export class NotificationQueueStore extends AbstractEntityStore<NotificationQueue, NotificationQueueRecord, InsertableNotificationQueue, UpdatableNotificationQueue> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'notification_queue', entityType: 'notification_queue' });
+export class NotificationQueueStore extends AbstractEntityStore<
+  NotificationQueue,
+  NotificationQueueRecord,
+  InsertableNotificationQueue,
+  UpdatableNotificationQueue
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, {
+      tableName: "notification_queue",
+      entityType: "notification_queue",
+    });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query; // Admin sees all.
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('message', like).orWhereILike('importance', like),
+      b.whereILike("message", like).orWhereILike("importance", like),
     );
   }
 
@@ -70,10 +94,12 @@ export class NotificationQueueStore extends AbstractEntityStore<NotificationQueu
     const now = new Date();
 
     const records = await this.active
-      .where('scheduled_for', '<=', now)           // due now or in the past
-      .orderBy('scheduled_for', 'asc')             // oldest first
-      .select('*');
+      .where("scheduled_for", "<=", now) // due now or in the past
+      .orderBy("scheduled_for", "asc") // oldest first
+      .select("*");
 
-    return records.map(record => this.recordToDomain(record as NotificationQueueRecord));
+    return records.map((record) =>
+      this.recordToDomain(record as NotificationQueueRecord),
+    );
   }
 }

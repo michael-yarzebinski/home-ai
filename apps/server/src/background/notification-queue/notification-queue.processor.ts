@@ -1,11 +1,11 @@
 // src/background/notification-queue.processor.ts
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { NotificationQueueStore } from '../../core/stores/notification-queue/notification-queue.store';
-import { NotificationLogStore } from '../../core/stores/notification-log/notification-log.store';
-import { BlueBubblesService } from '../../integrations/blue-bubbles/blue-bubbles.service';
-import { LogStore } from '../../core/stores/log/log.store';
-import { UserStore } from '../../core/stores/user/user.store';
+import { Injectable } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { NotificationQueueStore } from "../../core/stores/notification-queue/notification-queue.store";
+import { NotificationLogStore } from "../../core/stores/monitoring/notification-log/notification-log.store";
+import { BlueBubblesService } from "../../integrations/blue-bubbles/blue-bubbles.service";
+import { LogStore } from "../../core/stores/monitoring/log/log.store";
+import { UserStore } from "../../core/stores/user/user.store";
 
 @Injectable()
 export class NotificationQueueProcessor {
@@ -26,12 +26,13 @@ export class NotificationQueueProcessor {
     const start = Date.now();
 
     await this.logStore.create({
-      severity: 'debug',
-      message: 'Starting notification queue processor',
+      severity: "debug",
+      message: "Starting notification queue processor",
       metadata: { timestamp: new Date().toISOString() },
     });
 
-    const dueNotifications = await this.notificationQueueStore.getDueNotifications();
+    const dueNotifications =
+      await this.notificationQueueStore.getDueNotifications();
 
     if (dueNotifications.length === 0) {
       return;
@@ -42,9 +43,12 @@ export class NotificationQueueProcessor {
         const user = await this.userStore.getById(notification.userId);
         if (!user) {
           await this.logStore.create({
-            severity: 'warn',
+            severity: "warn",
             message: `Notification in queue for unknown user`,
-            metadata: { notificationId: notification.id, userId: notification.userId },
+            metadata: {
+              notificationId: notification.id,
+              userId: notification.userId,
+            },
           });
           continue;
         }
@@ -55,7 +59,7 @@ export class NotificationQueueProcessor {
 
         if (isInQuietHours) {
           await this.logStore.create({
-            severity: 'debug',
+            severity: "debug",
             message: `Skipping notification - user ${user.name} is in quiet hours`,
             metadata: { notificationId: notification.id, userId: user.id },
           });
@@ -63,7 +67,10 @@ export class NotificationQueueProcessor {
         }
 
         // Send the message
-        await this.blueBubblesService.sendMessage(user.phoneNumber!, notification.message);
+        await this.blueBubblesService.sendMessage(
+          user.phoneNumber!,
+          notification.message,
+        );
 
         // Move to notification log and delete from queue
         await this.notificationLogStore.create({
@@ -75,14 +82,13 @@ export class NotificationQueueProcessor {
 
         await this.logStore.create({
           userId: user.id,
-          severity: 'info',
+          severity: "info",
           message: `Sent queued notification to user ${user.id}`,
           metadata: { notificationId: notification.id },
         });
-
       } catch (err: any) {
         await this.logStore.create({
-          severity: 'error',
+          severity: "error",
           message: `Failed to process queued notification`,
           metadata: { notificationId: notification.id, error: err.message },
         });
@@ -93,9 +99,12 @@ export class NotificationQueueProcessor {
 
     const duration = Date.now() - start;
     await this.logStore.create({
-      severity: 'debug',
+      severity: "debug",
       message: `Notification queue processor completed`,
-      metadata: { processedCount: dueNotifications.length, durationMs: duration },
+      metadata: {
+        processedCount: dueNotifications.length,
+        durationMs: duration,
+      },
     });
   }
 
@@ -103,8 +112,8 @@ export class NotificationQueueProcessor {
     if (!user.quietHoursStart || !user.quietHoursEnd) return false;
 
     const currentHour = now.getHours();
-    const quietStart = parseInt(user.quietHoursStart.split(':')[0]);
-    const quietEnd = parseInt(user.quietHoursEnd.split(':')[0]);
+    const quietStart = parseInt(user.quietHoursStart.split(":")[0]);
+    const quietEnd = parseInt(user.quietHoursEnd.split(":")[0]);
 
     // Simple logic: if current time is between quiet start and quiet end
     if (quietStart < quietEnd) {

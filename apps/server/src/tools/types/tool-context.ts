@@ -1,5 +1,6 @@
 // src/tools/types/tool-context.ts
 import { Role } from "@home-ai/shared/domain/role/role";
+import { RequestUser } from "../../core/stores/abstract/abstract-entity.store";
 
 export interface ToolContext {
   /** * Identity: Who is triggering the action?
@@ -8,6 +9,7 @@ export interface ToolContext {
   userId: string;
   userRole: Role;
   userName: string;
+  user: RequestUser;
 
   /** * Session: Where does this action live?
    * Used for auditing, message threading, and "Inception" sub-calls.

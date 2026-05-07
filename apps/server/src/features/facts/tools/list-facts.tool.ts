@@ -1,12 +1,12 @@
 // src/tools/default/list-facts.tool.ts
-import { z } from 'zod';
-import { FactsStore } from '../stores/facts.store';
-import type { Fact } from '@home-ai/shared/domain/fact/fact';
-import { addPermissionFlags } from 'src/common/utils/permissions';
-import { ToolHandler } from 'src/tools/abstract/tool-handler';
-import { ToolContext } from 'src/tools/types/tool-context';
-import { Injectable } from '@nestjs/common';
-import { Tool } from 'src/tools/decorators/tool.decorator';
+import { z } from "zod";
+import { FactsStore } from "../stores/facts.store";
+import type { Fact } from "@home-ai/shared/domain/fact/fact";
+import { addPermissionFlags } from "src/common/utils/permissions";
+import { ToolHandler } from "src/tools/abstract/tool-handler";
+import { ToolContext } from "src/tools/types/tool-context";
+import { Injectable } from "@nestjs/common";
+import { Tool } from "src/tools/decorators/tool.decorator";
 
 const ListFactsToolSchema = z.object({});
 
@@ -22,13 +22,16 @@ export interface ListFactsResult {
 
 @Tool()
 @Injectable()
-export class ListFactsTool extends ToolHandler<typeof ListFactsToolSchema, ListFactsResult> {
-  readonly name = 'list-facts';
+export class ListFactsTool extends ToolHandler<
+  typeof ListFactsToolSchema,
+  ListFactsResult
+> {
+  readonly name = "list-facts";
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'List facts registered in Home AI; returns only facts this user may see (canRead/canWrite on each row). ' +
-    'Call this before get-fact or update-fact unless the exact key is already known.';
+    "List facts registered in Home AI; returns only facts this user may see (canRead/canWrite on each row). " +
+    "Call this before get-fact or update-fact unless the exact key is already known.";
 
   readonly parameters = ListFactsToolSchema;
 

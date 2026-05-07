@@ -1,12 +1,12 @@
 // src/tools/registry/tool.registry.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { DiscoveryService } from '@nestjs/core';
-import { TOOL_METADATA } from '../decorators/tool.decorator';
-import type { ToolHandler } from '../abstract/tool-handler';
-import type { RegisteredTool } from '../types/registered-tool';
-import { ToolStore } from '../../core/stores/tool/tool.store';
-import { Tool } from '@home-ai/shared/domain/tool/tool';
-import { Role } from '@home-ai/shared/domain/role/role';
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { DiscoveryService } from "@nestjs/core";
+import { TOOL_METADATA } from "../decorators/tool.decorator";
+import type { ToolHandler } from "../abstract/tool-handler";
+import type { RegisteredTool } from "../types/registered-tool";
+import { ToolStore } from "../../core/stores/tool/tool.store";
+import { Tool } from "@home-ai/shared/domain/tool/tool";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 @Injectable()
 export class ToolRegistry implements OnModuleInit {
@@ -15,12 +15,17 @@ export class ToolRegistry implements OnModuleInit {
   constructor(
     private readonly discoveryService: DiscoveryService,
     private readonly toolStore: ToolStore,
-  ) { }
+  ) {}
 
   onModuleInit() {
     // Discover all @Tool() handlers once at startup
-    const handlers = this.discoveryService.getProviders()
-      .filter((provider) => provider.metatype && Reflect.getMetadata(TOOL_METADATA, provider.metatype))
+    const handlers = this.discoveryService
+      .getProviders()
+      .filter(
+        (provider) =>
+          provider.metatype &&
+          Reflect.getMetadata(TOOL_METADATA, provider.metatype),
+      )
       .map((provider) => provider.instance as ToolHandler);
 
     for (const handler of handlers) {
@@ -34,16 +39,17 @@ export class ToolRegistry implements OnModuleInit {
 
     for (const tool of tools) {
       const handler = this.handlers.get(tool.name);
-      if (!handler) continue;
+      if (!handler) {
+        continue;
+      }
 
       result.push({
         ...tool,
         handler,
-      })
+      });
     }
 
     return result;
-
   }
 
   /**
@@ -77,9 +83,12 @@ export class ToolRegistry implements OnModuleInit {
   }
 
   /**
-     * Get a single registered tool by name (used by the agent loop).
-     */
-  async getRegisteredTool(name: string, userRole: Role): Promise<RegisteredTool | undefined> {
+   * Get a single registered tool by name (used by the agent loop).
+   */
+  async getRegisteredTool(
+    name: string,
+    userRole: Role,
+  ): Promise<RegisteredTool | undefined> {
     const tool = await this.toolStore.getByName(name);
     if (!tool) return undefined;
 
@@ -88,12 +97,16 @@ export class ToolRegistry implements OnModuleInit {
 
     const registeredTool = this.buildRegisteredTool(tool, handler, userRole);
 
-    if (!registeredTool.canRequest && !registeredTool.canWrite) return undefined;
+    if (!registeredTool.canRequest && !registeredTool.canWrite)
+      return undefined;
 
     return registeredTool;
   }
 
-  async getRegisteredToolById(id: string, userRole: Role): Promise<RegisteredTool | undefined> {
+  async getRegisteredToolById(
+    id: string,
+    userRole: Role,
+  ): Promise<RegisteredTool | undefined> {
     const tool = await this.toolStore.getById(id);
     if (!tool) return undefined;
 
@@ -102,12 +115,17 @@ export class ToolRegistry implements OnModuleInit {
 
     const registeredTool = this.buildRegisteredTool(tool, handler, userRole);
 
-    if (!registeredTool.canRequest && !registeredTool.canWrite) return undefined;
+    if (!registeredTool.canRequest && !registeredTool.canWrite)
+      return undefined;
 
     return registeredTool;
   }
 
-  private buildRegisteredTool(tool: Tool, handler: ToolHandler, userRole: Role): RegisteredTool {
+  private buildRegisteredTool(
+    tool: Tool,
+    handler: ToolHandler,
+    userRole: Role,
+  ): RegisteredTool {
     const canRequest = tool.requestRoles.includes(userRole);
     const canWrite = tool.writeRoles.includes(userRole);
 
@@ -117,6 +135,5 @@ export class ToolRegistry implements OnModuleInit {
       canRequest,
       canWrite,
     };
-
   }
 }

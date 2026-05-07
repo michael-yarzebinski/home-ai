@@ -2,7 +2,7 @@
 import { Controller, Post, Body } from "@nestjs/common";
 import { Public } from "src/common/decorators/public.decorator";
 import { BlueBubblesService } from "./blue-bubbles.service";
-import { LogStore } from "../../core/stores/log/log.store";
+import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import {
   BlueBubblesMessageData,
   BlueBubblesWebhookPayload,
@@ -50,7 +50,8 @@ export class BlueBubblesController {
     }
 
     // Extract key information from BlueBubbles payload
-    const chatId = blueBubblesData.chat?.guid ?? blueBubblesData.chats?.[0]?.guid;
+    const chatId =
+      blueBubblesData.chat?.guid ?? blueBubblesData.chats?.[0]?.guid;
     const messageText = blueBubblesData.text;
     const phoneNumber = blueBubblesData.handle.address;
 
@@ -92,8 +93,7 @@ export class BlueBubblesController {
         chatId,
         LLMModelTypes.IMMEDIATE,
       );
-    }
-    catch (error) {
+    } catch (error) {
       await this.logStore.create({
         userId: user.id,
         severity: "error",
@@ -101,15 +101,16 @@ export class BlueBubblesController {
         metadata: { error: (error as any).message },
       });
       await this.blueBubblesService.stopTyping(chatId);
-      await this.blueBubblesService.sendMessage(chatId, "We've hit a road block...  Please try again later.");
+      await this.blueBubblesService.sendMessage(
+        chatId,
+        "We've hit a road block...  Please try again later.",
+      );
       return { success: false };
     }
 
     // 3. Stop typing and send the reply
     await this.blueBubblesService.stopTyping(chatId);
     await this.blueBubblesService.sendMessage(chatId, result.response);
-
-
 
     await this.logStore.create({
       userId: user.id,

@@ -1,10 +1,17 @@
-import type { Knex } from 'knex';
-import { AbstractEntityStore, type RequestUser } from '../abstract/abstract-entity.store';
-import type { Device, InsertableDevice, UpdatableDevice } from '@home-ai/shared/domain/device/device';
+import type { Knex } from "knex";
+import {
+  AbstractEntityStore,
+  type RequestUser,
+} from "../abstract/abstract-entity.store";
+import type {
+  Device,
+  InsertableDevice,
+  UpdatableDevice,
+} from "@home-ai/shared/domain/device/device";
 
-import { AuditStore } from '../audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
-import { Role } from '@home-ai/shared/domain/role/role';
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 export interface DeviceRecord {
   id: string;
@@ -24,47 +31,61 @@ export interface DeviceRecord {
 }
 
 @Injectable()
-export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord, InsertableDevice, UpdatableDevice> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'devices', entityType: 'devices' });
+export class DeviceStore extends AbstractEntityStore<
+  Device,
+  DeviceRecord,
+  InsertableDevice,
+  UpdatableDevice
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, { tableName: "devices", entityType: "devices" });
   }
 
   // ---------------------------------------------------------------------------
   // Row-level access control
   // ---------------------------------------------------------------------------
 
-  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     // No user = admin/internal context — sees all devices.
     if (!user) return query;
     // Regular users only see devices their role is allowed to read.
-    return query.whereRaw('? = ANY(read_roles)', [user.role]);
+    return query.whereRaw("? = ANY(read_roles)", [user.role]);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     // No user = admin/internal context — unrestricted.
     if (!user) return query;
     // Regular users can only mutate devices their role is allowed to write.
-    return query.whereRaw('? = ANY(write_roles)', [user.role]);
+    return query.whereRaw("? = ANY(write_roles)", [user.role]);
   }
 
   // ---------------------------------------------------------------------------
   // Full-text search
   // ---------------------------------------------------------------------------
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
       b
-        .whereILike('slug', like)
-        .orWhereILike('friendly_name', like)
-        .orWhereILike('room', like)
-        .orWhereILike('category', like)
-        .orWhereRaw('? = ANY(aliases)', [search.toLowerCase()]),
+        .whereILike("slug", like)
+        .orWhereILike("friendly_name", like)
+        .orWhereILike("room", like)
+        .orWhereILike("category", like)
+        .orWhereRaw("? = ANY(aliases)", [search.toLowerCase()]),
     );
   }
 
   async getBySlug(slug: string): Promise<Device | undefined> {
-    const record = await this.active.where('slug', slug).first();
+    const record = await this.active.where("slug", slug).first();
     return record ? this.recordToDomain(record) : undefined;
   }
 

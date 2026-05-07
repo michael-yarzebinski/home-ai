@@ -1,7 +1,7 @@
 // src/integrations/home-assistant/home-assistant.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { AppConfigService } from "../../../core/services/app-config.service";
-import { LogStore } from "../../../core/stores/log/log.store";
+import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 import { DeviceStore } from "src/core/stores/device/device.store";
 import { HassEvent } from "../types/hass-event";
 import {
@@ -17,13 +17,13 @@ import {
 } from "home-assistant-js-websocket";
 import * as WS from "ws";
 import { AutomationRuleStore } from "../../../core/stores/automation-rule/automation-rule.store";
-import { Device } from '@home-ai/shared/domain/device/device';
-import { AutomationRule } from '@home-ai/shared/domain/automation-rule/automation-rule';
+import { Device } from "@home-ai/shared/domain/device/device";
+import { AutomationRule } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { HomeAssistantUtils } from "../utils/home-assistant.utils";
 import Redis from "ioredis";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from 'bullmq';
+import { Queue } from "bullmq";
 import { EventQueueBuffer, EventQueueItem } from "../types/event-queue";
 import { DeviceEventStore } from "../../../core/stores/device/device-event.store";
 import { DeviceStatus } from "@home-ai/shared/domain/device/device-status";
@@ -38,15 +38,16 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    @InjectQueue('ha-events') private readonly queue: Queue,
+    @InjectQueue("ha-events") private readonly queue: Queue,
     private readonly deviceStore: DeviceStore,
     private readonly appConfigService: AppConfigService,
     private readonly logStore: LogStore,
     private readonly automationRuleStore: AutomationRuleStore,
     private readonly deviceEventStore: DeviceEventStore,
   ) {
-
-    this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>("HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES");
+    this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>(
+      "HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES",
+    );
   }
 
   async onModuleInit() {
@@ -83,7 +84,8 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    const automationRules = await this.getStateChangeAutomationRules(matchingDevice);
+    const automationRules =
+      await this.getStateChangeAutomationRules(matchingDevice);
     if (automationRules.length === 0) {
       await this.logStore.create({
         severity: "info",
@@ -93,15 +95,12 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.addItemToQueue(
-      matchingDevice.id,
-      {
-        ruleIds: automationRules.map((rule) => rule.id),
-        entityId,
-        oldState: oldState?.state || "unknown",
-        newState: newState?.state || "unknown",
-      },
-    );
+    await this.addItemToQueue(matchingDevice.id, {
+      ruleIds: automationRules.map((rule) => rule.id),
+      entityId,
+      oldState: oldState?.state || "unknown",
+      newState: newState?.state || "unknown",
+    });
   }
 
   async getAllEntities(): Promise<HassEntity[]> {
@@ -112,13 +111,16 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     if (!this.connection) throw new Error("Not connected to Home Assistant");
 
     const matchingEntities = Object.values(this.entities).filter(
-      (entity: HassEntity) => HomeAssistantUtils.doesDeviceSlugMatchEntityId(slug, entity.entity_id),
+      (entity: HassEntity) =>
+        HomeAssistantUtils.doesDeviceSlugMatchEntityId(slug, entity.entity_id),
     );
 
     return {
       deviceSlug: slug,
       entities: matchingEntities.map((e: any) => {
-        const domain = e.entity_id.split('.')[1] ? e.entity_id.split('.')[0] : null;
+        const domain = e.entity_id.split(".")[1]
+          ? e.entity_id.split(".")[0]
+          : null;
 
         return {
           entityId: e.entity_id,
@@ -177,7 +179,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
 
       subscribeServices(this.connection, (services: HassServices) => {
         this.services = services;
-      });;
+      });
 
       this.connection.subscribeEvents(
         (event: HassEvent) => this.handleStateChanged(event),
@@ -193,23 +195,40 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   }
 
   // #region State Change Utils
-  private async getStateChangeDevice(entityId: string): Promise<Device | undefined> {
+  private async getStateChangeDevice(
+    entityId: string,
+  ): Promise<Device | undefined> {
     const devices = await this.deviceStore.getAll();
     return HomeAssistantUtils.getMatchingDeviceByEntityId(devices, entityId);
   }
 
-  private async getStateChangeAutomationRules(device: Device): Promise<AutomationRule[]> {
-    const automationRules = await this.automationRuleStore.getForDevice(device.id);
-    return HomeAssistantUtils.filterAutomationRules(automationRules, device, this.deviceCooldownMinutes);
+  private async getStateChangeAutomationRules(
+    device: Device,
+  ): Promise<AutomationRule[]> {
+    const automationRules = await this.automationRuleStore.getForDevice(
+      device.id,
+    );
+    return HomeAssistantUtils.filterAutomationRules(
+      automationRules,
+      device,
+      this.deviceCooldownMinutes,
+    );
   }
 
-  private async addItemToQueue(deviceId: string, context: EventQueueItem): Promise<void> {
+  private async addItemToQueue(
+    deviceId: string,
+    context: EventQueueItem,
+  ): Promise<void> {
     const redisKey = `ha_event:${deviceId}`;
 
     const existing = await this.redis.get(redisKey);
-    let buffer = existing ? JSON.parse(existing) as EventQueueBuffer : { events: [], ruleIds: [] };
+    let buffer = existing
+      ? (JSON.parse(existing) as EventQueueBuffer)
+      : { events: [], ruleIds: [] };
     buffer.events.push(context);
-    buffer.ruleIds = Array.from(new Set([...buffer.ruleIds, ...context.ruleIds]));
+    buffer.ruleIds = Array.from(
+      new Set([...buffer.ruleIds, ...context.ruleIds]),
+    );
     await this.redis.set(redisKey, JSON.stringify(buffer));
 
     const existingJob = await this.queue.getJob(deviceId);
@@ -219,13 +238,13 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.queue.add(
-      'process-batch',
+      "process-batch",
       { deviceId },
       {
         jobId: deviceId,
         delay: this.deviceCooldownMinutes * 60 * 1000,
-        removeOnComplete: true
-      }
+        removeOnComplete: true,
+      },
     );
   }
   // #endregion State Change Utils

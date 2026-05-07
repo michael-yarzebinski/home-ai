@@ -6,7 +6,7 @@ import { OrchestratorService } from "../../../ai/orchestrator/orchestrator.servi
 import { Job } from "bullmq";
 import { TriggerConfigDevice } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { LLMModelTypes } from "../../../ai/llm/llm.provider.sevice";
-import { LogStore } from "../../../core/stores/log/log.store";
+import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 import { UserStore } from "../../../core/stores/user/user.store";
 import { OnModuleInit } from "@nestjs/common";
 import { AppConfigService } from "../../../core/services/app-config.service";
@@ -15,76 +15,93 @@ import { AutomationRuleStore } from "../../../core/stores/automation-rule/automa
 import { HomeAssistantService } from "./home-assistant.service";
 import { EventQueueBuffer } from "../types/event-queue";
 
-@Processor('ha-events')
+@Processor("ha-events")
 export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
-    private automationUserId: string;
-    private automationUser: User | null = null;
+  private automationUserId: string;
+  private automationUser: User | null = null;
 
-    constructor(
-        @InjectRedis() private readonly redis: Redis,
-        private readonly orchestratorService: OrchestratorService,
-        private readonly deviceStore: DeviceStore,
-        private readonly userStore: UserStore,
-        private readonly logStore: LogStore,
-        private readonly appConfigService: AppConfigService,
-        private readonly automationRuleStore: AutomationRuleStore,
-        private readonly homeAssistantService: HomeAssistantService,
-    ) {
-        super();
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    private readonly orchestratorService: OrchestratorService,
+    private readonly deviceStore: DeviceStore,
+    private readonly userStore: UserStore,
+    private readonly logStore: LogStore,
+    private readonly appConfigService: AppConfigService,
+    private readonly automationRuleStore: AutomationRuleStore,
+    private readonly homeAssistantService: HomeAssistantService,
+  ) {
+    super();
 
-        this.automationUserId =
-            this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
+    this.automationUserId =
+      this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
+  }
+
+  async onModuleInit() {
+    this.automationUser = await this.userStore.getById(this.automationUserId);
+  }
+
+  async process(job: Job<{ deviceId: string }>): Promise<void> {
+    const redisKey = `ha_event:${job.data.deviceId}`;
+    const rawBuffer = await this.redis.get(redisKey);
+    const device = await this.deviceStore.getById(job.data.deviceId);
+    if (!device || !rawBuffer || !this.automationUser) {
+      await this.logStore.create({
+        severity: "error",
+        message:
+          "Could not process device event: Device, Buffer, or Automation User not found",
+        metadata: {
+          deviceId: device?.id,
+          buffer: rawBuffer,
+          automationUserId: this.automationUser?.id,
+        },
+      });
+      return;
     }
+    const buffer = JSON.parse(rawBuffer) as EventQueueBuffer;
+    const automationRules = await this.automationRuleStore.getByIds(
+      buffer.ruleIds,
+    );
+    const deviceState =
+      await this.homeAssistantService.getDeviceStateAndServices(device.slug);
 
-    async onModuleInit() {
-        this.automationUser = await this.userStore.getById(this.automationUserId);
-    }
+    // Should be safe to delete the buffer at this point
+    await this.redis.del(redisKey);
 
-    async process(job: Job<{ deviceId: string }>): Promise<void> {
-        const redisKey = `ha_event:${job.data.deviceId}`;
-        const rawBuffer = await this.redis.get(redisKey);
-        const device = (await this.deviceStore.getById(job.data.deviceId));
-        if (!device || !rawBuffer || !this.automationUser) {
-            await this.logStore.create({
-                severity: "error",
-                message: "Could not process device event: Device, Buffer, or Automation User not found",
-                metadata: {
-                    deviceId: device?.id,
-                    buffer: rawBuffer,
-                    automationUserId: this.automationUser?.id,
-                },
-            });
-            return;
+    const entitiesCurrentState = buffer.events.reduce(
+      (acc, e) => {
+        const entity = deviceState.entities.find(
+          (es) => es.entityId === e.entityId,
+        );
+        if (!entity) {
+          return acc;
         }
-        const buffer = JSON.parse(rawBuffer) as EventQueueBuffer;
-        const automationRules = await this.automationRuleStore.getByIds(buffer.ruleIds);
-        const deviceState = await this.homeAssistantService.getDeviceStateAndServices(device.slug);
 
-        // Should be safe to delete the buffer at this point
-        await this.redis.del(redisKey);
+        acc.set(entity.entityId, {
+          entityId: entity.entityId,
+          state: entity.state,
+          attributes: entity.attributes,
+        });
 
-        const entitiesCurrentState = buffer.events.reduce((acc, e) => {
-            const entity = deviceState.entities.find(es => es.entityId === e.entityId);
-            if (!entity) {
-                return acc;
-            }
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          entityId: string;
+          state: string;
+          attributes: Record<string, any>;
+        }
+      >(),
+    );
 
-            acc.set(entity.entityId, {
-                entityId: entity.entityId,
-                state: entity.state,
-                attributes: entity.attributes,
-            });
+    const automationRulesPrompt = automationRules
+      .map(
+        (ar) =>
+          `Name: ${ar.name}User ID: ${ar.userId}\nDescription: ${ar.description}\nTrigger: ${(ar.trigger as TriggerConfigDevice).intent}\nActions: ${ar.actions.map((a) => `Instruction: ${a.instruction}\n Metadata: ${JSON.stringify(a.metadata)}`).join("\n")}`,
+      )
+      .join("\n");
 
-            return acc;
-        }, new Map<string, {
-            entityId: string,
-            state: string,
-            attributes: Record<string, any>,
-        }>());
-
-        const automationRulesPrompt = automationRules.map(ar => `Name: ${ar.name}User ID: ${ar.userId}\nDescription: ${ar.description}\nTrigger: ${(ar.trigger as TriggerConfigDevice).intent}\nActions: ${ar.actions.map(a => `Instruction: ${a.instruction}\n Metadata: ${JSON.stringify(a.metadata)}`).join("\n")}`).join("\n");
-
-        const prompt = `
+    const prompt = `
     ## System Role
     You are the Orchestration Engine for "Home AI." Your goal is to evaluate real-time IoT state transitions and execute the appropriate reactions (Notifications or Tasks) based on user-defined preferences.
 
@@ -126,6 +143,11 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
     Decision Logic: Concise. Prioritize safety and convenience.
     `;
 
-        await this.orchestratorService.handleEvent(this.automationUser, prompt, `automation:${device.slug}`, LLMModelTypes.SOON);
-    }
+    await this.orchestratorService.handleEvent(
+      this.automationUser,
+      prompt,
+      `automation:${device.slug}`,
+      LLMModelTypes.SOON,
+    );
+  }
 }

@@ -18,6 +18,10 @@
     "./search/*": {
       "types": "./dist/search/*.d.ts",
       "default": "./dist/search/*.js"
+    },
+    "./common/*": {
+      "types": "./dist/common/*.d.ts",
+      "default": "./dist/common/*.js"
     }
   },
   "scripts": {

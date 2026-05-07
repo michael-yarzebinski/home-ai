@@ -1,8 +1,8 @@
 // src/core/services/app-config.service.ts
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { AppConfigStore } from '../stores/app-config/app-config.store';
-import { ConfigNotFoundError } from 'src/common/errors/config-not-found.error';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { AppConfigStore } from "../stores/app-config/app-config.store";
+import { ConfigNotFoundError } from "src/common/errors/config-not-found.error";
 
 @Injectable()
 export class AppConfigService {
@@ -17,7 +17,7 @@ export class AppConfigService {
   async getFromDb<T = any>(key: string): Promise<T | undefined> {
     const dbConfigValue = await this.appConfigStore.getByKey(key);
     if (!dbConfigValue) {
-        throw new ConfigNotFoundError(key);
+      throw new ConfigNotFoundError(key);
     }
 
     return dbConfigValue.value as T;
@@ -30,7 +30,7 @@ export class AppConfigService {
   getFromEnv<T = any>(key: string): T {
     const envConfigValue = this.configService.get<T>(key);
     if (!envConfigValue) {
-        throw new ConfigNotFoundError(key);
+      throw new ConfigNotFoundError(key);
     }
 
     return envConfigValue;

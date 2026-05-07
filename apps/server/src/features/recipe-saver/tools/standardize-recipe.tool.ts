@@ -5,7 +5,10 @@ import { ToolContext } from "src/tools/types/tool-context";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { IngredientStore } from "../stores/ingredients.store";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
-import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
+import {
+  LLMModelTypes,
+  LLMProviderService,
+} from "../../../ai/llm/llm.provider.sevice";
 
 const StandardizeRecipeSchema = z.object({
   rawText: z.preprocess(
@@ -89,24 +92,28 @@ export class StandardizeRecipeTool extends ToolHandler<
       }
     `;
 
-    const response = await this.llmProviderService.query({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: params.rawText },
-      ],
-      jsonMode: true,
-      context: {
-        userId: context.userId,
-        chatSessionId: context.chatSessionId,
-        originalPrompt: `Standardizing recipe extraction`,
+    const response = await this.llmProviderService.query(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: params.rawText },
+        ],
+        jsonMode: true,
+        context: {
+          userId: context.userId,
+          chatSessionId: context.chatSessionId,
+          originalPrompt: `Standardizing recipe extraction`,
+        },
       },
-    }, LLMModelTypes.IMMEDIATE);
+      LLMModelTypes.IMMEDIATE,
+    );
 
     try {
       // The Orchestrator handles the heavy lifting, so we just parse the response
-      const parsed = typeof response.content === 'string'
-        ? JSON.parse(response.content)
-        : response.content;
+      const parsed =
+        typeof response.content === "string"
+          ? JSON.parse(response.content)
+          : response.content;
 
       return {
         title: parsed.title,

@@ -13,7 +13,7 @@ export class NotificationService {
     private readonly userStore: UserStore,
     private readonly notificationQueueStore: NotificationQueueStore,
     private readonly appConfigService: AppConfigService,
-  ) { }
+  ) {}
 
   /**
    * Dispatches notifications to authorized users based on the tool's notifyRoles configuration.
@@ -27,13 +27,13 @@ export class NotificationService {
     requesterId: string,
     context:
       | {
-        isRequesting: true;
-        isNotifying: false;
-      }
+          isRequesting: true;
+          isNotifying: false;
+        }
       | {
-        isRequesting: false;
-        isNotifying: true;
-      },
+          isRequesting: false;
+          isNotifying: true;
+        },
     importance: string = "low",
   ): Promise<void> {
     try {
@@ -81,8 +81,12 @@ export class NotificationService {
     originalRequestUserId?: string,
     importance: string = "low",
   ): Promise<void> {
-    const automationUserId = await this.appConfigService.getFromEnv<string>("AUTOMATION_USER_ID");
-    if (toNotifyUserId === originalRequestUserId || toNotifyUserId === automationUserId) {
+    const automationUserId =
+      await this.appConfigService.getFromEnv<string>("AUTOMATION_USER_ID");
+    if (
+      toNotifyUserId === originalRequestUserId ||
+      toNotifyUserId === automationUserId
+    ) {
       return;
     }
 

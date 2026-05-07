@@ -1,10 +1,18 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { Knex } from "knex";
-import type { User } from "@home-ai/shared/domain/user/user";
-import { AbstractEntityStore, type RequestUser } from "../abstract/abstract-entity.store";
-import { AuditStore } from "../audit/audit.store";
-import type { AutomationAction, AutomationRule, InsertableAutomationRule, UpdatableAutomationRule, TriggerConfig } from '@home-ai/shared/domain/automation-rule/automation-rule';
-import { TriggerType } from '@home-ai/shared/domain/automation-rule/automation-rule';
+import {
+  AbstractEntityStore,
+  type RequestUser,
+} from "../abstract/abstract-entity.store";
+import { AuditStore } from "../monitoring/audit/audit.store";
+import type {
+  AutomationAction,
+  AutomationRule,
+  InsertableAutomationRule,
+  UpdatableAutomationRule,
+  TriggerConfig,
+} from "@home-ai/shared/domain/automation-rule/automation-rule";
+import { TriggerType } from "@home-ai/shared/domain/automation-rule/automation-rule";
 
 export interface AutomationRuleRecord {
   id: string;
@@ -21,10 +29,17 @@ export interface AutomationRuleRecord {
 }
 
 @Injectable()
-export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, AutomationRuleRecord, InsertableAutomationRule, UpdatableAutomationRule> {
-
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'automation_rules', entityType: 'automation_rules' });
+export class AutomationRuleStore extends AbstractEntityStore<
+  AutomationRule,
+  AutomationRuleRecord,
+  InsertableAutomationRule,
+  UpdatableAutomationRule
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, {
+      tableName: "automation_rules",
+      entityType: "automation_rules",
+    });
   }
 
   protected recordToDomain(record: AutomationRuleRecord): AutomationRule {
@@ -53,7 +68,7 @@ export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, Aut
       user_id: domain.userId,
       name: domain.name,
       description: domain.description || null,
-      // Stringify isn't strictly needed for Knex/Postgres jsonb, 
+      // Stringify isn't strictly needed for Knex/Postgres jsonb,
       // as the driver handles objects, but we ensure the structure here.
       trigger: domain.trigger,
       actions: domain.actions,
@@ -65,20 +80,29 @@ export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, Aut
     };
   }
 
-  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query; // Admin sees all.
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.where('user_id', user.id);
+    return query.where("user_id", user.id);
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('name', like).orWhereILike('description', like),
+      b.whereILike("name", like).orWhereILike("description", like),
     );
   }
 
@@ -92,7 +116,6 @@ export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, Aut
     triggerType: TriggerType,
     deviceId?: string,
   ): Promise<AutomationRule[]> {
-
     let query = this.active.whereRaw("trigger->>'type' = ?", [triggerType]);
 
     if (deviceId) {

@@ -1,20 +1,22 @@
-import { z } from 'zod';
-import { ToolHandler } from '../../abstract/tool-handler';
-import { PendingActionStore } from '../../../core/stores/pending-action/pending-action.store';
-import { ToolRegistry } from '../../registry/tool.registry';
-import { NotificationService } from '../../../core/services/notification.service';
-import { LLMServiceBase } from '../../../ai/abstract/llm.service.base';
-import type { ToolContext } from '../../types/tool-context';
-import { Injectable } from '@nestjs/common';
-import { Tool } from '../../decorators/tool.decorator';
-import { LLMModelTypes, LLMProviderService } from '../../../ai/llm/llm.provider.sevice';
+import { z } from "zod";
+import { ToolHandler } from "../../abstract/tool-handler";
+import { PendingActionStore } from "../../../core/stores/pending-action/pending-action.store";
+import { ToolRegistry } from "../../registry/tool.registry";
+import { NotificationService } from "../../../core/services/notification.service";
+import type { ToolContext } from "../../types/tool-context";
+import { Injectable } from "@nestjs/common";
+import { Tool } from "../../decorators/tool.decorator";
+import {
+  LLMModelTypes,
+  LLMProviderService,
+} from "../../../ai/llm/llm.provider.sevice";
 
 const ApproveActionToolSchema = z.object({
   readableId: z
     .number()
     .int()
     .positive()
-    .describe('The readable ID of the pending action to approve (e.g. 42)'),
+    .describe("The readable ID of the pending action to approve (e.g. 42)"),
 });
 
 export interface ApproveActionResult {
@@ -25,12 +27,15 @@ export interface ApproveActionResult {
 
 @Tool()
 @Injectable()
-export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchema, ApproveActionResult> {
-  readonly name = 'approve-action';
+export class ApproveActionTool extends ToolHandler<
+  typeof ApproveActionToolSchema,
+  ApproveActionResult
+> {
+  readonly name = "approve-action";
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Approve and execute a previously proposed action by its ID. ' +
+    "Approve and execute a previously proposed action by its ID. " +
     'Only users with "write" permission for the target tool can approve.';
 
   readonly parameters = ApproveActionToolSchema;
@@ -49,14 +54,22 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
     context: ToolContext,
   ): Promise<ApproveActionResult> {
     // 1. Fetch the action
-    const pendingAction = await this.pendingActionStore.getByReadableId(params.readableId);
+    const pendingAction = await this.pendingActionStore.getByReadableId(
+      params.readableId,
+    );
 
     if (!pendingAction) {
-      return { success: false, message: `No pending action found with ID #${params.readableId}` };
+      return {
+        success: false,
+        message: `No pending action found with ID #${params.readableId}`,
+      };
     }
 
-    if (pendingAction.status !== 'pending') {
-      return { success: false, message: `Action #${params.readableId} is already ${pendingAction.status}.` };
+    if (pendingAction.status !== "pending") {
+      return {
+        success: false,
+        message: `Action #${params.readableId} is already ${pendingAction.status}.`,
+      };
     }
 
     // 2. Permission Check
@@ -66,16 +79,25 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
     );
 
     if (!originalTool) {
-      return { success: false, message: `The tool for this action is no longer available.` };
+      return {
+        success: false,
+        message: `The tool for this action is no longer available.`,
+      };
     }
 
     if (!originalTool.canWrite) {
-      return { success: false, message: `Access Denied: You do not have permission to approve this action.` };
+      return {
+        success: false,
+        message: `Access Denied: You do not have permission to approve this action.`,
+      };
     }
 
     try {
       // 3. Deterministic Execution (Associate with the Approver's context)
-      const result = await originalTool.handler.execute(pendingAction.proposedArgs as any, context);
+      const result = await originalTool.handler.execute(
+        pendingAction.proposedArgs as any,
+        context,
+      );
 
       // 4. Update Status in DB
       await this.pendingActionStore.approve(pendingAction.id, context.userId);
@@ -85,7 +107,7 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
         You are a Home AI. An action requested by a family member was just approved and executed.
         
         CONTEXT:
-        - Approver: ${context.userName || 'A parent'}
+        - Approver: ${context.userName || "A parent"}
         - Original Tool: ${originalTool.name}
         - Action Result: ${JSON.stringify(result)}
         - Request ID: #${pendingAction.readableId}
@@ -97,23 +119,29 @@ export class ApproveActionTool extends ToolHandler<typeof ApproveActionToolSchem
         RETURN PLAIN TEXT ONLY.
       `;
 
-      const aiResponse = await this.llmProviderService.query({
-        messages: [{ role: 'system', content: generationPrompt }],
-        context: {
-          userId: context.userId,
-          chatSessionId: context.chatSessionId,
-          originalPrompt: `Generating approval notification for #${pendingAction.readableId}`
-        }
-      }, LLMModelTypes.IMMEDIATE);
+      const aiResponse = await this.llmProviderService.query(
+        {
+          messages: [{ role: "system", content: generationPrompt }],
+          context: {
+            userId: context.userId,
+            chatSessionId: context.chatSessionId,
+            originalPrompt: `Generating approval notification for #${pendingAction.readableId}`,
+          },
+        },
+        LLMModelTypes.IMMEDIATE,
+      );
 
-      const notifyMsg = typeof aiResponse.content === 'string' ? aiResponse.content : "Your request was approved and executed!";
+      const notifyMsg =
+        typeof aiResponse.content === "string"
+          ? aiResponse.content
+          : "Your request was approved and executed!";
 
       // 6. Notify the Requester
       await this.notificationService.notifyUser(
         notifyMsg,
         pendingAction.requesterId, // Send to the person who asked
-        context.userId,            // From the person who approved
-        "medium"
+        context.userId, // From the person who approved
+        "medium",
       );
 
       return {

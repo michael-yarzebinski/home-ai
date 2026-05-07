@@ -1,8 +1,5 @@
 import { z } from "zod";
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { ToolContext } from "../types/tool-context";
 
 /**
  * Base class for all executable tools.
@@ -27,5 +24,8 @@ export abstract class ToolHandler<
   /**
    * The actual business logic of the tool.
    */
-  abstract execute(params: z.infer<TParams>, context: any): Promise<TResult>;
+  abstract execute(
+    params: z.infer<TParams>,
+    context: ToolContext,
+  ): Promise<TResult>;
 }

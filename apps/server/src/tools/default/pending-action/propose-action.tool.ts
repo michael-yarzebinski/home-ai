@@ -6,7 +6,10 @@ import { ToolStore } from "../../../core/stores/tool/tool.store";
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "../../decorators/tool.decorator";
-import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
+import {
+  LLMModelTypes,
+  LLMProviderService,
+} from "../../../ai/llm/llm.provider.sevice";
 
 const ProposeActionToolSchema = z.object({
   toolName: z
@@ -42,7 +45,8 @@ export class ProposeActionTool extends ToolHandler<
   ProposeActionResult
 > {
   readonly name = "propose-action";
-  readonly description = 'INTERNAL USE ONLY. This tool is managed by the system orchestrator for permission escalation. LLM should NOT call this tool directly.';
+  readonly description =
+    "INTERNAL USE ONLY. This tool is managed by the system orchestrator for permission escalation. LLM should NOT call this tool directly.";
   readonly parameters = ProposeActionToolSchema;
 
   constructor(
@@ -99,31 +103,30 @@ export class ProposeActionTool extends ToolHandler<
       }
     `;
 
-    const response = await this.llmProviderService.query({
-      messages: [{ role: "system", content: generationPrompt }],
-      jsonMode: true,
-      context: {
-        userId: context.userId,
-        chatSessionId: context.chatSessionId,
-        originalPrompt: `Generating messages for pending action #${pendingAction.readableId}`,
+    const response = await this.llmProviderService.query(
+      {
+        messages: [{ role: "system", content: generationPrompt }],
+        jsonMode: true,
+        context: {
+          userId: context.userId,
+          chatSessionId: context.chatSessionId,
+          originalPrompt: `Generating messages for pending action #${pendingAction.readableId}`,
+        },
       },
-    }, LLMModelTypes.IMMEDIATE);
+      LLMModelTypes.IMMEDIATE,
+    );
 
     let messages = {
       userFeedback: `I've sent your request (#${pendingAction.readableId}) for approval.`,
       notification: `🔔 Approval needed: ${params.description} (#${pendingAction.readableId})`,
     };
 
-    try {
-      const parsed =
-        typeof response.content === "string"
-          ? JSON.parse(response.content)
-          : response.content;
-      if (parsed.userFeedback && parsed.notification) {
-        messages = parsed;
-      }
-    } catch (e) {
-      // Fallback to default messages if parsing fails
+    const parsed =
+      typeof response.content === "string"
+        ? JSON.parse(response.content)
+        : response.content;
+    if (parsed.userFeedback && parsed.notification) {
+      messages = parsed;
     }
 
     // 3. Dispatch the high-importance notification

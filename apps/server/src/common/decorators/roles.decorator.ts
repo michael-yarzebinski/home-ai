@@ -1,7 +1,7 @@
-import { SetMetadata } from '@nestjs/common';
-import { Role } from '@home-ai/shared/domain/role/role';
+import { SetMetadata } from "@nestjs/common";
+import { Role } from "@home-ai/shared/domain/role/role";
 
-export const ROLES_KEY = 'roles';
+export const ROLES_KEY = "roles";
 
 /**
  * Marks a controller or route as requiring specific roles.

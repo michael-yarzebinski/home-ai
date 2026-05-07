@@ -1,10 +1,14 @@
 // src/core/stores/tool/tool.store.ts
-import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Tool, InsertableTool, UpdatableTool } from '@home-ai/shared/domain/tool/tool';
-import { AuditStore } from '../audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
-import { Role } from '@home-ai/shared/domain/role/role';
+import type { Knex } from "knex";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import type {
+  Tool,
+  InsertableTool,
+  UpdatableTool,
+} from "@home-ai/shared/domain/tool/tool";
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 export interface ToolRecord {
   id: string;
@@ -20,9 +24,14 @@ export interface ToolRecord {
 }
 
 @Injectable()
-export class ToolStore extends AbstractEntityStore<Tool, ToolRecord, InsertableTool, UpdatableTool> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'tools', entityType: 'tools' });
+export class ToolStore extends AbstractEntityStore<
+  Tool,
+  ToolRecord,
+  InsertableTool,
+  UpdatableTool
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, { tableName: "tools", entityType: "tools" });
   }
 
   protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
@@ -33,10 +42,16 @@ export class ToolStore extends AbstractEntityStore<Tool, ToolRecord, InsertableT
     return query;
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('name', like).orWhereILike('friendly_name', like).orWhereILike('hints', like),
+      b
+        .whereILike("name", like)
+        .orWhereILike("friendly_name", like)
+        .orWhereILike("hints", like),
     );
   }
 
@@ -70,7 +85,7 @@ export class ToolStore extends AbstractEntityStore<Tool, ToolRecord, InsertableT
   }
 
   async getByName(name: string): Promise<Tool | undefined> {
-    const record = await this.active.where('name', name).first();
-    return record ? this.recordToDomain(record) : undefined
+    const record = await this.active.where("name", name).first();
+    return record ? this.recordToDomain(record) : undefined;
   }
 }

@@ -1,5 +1,3 @@
-import { PendingAction } from "@home-ai/shared/domain/pending-action/pending-action";
-
 interface HasPermissions {
   readRoles: string[];
   writeRoles: string[];
@@ -10,14 +8,14 @@ interface HasPermissions {
  */
 export function addPermissionFlags<T extends HasPermissions>(
   entities: T[],
-  userRole: string
+  userRole: string,
 ): Array<T & { canRead: boolean; canWrite: boolean }> {
   return entities.map((entity) => {
     const canRead =
-      entity.readRoles.includes('all') || entity.readRoles.includes(userRole);
+      entity.readRoles.includes("all") || entity.readRoles.includes(userRole);
 
     const canWrite =
-      entity.writeRoles.includes('all') || entity.writeRoles.includes(userRole);
+      entity.writeRoles.includes("all") || entity.writeRoles.includes(userRole);
 
     return {
       ...entity,
@@ -32,7 +30,7 @@ export function addPermissionFlags<T extends HasPermissions>(
  */
 export function filterVisibleEntities<T extends HasPermissions>(
   entities: T[],
-  userRole: string
+  userRole: string,
 ): Array<T & { canRead: boolean; canWrite: boolean }> {
   return addPermissionFlags(entities, userRole).filter((e) => e.canRead);
 }

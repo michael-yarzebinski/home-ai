@@ -38,11 +38,17 @@ const queueWorkRows: Array<[string, string, string]> = [
   ['Recovery', 'Dead-letter or failed-job handling', 'Actionable replay path'],
 ];
 
+const completedNow: Array<[string, string]> = [
+  ['Recipe admin controllers', 'Moved into `features/recipe-saver/controllers/admin`'],
+  ['Ingredient admin controllers', 'Moved into `features/recipe-saver/controllers/admin`'],
+  ['Checklist tool definitions seeded', 'Added checklist tools to `tools` table in `20260507001032_checky.ts`'],
+];
+
 export default function HomeAIRoadmapCanvas() {
   return (
     <Stack gap={24} style={{ padding: 24, maxWidth: 1080 }}>
       <Stack gap={6}>
-        <H1>Home AI Delivery Roadmap</H1>
+        <H1>Home AI Delivery Roadmap!</H1>
         <Text tone="secondary" size="small">
           Execution order for backend completion, UI parity, queue migration, and two new verticals.
         </Text>
@@ -59,6 +65,15 @@ export default function HomeAIRoadmapCanvas() {
         Finish controller/API parity first, then UI parity, then queue migration. Build Checklists before Meal Prep so
         the second vertical can reuse the same delivery pattern.
       </Callout>
+
+      <Stack gap={8}>
+        <H2>Recently Completed</H2>
+        <Table
+          headers={['Item', 'Status']}
+          rows={completedNow}
+          rowTone={['success', 'success']}
+        />
+      </Stack>
 
       <Divider />
 

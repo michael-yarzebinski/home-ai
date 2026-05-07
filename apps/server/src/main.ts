@@ -1,8 +1,8 @@
 // src/main.ts
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { ValidationPipe } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,9 +10,9 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,           // strip unknown properties
+      whitelist: true, // strip unknown properties
       forbidNonWhitelisted: true,
-      transform: true,           // automatically transform payloads
+      transform: true, // automatically transform payloads
       transformOptions: {
         enableImplicitConversion: true,
       },
@@ -21,12 +21,12 @@ async function bootstrap() {
 
   // Enable CORS (adjust origins for production)
   app.enableCors({
-    origin: true,                // or specify allowed origins: ['http://localhost:4200']
+    origin: true, // or specify allowed origins: ['http://localhost:4200']
     credentials: true,
   });
 
   // Optional: Global prefix for all routes
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
 
   // Graceful shutdown support
   app.enableShutdownHooks();
@@ -35,13 +35,15 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  Logger.log(`🚀 Home Assistant AI is running on: http://localhost:${port}`, 'Bootstrap');
+  Logger.log(
+    `🚀 Home Assistant AI is running on: http://localhost:${port}`,
+    "Bootstrap",
+  );
 }
 
 bootstrap().catch((error) => {
-  Logger.error('❌ Failed to start application', error, 'Bootstrap');
+  Logger.error("❌ Failed to start application", error, "Bootstrap");
   throw error;
 
   process.exit(1);
-
 });

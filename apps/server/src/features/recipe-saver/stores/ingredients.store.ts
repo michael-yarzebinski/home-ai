@@ -1,9 +1,13 @@
 // features/ingredients/ingredients.store.ts
-import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../../../core/stores/abstract/abstract-entity.store';
-import type { Ingredient, InsertableIngredient, UpdatableIngredient } from '@home-ai/shared/domain/ingredient/ingredient';
-import { AuditStore } from '../../../core/stores/audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
+import type { Knex } from "knex";
+import { AbstractEntityStore } from "../../../core/stores/abstract/abstract-entity.store";
+import type {
+  Ingredient,
+  InsertableIngredient,
+  UpdatableIngredient,
+} from "@home-ai/shared/domain/ingredient/ingredient";
+import { AuditStore } from "../../../core/stores/monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
 
 export interface IngredientRecord {
   id: string;
@@ -18,9 +22,17 @@ export interface IngredientRecord {
 }
 
 @Injectable()
-export class IngredientStore extends AbstractEntityStore<Ingredient, IngredientRecord, InsertableIngredient, UpdatableIngredient> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'ingredients', entityType: 'ingredients' });
+export class IngredientStore extends AbstractEntityStore<
+  Ingredient,
+  IngredientRecord,
+  InsertableIngredient,
+  UpdatableIngredient
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, {
+      tableName: "ingredients",
+      entityType: "ingredients",
+    });
   }
 
   protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
@@ -31,10 +43,13 @@ export class IngredientStore extends AbstractEntityStore<Ingredient, IngredientR
     return query;
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('name', like).orWhereILike('notes', like),
+      b.whereILike("name", like).orWhereILike("notes", like),
     );
   }
 

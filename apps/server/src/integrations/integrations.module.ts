@@ -17,7 +17,18 @@ import { HomeAssistantProcessor } from "./home-assistant/services/home-assistant
 @Module({
   imports: [CoreModule, AIModule, HttpModule],
   controllers: [BlueBubblesController],
-  providers: [BlueBubblesService, HomeAssistantService, HomeAssistantProcessor, RelayService, WeatherService],
-  exports: [BlueBubblesService, HomeAssistantService, RelayService, WeatherService],
+  providers: [
+    BlueBubblesService,
+    HomeAssistantService,
+    HomeAssistantProcessor,
+    RelayService,
+    WeatherService,
+  ],
+  exports: [
+    BlueBubblesService,
+    HomeAssistantService,
+    RelayService,
+    WeatherService,
+  ],
 })
-export class IntegrationsModule { }
+export class IntegrationsModule {}

@@ -1,12 +1,15 @@
 import { User } from "@home-ai/shared/domain/user/user";
 import { Injectable } from "@nestjs/common";
 import { ClsService } from "nestjs-cls";
-import { LogStore } from "../../core/stores/log/log.store";
+import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { McpService } from "../mcp/mcp.service";
 import { ToolRegistry } from "../../tools/registry/tool.registry";
 import { UnifiedMessage } from "../types/llm-query-params";
 import { AppConfigService } from "../../core/services/app-config.service";
-import { ChatMessage, LLMRole } from "@home-ai/shared/domain/conversation/converstation";
+import {
+  ChatMessage,
+  LLMRole,
+} from "@home-ai/shared/domain/conversation/converstation";
 import { ConversationStore } from "../../core/stores/conversation/conversation.store";
 import { NotificationService } from "../../core/services/notification.service";
 import { LLMModelTypes, LLMProviderService } from "../llm/llm.provider.sevice";
@@ -73,11 +76,14 @@ export class OrchestratorService {
           inputSchema: t.handler.parameters.shape,
         }));
 
-        const response = await this.llmProviderService.query({
-          messages,
-          tools: llmTools,
-          context: { userId: user.id, chatSessionId, originalPrompt: input },
-        }, modelType);
+        const response = await this.llmProviderService.query(
+          {
+            messages,
+            tools: llmTools,
+            context: { userId: user.id, chatSessionId, originalPrompt: input },
+          },
+          modelType,
+        );
 
         await this.logStore.create({
           userId: user.id,
@@ -269,6 +275,7 @@ export class OrchestratorService {
     this.cls.set("userId", user.id);
     this.cls.set("userRole", user.role);
     this.cls.set("userName", user.name);
+    this.cls.set("user", { id: user.id, role: user.role, name: user.name });
     this.cls.set("originalPrompt", input);
     this.cls.set("chatSessionId", chatSessionId);
     this.cls.set("currentISO", new Date().toISOString());
@@ -293,8 +300,7 @@ export class OrchestratorService {
   }
 
   private async generateSystemPrompt(user: User): Promise<string> {
-    const aiName =
-      await this.appConfigService.getFromDb("AI_NAME");
+    const aiName = await this.appConfigService.getFromDb("AI_NAME");
     const date = new Date().toLocaleDateString();
 
     return `
@@ -315,7 +321,7 @@ If a user asks to "add" or "save" information (like a Fact or Device) that alrea
 - **Example:** "A fact about 'Dog Diet' already exists. Would you like me to update it with this new information?"
 
 ## Approval Queue
-If an action is queued for approval, inform the user and provide the Request ID immediately.`
+If an action is queued for approval, inform the user and provide the Request ID immediately.`;
   }
 
   private async handleTimeout(

@@ -1,13 +1,15 @@
 // src/core/stores/pending-action/pending-action.store.ts
 import type { Knex } from "knex";
-import type { User } from "@home-ai/shared/domain/user/user";
-import { AbstractEntityStore, type RequestUser } from "../abstract/abstract-entity.store";
+import {
+  AbstractEntityStore,
+  type RequestUser,
+} from "../abstract/abstract-entity.store";
 import type {
   InsertablePendingAction,
   PendingAction,
   UpdatablePendingAction,
 } from "@home-ai/shared/domain/pending-action/pending-action";
-import { AuditStore } from "../audit/audit.store";
+import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 
 export interface PendingActionRecord {
@@ -38,20 +40,29 @@ export class PendingActionStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query; // Admin sees all.
-    return query.where('requester_id', user.id);
+    return query.where("requester_id", user.id);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder {
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.where('requester_id', user.id);
+    return query.where("requester_id", user.id);
   }
 
-  protected applyTextSearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b.whereILike('status', like).orWhereILike('reason', like),
+      b.whereILike("status", like).orWhereILike("reason", like),
     );
   }
 

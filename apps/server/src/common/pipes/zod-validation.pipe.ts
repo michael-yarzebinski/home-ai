@@ -1,11 +1,15 @@
-import { BadRequestException, PipeTransform } from '@nestjs/common';
+import { BadRequestException, PipeTransform } from "@nestjs/common";
 
 /**
  * Duck-typed interface so the pipe works with any Zod version — even across
  * separate node_modules installs in a monorepo.
  */
 interface ZodLike {
-  safeParse(value: unknown): { success: true; data: unknown } | { success: false; error: { flatten(): unknown } };
+  safeParse(
+    value: unknown,
+  ):
+    | { success: true; data: unknown }
+    | { success: false; error: { flatten(): unknown } };
 }
 
 /**

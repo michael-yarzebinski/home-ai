@@ -1,14 +1,12 @@
 import { Module } from "@nestjs/common";
-import { AuditStore } from "./stores/audit/audit.store";
-import { AIAuditStore } from "./stores/ai-audit/ai-audit.store";
-import { LogStore } from "./stores/log/log.store";
-import { NotificationLogStore } from "./stores/notification-log/notification-log.store";
+import { AuditStore } from "./stores/monitoring/audit/audit.store";
+import { AIAuditStore } from "./stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "./stores/monitoring/log/log.store";
+import { NotificationLogStore } from "./stores/monitoring/notification-log/notification-log.store";
 import { NotificationQueueStore } from "./stores/notification-queue/notification-queue.store";
 import { ToolStore } from "./stores/tool/tool.store";
 import { UserStore } from "./stores/user/user.store";
 import { DeviceStore } from "./stores/device/device.store";
-import { CalendarStore } from "./stores/calendar/calendar.store";
-import { NoteStore } from "./stores/note/note.store";
 import { PendingActionStore } from "./stores/pending-action/pending-action.store";
 import { AppConfigService } from "./services/app-config.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -23,10 +21,14 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { JwtStrategy } from "./auth/jwt.strategy";
-import { AuthController } from "./controllers/auth.controller";
-import { AutomationRulesController } from "./controllers/automation-rules.controller";
-import { ChatSessionsController } from "./controllers/chat-sessions.controller";
-import { PendingActionsController } from "./controllers/pending-actions.controller";
+import { AuthController } from "./controllers/auth/auth.controller";
+import { AppConfigController } from "./controllers/app-config/app-config.controller";
+import { AutomationRulesController } from "./controllers/automation-rules/automation-rules.controller";
+import { ChatSessionsController } from "./controllers/chat-sessions/chat-sessions.controller";
+import { DevicesController } from "./controllers/devices/devices.controller";
+import { PendingActionsController } from "./controllers/pending-actions/pending-actions.controller";
+import { ToolsController } from "./controllers/tools/tools.controller";
+import { UsersController } from "./controllers/users/users.controller";
 import { DeviceEventStore } from "./stores/device/device-event.store";
 import { BullModule } from "@nestjs/bullmq";
 
@@ -37,16 +39,25 @@ import { BullModule } from "@nestjs/bullmq";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '12h' },
+        secret: configService.getOrThrow<string>("JWT_SECRET"),
+        signOptions: { expiresIn: "12h" },
       }),
       inject: [ConfigService],
     }),
     BullModule.registerQueue({
-      name: 'ha-events',
+      name: "ha-events",
     }),
   ],
-  controllers: [AuthController, AutomationRulesController, ChatSessionsController, PendingActionsController],
+  controllers: [
+    AppConfigController,
+    AuthController,
+    AutomationRulesController,
+    ChatSessionsController,
+    DevicesController,
+    PendingActionsController,
+    ToolsController,
+    UsersController,
+  ],
   providers: [
     {
       provide: "KNEX_CONNECTION",
@@ -107,8 +118,6 @@ import { BullModule } from "@nestjs/bullmq";
     ToolStore,
     UserStore,
     DeviceStore,
-    CalendarStore,
-    NoteStore,
     PendingActionStore,
     AutomationRuleStore,
 
@@ -132,8 +141,6 @@ import { BullModule } from "@nestjs/bullmq";
     ToolStore,
     UserStore,
     DeviceStore,
-    CalendarStore,
-    NoteStore,
     PendingActionStore,
     AutomationRuleStore,
 

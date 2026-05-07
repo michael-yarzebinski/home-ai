@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { UserStore } from '../stores/user/user.store';
-import type { JwtPayload } from '../auth/jwt.strategy';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { UserStore } from "../stores/user/user.store";
+import type { JwtPayload } from "../auth/jwt.strategy";
 
 export interface LoginResult {
   accessToken: string;
@@ -19,15 +19,19 @@ export class AuthService {
   ) {}
 
   async login(name: string, code: string): Promise<LoginResult> {
-    const users = await this.userStore.search({ query: name, page: 1, pageSize: 5 });
+    const users = await this.userStore.search({
+      query: name,
+      page: 1,
+      pageSize: 5,
+    });
     const user = users.items.find(
       (u) => u.name.toLowerCase() === name.toLowerCase(),
     );
 
-    if (!user) throw new UnauthorizedException('Invalid name or code');
+    if (!user) throw new UnauthorizedException("Invalid name or code");
 
     const valid = await bcrypt.compare(code, user.accessCodeHash);
-    if (!valid) throw new UnauthorizedException('Invalid name or code');
+    if (!valid) throw new UnauthorizedException("Invalid name or code");
 
     const payload: JwtPayload = { sub: user.id, role: user.role };
 

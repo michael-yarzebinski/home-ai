@@ -3,7 +3,7 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ToolsModule } from "./tools/tool.module";
 import { CoreModule } from "./core/core.module";
-import { AdminModule } from "./core/controllers/admin/admin.module";
+import { AdminModule } from "./core/controllers/admin.module";
 import { AIModule } from "./ai/ai.module";
 import { IntegrationsModule } from "./integrations/integrations.module";
 import { FeaturesModule } from "./features/features.module";
@@ -36,11 +36,11 @@ import { BullModule } from "@nestjs/bullmq";
     RedisModule.forRootAsync({
       imports: [CoreModule],
       useFactory: (configService: AppConfigService) => {
-        const redisHost = configService.getFromEnv('REDIS_HOST');
-        const redisPort = configService.getFromEnv('REDIS_PORT');
+        const redisHost = configService.getFromEnv("REDIS_HOST");
+        const redisPort = configService.getFromEnv("REDIS_PORT");
 
         return {
-          type: 'single',
+          type: "single",
           url: `redis://${redisHost}:${redisPort}`,
           options: {
             retryStrategy: (times) => Math.min(times * 50, 2000),
@@ -54,8 +54,8 @@ import { BullModule } from "@nestjs/bullmq";
       imports: [CoreModule],
       useFactory: (configService: AppConfigService) => ({
         connection: {
-          host: configService.getFromEnv('REDIS_HOST'),
-          port: configService.getFromEnv('REDIS_PORT'),
+          host: configService.getFromEnv("REDIS_HOST"),
+          port: configService.getFromEnv("REDIS_PORT"),
         },
       }),
       inject: [AppConfigService],

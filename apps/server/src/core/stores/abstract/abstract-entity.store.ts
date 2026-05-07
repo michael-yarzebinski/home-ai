@@ -1,17 +1,22 @@
-import { Knex } from 'knex';
-import { BaseStore } from './base.store.interface';
-import type { Insertable, Updatable } from '@home-ai/shared/domain/helper/crud.helper';
-import type { SearchCriteria, SearchCriteriaBase } from '@home-ai/shared/search/search';
-import type { Role } from '@home-ai/shared/domain/role/role';
+import { Knex } from "knex";
+import { BaseStore } from "./base.store.interface";
+import type {
+  Insertable,
+  Updatable,
+} from "@home-ai/shared/common/crud.helper";
+import type {
+  SearchCriteria,
+  SearchCriteriaBase,
+} from "@home-ai/shared/search/search";
+import type { Role } from "@home-ai/shared/domain/role/role";
 
-/** Minimal user shape needed for row-level access control. Satisfied by both
- *  the full User domain object and the JWT-decoded AuthUser. */
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Paginated } from "@home-ai/shared/search/pagination";
+import { Id } from "../monitoring/abstract/abstract-monitoring.store";
+import { EntityNotFoundError } from "../../../common/errors/entity-not-found.error";
+import { Inject, Injectable } from "@nestjs/common";
+
 export type RequestUser = { id: string; role: Role };
-import { AuditStore } from '../audit/audit.store';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { Id } from './abstract-monitoring.store';
-import { EntityNotFoundError } from '../../../common/errors/entity-not-found.error';
-import { Inject, Injectable } from '@nestjs/common';
 
 export type AuditableEntity = Id & {
   active: boolean;
@@ -26,8 +31,13 @@ export abstract class AbstractEntityStore<
   TInsertable = Insertable<TDomain>,
   TUpdatable = Updatable<TDomain>,
   TSearchCriteria extends SearchCriteriaBase = SearchCriteriaBase,
-> implements BaseStore<TDomain, TRecord, TInsertable, TUpdatable, TSearchCriteria> {
-
+> implements BaseStore<
+  TDomain,
+  TRecord,
+  TInsertable,
+  TUpdatable,
+  TSearchCriteria
+> {
   private readonly tableName: string;
   private readonly entityType: string;
 
@@ -35,7 +45,7 @@ export abstract class AbstractEntityStore<
   private readonly auditStore: AuditStore;
 
   protected constructor(
-    @Inject('KNEX_CONNECTION') knex: Knex,
+    @Inject("KNEX_CONNECTION") knex: Knex,
     auditStore: AuditStore,
     options: { tableName: string; entityType: string },
   ) {
@@ -59,7 +69,10 @@ export abstract class AbstractEntityStore<
    * - Regular user: add WHERE user_id = user.id (for user-scoped entities).
    * - Shared entities (devices, calendars, etc.): return query unchanged.
    */
-  protected abstract validateForRead(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder;
+  protected abstract validateForRead(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder;
 
   /**
    * Applies ownership scoping to the WHERE clause on UPDATE, DELETE, and RESTORE.
@@ -68,14 +81,20 @@ export abstract class AbstractEntityStore<
    *
    * Same scoping rules as validateForRead.
    */
-  protected abstract validateForWrite(query: Knex.QueryBuilder, user?: RequestUser): Knex.QueryBuilder;
+  protected abstract validateForWrite(
+    query: Knex.QueryBuilder,
+    user?: RequestUser,
+  ): Knex.QueryBuilder;
 
   /**
    * Applies full-text search filtering for the given search string.
    * Called inside search() when criteria.query is non-empty.
    * Use ILike / whereRaw for appropriate columns per entity type.
    */
-  protected abstract applyTextSearch(query: Knex.QueryBuilder, searchString: string): Knex.QueryBuilder;
+  protected abstract applyTextSearch(
+    query: Knex.QueryBuilder,
+    searchString: string,
+  ): Knex.QueryBuilder;
 
   protected abstract recordToDomain(record: TRecord): TDomain;
   protected abstract domainToRecord(domain: TDomain): TRecord;
@@ -93,11 +112,13 @@ export abstract class AbstractEntityStore<
   }
 
   /** Subclasses can override to change the default sort column for search(). */
-  protected get defaultOrder(): { column: string; direction: 'asc' | 'desc' } {
-    return { column: 'created_at', direction: 'desc' };
+  protected get defaultOrder(): { column: string; direction: "asc" | "desc" } {
+    return { column: "created_at", direction: "desc" };
   }
 
-  protected activeOrInactive(includeInactive: boolean): Knex.QueryBuilder<TRecord, TRecord[]> {
+  protected activeOrInactive(
+    includeInactive: boolean,
+  ): Knex.QueryBuilder<TRecord, TRecord[]> {
     return includeInactive ? this.table : this.active;
   }
 
@@ -110,7 +131,10 @@ export abstract class AbstractEntityStore<
    * validateForRead and applyTextSearch are applied before COUNT(*) and LIMIT/OFFSET
    * so that pagination totals always reflect the caller's scoped record set.
    */
-  async search(criteria: SearchCriteria<TSearchCriteria>, user?: RequestUser): Promise<Paginated<TDomain>> {
+  async search(
+    criteria: SearchCriteria<TSearchCriteria>,
+    user?: RequestUser,
+  ): Promise<Paginated<TDomain>> {
     let query = this.table;
 
     query = this.validateForRead(query, user);
@@ -123,8 +147,10 @@ export abstract class AbstractEntityStore<
       query = this.applyTextSearch(query, criteria.query.trim());
     }
 
-    const countRow = (await query.clone().count('* as count').first()) as { count: string } | undefined;
-    const total = parseInt(countRow?.count ?? '0', 10);
+    const countRow = (await query.clone().count("* as count").first()) as
+      | { count: string }
+      | undefined;
+    const total = parseInt(countRow?.count ?? "0", 10);
 
     const offset = (criteria.page - 1) * criteria.pageSize;
     const records = (await query
@@ -143,21 +169,32 @@ export abstract class AbstractEntityStore<
     };
   }
 
-  async getById(id: string, includeInactive = false, user?: RequestUser): Promise<TDomain | null> {
+  async getById(
+    id: string,
+    includeInactive = false,
+    user?: RequestUser,
+  ): Promise<TDomain | null> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
     const record = (await query.where({ id }).first()) as TRecord | null;
     return record ? this.recordToDomain(record) : null;
   }
 
-  async getByIds(ids: string[], includeInactive = false, user?: RequestUser): Promise<TDomain[]> {
+  async getByIds(
+    ids: string[],
+    includeInactive = false,
+    user?: RequestUser,
+  ): Promise<TDomain[]> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
-    const records = (await query.whereIn('id', ids)) as TRecord[];
+    const records = (await query.whereIn("id", ids)) as TRecord[];
     return records.map((r) => this.recordToDomain(r));
   }
 
-  async getAll(includeInactive = false, user?: RequestUser): Promise<TDomain[]> {
+  async getAll(
+    includeInactive = false,
+    user?: RequestUser,
+  ): Promise<TDomain[]> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
     const records = (await query) as TRecord[];
@@ -170,13 +207,15 @@ export abstract class AbstractEntityStore<
 
   async create(data: TInsertable, user?: RequestUser): Promise<TDomain> {
     const record = this.domainToRecord(data as any);
-    const [inserted] = (await this.table.insert(record as any).returning('*')) as TRecord[];
+    const [inserted] = (await this.table
+      .insert(record as any)
+      .returning("*")) as TRecord[];
     const domain = this.recordToDomain(inserted);
 
     await this.auditStore.create({
       entityType: this.entityType,
       entityId: domain.id,
-      action: 'create',
+      action: "create",
       userId: user?.id,
       changes: { old: null, new: inserted },
     });
@@ -184,7 +223,11 @@ export abstract class AbstractEntityStore<
     return domain;
   }
 
-  async update(id: string, update: TUpdatable, user?: RequestUser): Promise<TDomain> {
+  async update(
+    id: string,
+    update: TUpdatable,
+    user?: RequestUser,
+  ): Promise<TDomain> {
     const old = await this.getById(id, true);
     if (!old) throw new EntityNotFoundError(this.entityType, id);
 
@@ -198,14 +241,16 @@ export abstract class AbstractEntityStore<
     let query = this.table.where({ id });
     query = this.validateForWrite(query, user);
 
-    const [updated] = (await query.update(patch as any).returning('*')) as TRecord[];
+    const [updated] = (await query
+      .update(patch as any)
+      .returning("*")) as TRecord[];
 
     const domain = this.recordToDomain(updated);
 
     await this.auditStore.create({
       entityType: this.entityType,
       entityId: id,
-      action: 'update',
+      action: "update",
       userId: user?.id,
       changes: { old, new: updated },
     });
@@ -221,7 +266,7 @@ export abstract class AbstractEntityStore<
     await this.auditStore.create({
       entityType: this.entityType,
       entityId: id,
-      action: 'soft_delete',
+      action: "soft_delete",
       userId: user?.id,
       changes: {},
     });
@@ -235,7 +280,7 @@ export abstract class AbstractEntityStore<
     await this.auditStore.create({
       entityType: this.entityType,
       entityId: id,
-      action: 'restore',
+      action: "restore",
       userId: user?.id,
       changes: {},
     });
