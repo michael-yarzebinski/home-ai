@@ -31,14 +31,14 @@ export class CalendarsController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.calendarStore.search({ ...dto, includeInactive: false }, user);
+    return this.calendarStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.calendarStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.calendarStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`Calendar ${id} not found`);
     return item;
   }
@@ -48,14 +48,14 @@ export class CalendarsController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableCalendarSchema))
     dto: UpdatableCalendar,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.calendarStore.update(id, dto, user);
+    return this.calendarStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.calendarStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.calendarStore.softDelete(id, authUser);
   }
 }

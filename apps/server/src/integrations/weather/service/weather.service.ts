@@ -12,7 +12,7 @@ export class WeatherService {
     "https://geocoding-api.open-meteo.com/v1/search";
   private readonly weatherUrl = "https://api.open-meteo.com/v1/forecast";
 
-  constructor(private readonly logStore: LogStore) { }
+  constructor(private readonly logStore: LogStore) {}
 
   async getWeather(
     zipCode: string,

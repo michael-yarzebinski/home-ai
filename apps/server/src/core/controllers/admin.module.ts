@@ -4,8 +4,6 @@ import { DevicesAdminController } from "./devices/admin/devices.admin.controller
 import { UsersAdminController } from "./users/admin/users.admin.controller";
 import { AppConfigAdminController } from "./app-config/admin/app-config.admin.controller";
 import { ToolsAdminController } from "./tools/admin/tools.admin.controller";
-import { CalendarsAdminController } from "src/features/calendar/controllers/admin/calendars.admin.controller";
-import { NotesAdminController } from "src/features/note/controllers/admin/notes.admin.controller";
 import { NotificationQueueAdminController } from "./notification-queue/admin/notification-queue.admin.controller";
 import { PendingActionsAdminController } from "./pending-actions/admin/pending-actions.admin.controller";
 import { AutomationRulesAdminController } from "./automation-rules/admin/automation-rules.admin.controller";
@@ -22,8 +20,6 @@ import { DashboardAdminController } from "./dashboard/admin/dashboard.admin.cont
     UsersAdminController,
     AppConfigAdminController,
     ToolsAdminController,
-    CalendarsAdminController,
-    NotesAdminController,
     NotificationQueueAdminController,
     PendingActionsAdminController,
     AutomationRulesAdminController,
@@ -34,4 +30,4 @@ import { DashboardAdminController } from "./dashboard/admin/dashboard.admin.cont
     DashboardAdminController,
   ],
 })
-export class AdminModule { }
+export class AdminModule {}

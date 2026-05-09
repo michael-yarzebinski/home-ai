@@ -22,7 +22,10 @@ export interface GetNoteResult {
 
 @Tool()
 @Injectable()
-export class GetNoteTool extends ToolHandler<typeof GetNoteToolSchema, GetNoteResult> {
+export class GetNoteTool extends ToolHandler<
+  typeof GetNoteToolSchema,
+  GetNoteResult
+> {
   readonly name = "get-note";
   readonly filterOnIsRecursiveCall = false;
 

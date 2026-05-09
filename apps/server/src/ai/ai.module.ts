@@ -90,4 +90,4 @@ import { LocalLLMService } from "./llm/local/local-llm.service";
   exports: [OrchestratorService, McpService, LLMProviderService],
   controllers: [ChatController],
 })
-export class AIModule { }
+export class AIModule {}

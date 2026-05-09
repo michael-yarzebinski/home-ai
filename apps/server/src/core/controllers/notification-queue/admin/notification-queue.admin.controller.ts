@@ -24,6 +24,8 @@ import {
   type InsertableNotificationQueue,
   type UpdatableNotificationQueue,
 } from "@home-ai/shared/domain/notification-queue/notification-queue";
+import { AuthUser } from "../../../auth/jwt.strategy";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
 
 @Controller("v1/admin/notification-queue")
 @Roles(Role.ADMIN)
@@ -36,13 +38,14 @@ export class NotificationQueueAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.notificationQueueStore.search(dto);
+    return this.notificationQueueStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.notificationQueueStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.notificationQueueStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`NotificationQueue ${id} not found`);
     return item;
   }
@@ -52,8 +55,9 @@ export class NotificationQueueAdminController {
   create(
     @Body(new ZodValidationPipe(InsertableNotificationQueueSchema))
     dto: InsertableNotificationQueue,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.notificationQueueStore.create(dto);
+    return this.notificationQueueStore.create(dto, authUser);
   }
 
   @Put(":id")
@@ -61,19 +65,20 @@ export class NotificationQueueAdminController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableNotificationQueueSchema))
     dto: UpdatableNotificationQueue,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.notificationQueueStore.update(id, dto);
+    return this.notificationQueueStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.notificationQueueStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.notificationQueueStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.notificationQueueStore.restore(id);
-    return this.notificationQueueStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.notificationQueueStore.restore(id, authUser);
+    return this.notificationQueueStore.getById(id, authUser, true);
   }
 }

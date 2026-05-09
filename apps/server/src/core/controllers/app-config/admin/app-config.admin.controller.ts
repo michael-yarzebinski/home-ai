@@ -24,6 +24,8 @@ import {
   type InsertableAppConfig,
   type UpdatableAppConfig,
 } from "@home-ai/shared/domain/app-config/app-config";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import { AuthUser } from "../../../auth/jwt.strategy";
 
 @Controller("v1/admin/app-config")
 @Roles(Role.ADMIN)
@@ -34,13 +36,14 @@ export class AppConfigAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.appConfigStore.search(dto);
+    return this.appConfigStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.appConfigStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.appConfigStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`AppConfig ${id} not found`);
     return item;
   }
@@ -50,8 +53,9 @@ export class AppConfigAdminController {
   create(
     @Body(new ZodValidationPipe(InsertableAppConfigSchema))
     dto: InsertableAppConfig,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.appConfigStore.create(dto);
+    return this.appConfigStore.create(dto, authUser);
   }
 
   @Put(":id")
@@ -59,19 +63,20 @@ export class AppConfigAdminController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableAppConfigSchema))
     dto: UpdatableAppConfig,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.appConfigStore.update(id, dto);
+    return this.appConfigStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.appConfigStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.appConfigStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.appConfigStore.restore(id);
-    return this.appConfigStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.appConfigStore.restore(id, authUser);
+    return this.appConfigStore.getById(id, authUser);
   }
 }

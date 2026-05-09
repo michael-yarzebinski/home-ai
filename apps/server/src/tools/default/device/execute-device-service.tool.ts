@@ -72,15 +72,19 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
       params.service,
       params.data || {},
     );
-    await this.deviceStore.update(params.deviceId, {
-      lastTriggeredService: {
-        entityId: params.data?.entity_id ?? "",
-        service: params.service,
-        triggeredBy: context.userId,
-        timestamp: new Date(),
-        metadata: params.data,
+    await this.deviceStore.update(
+      params.deviceId,
+      {
+        lastTriggeredService: {
+          entityId: params.data?.entity_id ?? "",
+          service: params.service,
+          triggeredBy: context.userId,
+          timestamp: new Date(),
+          metadata: params.data,
+        },
       },
-    });
+      context.requestUser,
+    );
 
     return {
       success: true,

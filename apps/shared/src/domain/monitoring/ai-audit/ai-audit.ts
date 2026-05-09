@@ -1,4 +1,4 @@
-import { Insertable } from '../../helper/crud.helper';
+import { Insertable } from '../../../common/crud.helper';
 import { z } from 'zod';
 
 export const AIAuditSchema = z.object({

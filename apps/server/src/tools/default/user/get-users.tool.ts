@@ -37,7 +37,7 @@ export class GetUsersTool extends ToolHandler<
     _params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<GetUsersToolResult> {
-    const users = await this.userStore.getAll(false, context.user);
+    const users = await this.userStore.getAll(context.requestUser, false);
     const sanitizedUsers = users
       .map((user) => ({ id: user.id, name: user.name }))
       .sort((a, b) => a.name.localeCompare(b.name));

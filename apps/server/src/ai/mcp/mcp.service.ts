@@ -2,9 +2,8 @@ import { Injectable, OnModuleInit } from "@nestjs/common";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ToolRegistry } from "src/tools/registry/tool.registry";
 import { ClsService } from "nestjs-cls";
-import { Role } from "@home-ai/shared/domain/role/role";
 import { ToolContext } from "../../tools/types/tool-context";
-import { RequestUser } from "../../core/stores/abstract/abstract-entity.store";
+import { AuthUser } from "../../core/auth/jwt.strategy";
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -38,12 +37,12 @@ export class McpService implements OnModuleInit {
 
   async execute(name: string, args: any) {
     // Pull user info from CLS (set by the Orchestrator)
-    const userRole = this.cls.get<Role>("userRole");
+    const authUser = this.cls.get<AuthUser>("authUser");
 
     // 2. Use the registry's built-in RBAC check
     const registeredTool = await this.toolRegistry.getRegisteredTool(
       name,
-      userRole,
+      authUser,
     );
 
     if (!registeredTool) {
@@ -60,10 +59,8 @@ export class McpService implements OnModuleInit {
 
   private getToolContext(): ToolContext {
     return {
-      userId: this.cls.get("userId"),
-      userRole: this.cls.get("userRole"),
+      authUser: this.cls.get<AuthUser>("authUser"),
       userName: this.cls.get("userName"),
-      user: this.cls.get<RequestUser>("user"),
       chatSessionId: this.cls.get("chatSessionId"),
       currentISO: this.cls.get("currentISO"),
       // This connects the specific tool to the broader AI context

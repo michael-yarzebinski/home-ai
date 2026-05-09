@@ -1,7 +1,7 @@
 // core/stores/ai-audit/ai-audit.store.ts
 import type { Knex } from "knex";
 import { AbstractMonitoringStore } from "../abstract/abstract-monitoring.store";
-import type { AIAudit } from "@home-ai/shared/domain/ai-audit/ai-audit";
+import type { AIAudit } from "@home-ai/shared/domain/monitoring/ai-audit/ai-audit";
 import { Inject, Injectable } from "@nestjs/common";
 
 export interface AIAuditRecord {

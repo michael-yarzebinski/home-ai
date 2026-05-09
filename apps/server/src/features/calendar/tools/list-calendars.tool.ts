@@ -42,7 +42,7 @@ export class ListCalendarsTool extends ToolHandler<
     _params: z.infer<typeof ListCalendarsToolSchema>,
     context: ToolContext,
   ): Promise<ListCalendarsResult> {
-    const calendars = await this.calendarStore.getAll();
+    const calendars = await this.calendarStore.getAll(context.requestUser);
     const availableCalendars = addPermissionFlags(calendars, context.userRole);
 
     return {

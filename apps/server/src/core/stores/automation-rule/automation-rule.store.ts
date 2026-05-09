@@ -2,7 +2,6 @@ import { Injectable, Inject } from "@nestjs/common";
 import { Knex } from "knex";
 import {
   AbstractEntityStore,
-  type RequestUser,
 } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import type {
@@ -13,6 +12,7 @@ import type {
   TriggerConfig,
 } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { TriggerType } from "@home-ai/shared/domain/automation-rule/automation-rule";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface AutomationRuleRecord {
   id: string;
@@ -80,19 +80,17 @@ export class AutomationRuleStore extends AbstractEntityStore<
     };
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query; // Admin sees all.
     return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.where("user_id", user.id);
   }
 
@@ -112,7 +110,7 @@ export class AutomationRuleStore extends AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
-  async getForTool(
+  async getByTriggerType(
     triggerType: TriggerType,
     deviceId?: string,
   ): Promise<AutomationRule[]> {
@@ -131,6 +129,16 @@ export class AutomationRuleStore extends AbstractEntityStore<
   }
 
   async getForDevice(entityId: string): Promise<AutomationRule[]> {
-    return this.getForTool(TriggerType.DEVICE, entityId);
+    return this.getByTriggerType(TriggerType.DEVICE, entityId);
+  }
+
+  async updateLastRun(ruleIds: string[]): Promise<void> {
+    if (ruleIds.length === 0) {
+      return;
+    }
+    const now = new Date();
+    for (const ruleId of ruleIds) {
+      await this.table.where("id", ruleId).update({ last_run: now });
+    }
   }
 }

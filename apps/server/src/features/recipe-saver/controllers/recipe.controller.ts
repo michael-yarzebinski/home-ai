@@ -31,14 +31,14 @@ export class RecipeController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.recipeStore.search({ ...dto, includeInactive: false }, user);
+    return this.recipeStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.recipeStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.recipeStore.getById(id, authUser, false);
     if (!item) throw new NotFoundException(`Recipe ${id} not found`);
     return item;
   }
@@ -47,14 +47,14 @@ export class RecipeController {
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableRecipeSchema)) dto: UpdatableRecipe,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.recipeStore.update(id, dto, user);
+    return this.recipeStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.recipeStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.recipeStore.softDelete(id, authUser);
   }
 }

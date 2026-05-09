@@ -75,7 +75,7 @@ export class AddChecklistTool extends ToolHandler<
         readRoles,
         writeRoles,
       },
-      context.user,
+      context.requestUser,
     );
 
     return {

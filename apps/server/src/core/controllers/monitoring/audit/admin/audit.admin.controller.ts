@@ -20,7 +20,7 @@ import {
 @Controller("v1/admin/audit")
 @Roles(Role.ADMIN)
 export class AuditAdminController {
-  constructor(private readonly auditStore: AuditStore) { }
+  constructor(private readonly auditStore: AuditStore) {}
 
   @Post("search")
   @HttpCode(HttpStatus.OK)

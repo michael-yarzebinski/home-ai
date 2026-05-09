@@ -8,14 +8,14 @@ export class ChatSessionsController {
   constructor(private readonly conversationStore: ConversationStore) {}
 
   @Get()
-  getSessions(@CurrentUser() user: AuthUser) {
+  getSessions(@CurrentUser() authUser: AuthUser) {
     // Empty query = list all sessions for this user, most recent first.
-    return this.conversationStore.search({ page: 1, pageSize: 50 }, user);
+    return this.conversationStore.search({ page: 1, pageSize: 50 }, authUser);
   }
 
   @Get(":id")
-  async getSession(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const session = await this.conversationStore.getById(id, false, user);
+  async getSession(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const session = await this.conversationStore.getById(id, authUser);
     if (!session) throw new NotFoundException(`Chat session ${id} not found`);
     return session;
   }

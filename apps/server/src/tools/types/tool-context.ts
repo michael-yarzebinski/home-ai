@@ -1,15 +1,7 @@
-// src/tools/types/tool-context.ts
-import { Role } from "@home-ai/shared/domain/role/role";
-import { RequestUser } from "../../core/stores/abstract/abstract-entity.store";
+import { AuthUser } from "../../core/auth/jwt.strategy";
 
 export interface ToolContext {
-  /** * Identity: Who is triggering the action?
-   * Essential for database ownership and RBAC checks within the tool.
-   */
-  userId: string;
-  userRole: Role;
-  userName: string;
-  user: RequestUser;
+  authUser: AuthUser;
 
   /** * Session: Where does this action live?
    * Used for auditing, message threading, and "Inception" sub-calls.

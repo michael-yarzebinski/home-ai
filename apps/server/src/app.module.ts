@@ -17,6 +17,7 @@ import { HttpModule } from "@nestjs/axios";
 import { AppConfigService } from "./core/services/app-config.service";
 import { RedisModule } from "@nestjs-modules/ioredis";
 import { BullModule } from "@nestjs/bullmq";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { BullModule } from "@nestjs/bullmq";
     BackgroundModule,
     FeaturesModule,
     IntegrationsModule,
+    EventsModule,
     ToolsModule,
     HealthModule,
   ],
@@ -76,4 +78,4 @@ import { BullModule } from "@nestjs/bullmq";
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
-export class AppModule { }
+export class AppModule {}

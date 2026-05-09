@@ -67,7 +67,7 @@ export class UpdateChecklistTool extends ToolHandler<
     const checklist = await this.checklistStore.update(
       id,
       updates,
-      context.user,
+      context.requestUser,
     );
 
     return {

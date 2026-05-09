@@ -33,14 +33,14 @@ export class FactsController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.factsStore.search({ ...dto, includeInactive: false }, user);
+    return this.factsStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.factsStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.factsStore.getById(id, authUser, false);
     if (!item) throw new NotFoundException(`Fact ${id} not found`);
     return item;
   }
@@ -49,23 +49,23 @@ export class FactsController {
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body(new ZodValidationPipe(InsertableFactSchema)) dto: InsertableFact,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.factsStore.create(dto, user);
+    return this.factsStore.create(dto, authUser);
   }
 
   @Put(":id")
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableFactSchema)) dto: UpdatableFact,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.factsStore.update(id, dto, user);
+    return this.factsStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.factsStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.factsStore.softDelete(id, authUser);
   }
 }

@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import type { ChecklistDetails } from "@home-ai/shared/domain/checklist/checklist-details";
 import { ChecklistStore } from "src/features/checklist/stores/checklist.store";
 import { RecurringChecklistItemStore } from "src/features/checklist/stores/recurring-checklist-item.store";
 import { ChecklistItemStore } from "src/features/checklist/stores/checklist-item.store";
-import { RequestUser } from "src/core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "src/core/auth/jwt.strategy";
 import {
   ChecklistItem,
   ChecklistItemStatus,
 } from "@home-ai/shared/domain/checklist/checklist-item";
-import { RecurringChecklistItem } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
+import type { RecurringChecklistItem } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
 
 @Injectable()
 export class ChecklistManagerService {
@@ -49,33 +50,48 @@ export class ChecklistManagerService {
     return this.checklistItemStore;
   }
 
+  async getChecklistDetail(
+    checklistId: string,
+    user: AuthUser,
+  ): Promise<ChecklistDetails> {
+    const checklist = await this.checklistStore.getById(checklistId, user);
+    if (!checklist) {
+      throw new NotFoundException("Checklist not found");
+    }
+    const checklistItems = await this.checklistItemStore.getByChecklistId(
+      checklistId,
+      user,
+    );
+    const recurringChecklistItems =
+      await this.recurringChecklistItemStore.getByChecklistId(
+        checklistId,
+        user,
+      );
+    return { checklist, checklistItems, recurringChecklistItems };
+  }
+
   async checkItem(
     checklistId: string,
     checklistItemId: string,
-    user: RequestUser,
+    user: AuthUser,
   ): Promise<ChecklistItem> {
-    const checklist = await this.checklistStore.getById(
-      checklistId,
-      false,
-      user,
-    );
+    const checklist = await this.checklistStore.getById(checklistId, user);
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
     }
 
-    const checkedItem = this.checklistItemStore.update(
+    const checkedItem = await this.checklistItemStore.update(
       checklistItemId,
       {
         status: ChecklistItemStatus.COMPLETED,
         completedAt: new Date(),
-        completedBy: user.id,
+        completedBy: user?.id,
       },
       user,
     );
 
     const dependentItems = await this.checklistItemStore.getByDependsOn(
       checklistItemId,
-      false,
       user,
     );
     for (const item of dependentItems) {
@@ -104,13 +120,9 @@ export class ChecklistManagerService {
   async uncheckItem(
     checklistId: string,
     checklistItemId: string,
-    user: RequestUser,
+    user: AuthUser,
   ): Promise<ChecklistItem> {
-    const checklist = await this.checklistStore.getById(
-      checklistId,
-      false,
-      user,
-    );
+    const checklist = await this.checklistStore.getById(checklistId, user);
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
     }
@@ -127,7 +139,7 @@ export class ChecklistManagerService {
 
   async generateChecklistItemsFromRecurringItems(
     recurringItems: RecurringChecklistItem[],
-    user: RequestUser,
+    user: AuthUser,
   ): Promise<ChecklistItem[]> {
     const recurringById = new Map<string, RecurringChecklistItem>(
       recurringItems.map((item) => [item.id, item]),
@@ -148,7 +160,6 @@ export class ChecklistManagerService {
 
       const foundDependencies = await this.recurringChecklistItemStore.getByIds(
         missingDependencyIds,
-        false,
         user,
       );
 

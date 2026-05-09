@@ -6,7 +6,7 @@ import { ZodValidationPipe } from "../../../../common/pipes/zod-validation.pipe"
 import {
   DashboardQuerySchema,
   type DashboardQuery,
-} from "@home-ai/shared/domain/admin/dashboard/dashboard";
+} from "@home-ai/shared/admin/dashboard/dashboard";
 
 @Controller("v1/admin/dashboard")
 @Roles(Role.ADMIN)

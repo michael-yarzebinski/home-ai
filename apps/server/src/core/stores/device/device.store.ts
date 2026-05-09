@@ -1,7 +1,6 @@
 import type { Knex } from "knex";
 import {
   AbstractEntityStore,
-  type RequestUser,
 } from "../abstract/abstract-entity.store";
 import type {
   Device,
@@ -12,6 +11,7 @@ import type {
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { Role } from "@home-ai/shared/domain/role/role";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface DeviceRecord {
   id: string;
@@ -45,24 +45,22 @@ export class DeviceStore extends AbstractEntityStore<
   // Row-level access control
   // ---------------------------------------------------------------------------
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    // No user = admin/internal context — sees all devices.
-    if (!user) return query;
-    // Regular users only see devices their role is allowed to read.
-    return query.whereRaw("? = ANY(read_roles)", [user.role]);
+    return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    // No user = admin/internal context — unrestricted.
-    if (!user) return query;
-    // Regular users can only mutate devices their role is allowed to write.
-    return query.whereRaw("? = ANY(write_roles)", [user.role]);
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
   // ---------------------------------------------------------------------------
@@ -80,7 +78,9 @@ export class DeviceStore extends AbstractEntityStore<
         .orWhereILike("friendly_name", like)
         .orWhereILike("room", like)
         .orWhereILike("category", like)
-        .orWhereRaw("? = ANY(aliases)", [search.toLowerCase()]),
+        .orWhereRaw("aliases @> jsonb_build_array(?::text)", [
+          search.toLowerCase(),
+        ]),
     );
   }
 
@@ -129,5 +129,17 @@ export class DeviceStore extends AbstractEntityStore<
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  override async getAll(
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<Device[]> {
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const records = (await query) as DeviceRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 }

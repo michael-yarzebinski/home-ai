@@ -6,7 +6,7 @@ import { LLMResponse } from "../types/llm-response";
 
 @Injectable()
 export abstract class LLMServiceBase {
-  constructor(protected readonly aiAuditStore: AIAuditStore) { }
+  constructor(protected readonly aiAuditStore: AIAuditStore) {}
 
   /**
    * The core method implemented by GeminiService or OllamaService.

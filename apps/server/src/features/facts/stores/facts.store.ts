@@ -1,6 +1,7 @@
 // features/facts/facts.store.ts
 import type { Knex } from "knex";
 import { AbstractEntityStore } from "../../../core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "../../../core/auth/jwt.strategy";
 import type {
   Fact,
   InsertableFact,
@@ -33,20 +34,24 @@ export class FactsStore extends AbstractEntityStore<
     super(knex, auditStore, { tableName: "facts", entityType: "facts" });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: { role: string },
+    user?: AuthUser,
   ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.whereRaw("? = ANY(read_roles)", [user.role]);
+    return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: { role: string },
+    user?: AuthUser,
   ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.whereRaw("? = ANY(write_roles)", [user.role]);
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
   protected applyTextSearch(
@@ -58,7 +63,9 @@ export class FactsStore extends AbstractEntityStore<
       b
         .whereILike("key", like)
         .orWhereILike("value", like)
-        .orWhereRaw("? = ANY(tags)", [search.toLowerCase()]),
+        .orWhereRaw("tags @> jsonb_build_array(?::text)", [
+          search.toLowerCase(),
+        ]),
     );
   }
 
@@ -90,8 +97,10 @@ export class FactsStore extends AbstractEntityStore<
     };
   }
 
-  async getByKey(key: string): Promise<Fact | undefined> {
-    const record = await this.active.where("key", key).first();
+  async getByKey(key: string, user: AuthUser): Promise<Fact | undefined> {
+    let query = this.active;
+    query = this.validateUserForRead(query, user);
+    const record = await query.where("key", key).first();
 
     return record ? this.recordToDomain(record) : record;
   }

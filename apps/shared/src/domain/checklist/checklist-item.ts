@@ -51,3 +51,8 @@ export const UpdatableChecklistItemSchema = InsertableChecklistItemSchema.partia
 
 export type InsertableChecklistItem = z.infer<typeof InsertableChecklistItemSchema>;
 export type UpdatableChecklistItem = z.infer<typeof UpdatableChecklistItemSchema>;
+
+export const AssignChecklistItemBodySchema = z.object({
+    assigneeId: z.string().uuid(),
+});
+export type AssignChecklistItemBody = z.infer<typeof AssignChecklistItemBodySchema>;

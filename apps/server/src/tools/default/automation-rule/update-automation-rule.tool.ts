@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { AutomationRuleStore } from "src/core/stores/automation-rule/automation-rule.store";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
+import { ToolContext } from "../../types/tool-context";
 
 const toRecord = (value: unknown): unknown => {
   if (ToolParameterUtils.isEmptyOptionalInput(value)) return undefined;
@@ -57,11 +58,18 @@ export class UpdateAutomationRuleTool extends ToolHandler<
     super();
   }
 
-  async execute(params: z.infer<typeof UpdateAutomationRuleSchema>) {
+  async execute(
+    params: z.infer<typeof UpdateAutomationRuleSchema>,
+    context: ToolContext,
+  ) {
     const { id, ...updates } = params;
 
     // Logic to merge triggerParams if they exist
-    const existing = await this.automationStore.getById(id);
+    const existing = await this.automationStore.getById(
+      id,
+      context.requestUser,
+      false,
+    );
     if (!existing) return { success: false, message: "Rule not found" };
 
     const finalUpdate: any = { ...updates };
@@ -70,7 +78,7 @@ export class UpdateAutomationRuleTool extends ToolHandler<
       delete finalUpdate.triggerParams;
     }
 
-    await this.automationStore.update(id, finalUpdate);
+    await this.automationStore.update(id, finalUpdate, context.requestUser);
     return { success: true, message: `✅ Rule ${id} updated successfully.` };
   }
 }

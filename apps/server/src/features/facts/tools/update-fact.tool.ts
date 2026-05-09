@@ -60,9 +60,12 @@ export class UpdateFactTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof UpdateFactToolSchema>,
-    _context: ToolContext,
+    context: ToolContext,
   ): Promise<UpdateFactResult> {
-    const fact = await this.factsStore.getByKey(params.key);
+    const fact = await this.factsStore.getByKey(
+      params.key,
+      context.requestUser,
+    );
 
     if (!fact) {
       return {
@@ -72,12 +75,18 @@ export class UpdateFactTool extends ToolHandler<
       };
     }
 
-    const updatedFact = await this.factsStore.update(fact.id, {
-      value: params.value,
-      tags: params.tags,
-      readRoles: params.readRoles ? (params.readRoles as Role[]) : undefined,
-      writeRoles: params.writeRoles ? (params.writeRoles as Role[]) : undefined,
-    });
+    const updatedFact = await this.factsStore.update(
+      fact.id,
+      {
+        value: params.value,
+        tags: params.tags,
+        readRoles: params.readRoles ? (params.readRoles as Role[]) : undefined,
+        writeRoles: params.writeRoles
+          ? (params.writeRoles as Role[])
+          : undefined,
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,

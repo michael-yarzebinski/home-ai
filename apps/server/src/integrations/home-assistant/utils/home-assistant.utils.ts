@@ -1,5 +1,6 @@
 import { AutomationRule } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { Device } from "@home-ai/shared/domain/device/device";
+import { AutomationRuleUtils } from "@home-ai/shared/domain/automation-rule/automation-rule.utils";
 
 export class HomeAssistantUtils {
   static doesDeviceSlugMatchEntityId(deviceSlug: string, entityId: string) {
@@ -19,21 +20,12 @@ export class HomeAssistantUtils {
   ) {
     return automationRules.filter(
       (ar) =>
-        HomeAssistantUtils.isRulePassedCoolDown(ar) &&
+        AutomationRuleUtils.isOffCooldown(ar) &&
         !HomeAssistantUtils.isDeviceTriggeredByServiceCall(
           device,
           deviceCooldownMinutes,
         ),
     );
-  }
-
-  static isRulePassedCoolDown(rule: AutomationRule) {
-    if (!rule.lastRun) {
-      return true;
-    }
-
-    const nextAllowedAt = rule.lastRun.getTime() + rule.cooldownMinutes * 60000;
-    return Date.now() >= nextAllowedAt;
   }
 
   // NOTE:

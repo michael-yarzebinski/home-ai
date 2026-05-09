@@ -89,17 +89,20 @@ export class AddRecipeTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof AddRecipeToolSchema>,
-    _context: ToolContext,
+    context: ToolContext,
   ): Promise<AddRecipeResult> {
     try {
       // Create the base recipe record
-      const recipe = await this.recipeStore.create({
-        title: params.title,
-        url: params.url || undefined,
-        servings: params.servings,
-        prepTimeMinutes: params.prepTimeMinutes,
-        cookTimeMinutes: params.cookTimeMinutes,
-      });
+      const recipe = await this.recipeStore.create(
+        {
+          title: params.title,
+          url: params.url || undefined,
+          servings: params.servings,
+          prepTimeMinutes: params.prepTimeMinutes,
+          cookTimeMinutes: params.cookTimeMinutes,
+        },
+        context.requestUser,
+      );
 
       const readableId = recipe.readableId;
       const attachmentsDir = await this.appConfigService.getFromEnv(
@@ -125,13 +128,16 @@ export class AddRecipeTool extends ToolHandler<
 
       // Save standardized ingredients
       for (const ingredient of params.ingredients) {
-        await this.ingredientStore.create({
-          recipeId: recipe.id,
-          name: ingredient.name,
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
-          notes: ingredient.notes,
-        });
+        await this.ingredientStore.create(
+          {
+            recipeId: recipe.id,
+            name: ingredient.name,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+            notes: ingredient.notes,
+          },
+          context.requestUser,
+        );
       }
 
       return {

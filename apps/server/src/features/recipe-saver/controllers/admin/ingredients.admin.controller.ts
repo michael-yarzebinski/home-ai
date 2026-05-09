@@ -23,7 +23,9 @@ import {
   UpdatableIngredientSchema,
   type InsertableIngredient,
   type UpdatableIngredient,
-} from "@home-ai/shared/domain/ingredient/ingredient";
+} from "@home-ai/shared/domain/recipe/ingredient";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import type { AuthUser } from "../../../../core/auth/jwt.strategy";
 
 @Controller("v1/admin/ingredients")
 @Roles(Role.ADMIN)
@@ -34,13 +36,14 @@ export class IngredientsAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.ingredientStore.search(dto);
+    return this.ingredientStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.ingredientStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.ingredientStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`Ingredient ${id} not found`);
     return item;
   }
@@ -50,8 +53,9 @@ export class IngredientsAdminController {
   create(
     @Body(new ZodValidationPipe(InsertableIngredientSchema))
     dto: InsertableIngredient,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.ingredientStore.create(dto);
+    return this.ingredientStore.create(dto, authUser);
   }
 
   @Put(":id")
@@ -59,19 +63,20 @@ export class IngredientsAdminController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableIngredientSchema))
     dto: UpdatableIngredient,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.ingredientStore.update(id, dto);
+    return this.ingredientStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.ingredientStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.ingredientStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.ingredientStore.restore(id);
-    return this.ingredientStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.ingredientStore.restore(id, authUser);
+    return this.ingredientStore.getById(id, authUser, false);
   }
 }

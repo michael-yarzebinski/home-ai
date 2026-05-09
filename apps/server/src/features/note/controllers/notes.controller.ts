@@ -31,14 +31,14 @@ export class NotesController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.noteStore.search({ ...dto, includeInactive: false }, user);
+    return this.noteStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.noteStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.noteStore.getById(id, authUser, false);
     if (!item) throw new NotFoundException(`Note ${id} not found`);
     return item;
   }
@@ -47,14 +47,14 @@ export class NotesController {
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableNoteSchema)) dto: UpdatableNote,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.noteStore.update(id, dto, user);
+    return this.noteStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.noteStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.noteStore.softDelete(id, authUser);
   }
 }

@@ -98,10 +98,10 @@ export class GeminiLLMService extends LLMServiceBase {
       latencyMs,
       usage: response.usageMetadata
         ? {
-          promptTokens: response.usageMetadata.promptTokenCount,
-          completionTokens: response.usageMetadata.candidatesTokenCount,
-          totalTokens: response.usageMetadata.totalTokenCount,
-        }
+            promptTokens: response.usageMetadata.promptTokenCount,
+            completionTokens: response.usageMetadata.candidatesTokenCount,
+            totalTokens: response.usageMetadata.totalTokenCount,
+          }
         : undefined,
       metadata: {
         thoughtSignature,

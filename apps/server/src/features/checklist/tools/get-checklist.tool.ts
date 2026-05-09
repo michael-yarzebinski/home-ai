@@ -46,7 +46,7 @@ export class GetChecklistTool extends ToolHandler<
   ): Promise<GetChecklistResult> {
     const checklist = await this.checklistManagerService
       .checklistReader()
-      .getById(params.id, false, context.user);
+      .getById(params.id, context.requestUser);
 
     if (!checklist) {
       throw new NotFoundException(`Checklist with ID ${params.id} not found.`);
@@ -54,10 +54,10 @@ export class GetChecklistTool extends ToolHandler<
 
     const checklistItems = await this.checklistManagerService
       .checklistItemReader()
-      .getByChecklistId(params.id, false, context.user);
+      .getByChecklistId(params.id, context.requestUser);
     const recurringChecklistItems = await this.checklistManagerService
       .recurringChecklistItemReader()
-      .getByChecklistId(params.id, false, context.user);
+      .getByChecklistId(params.id, context.requestUser);
 
     return {
       success: true,

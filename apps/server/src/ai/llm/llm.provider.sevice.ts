@@ -17,12 +17,12 @@ export enum ProviderClientType {
 }
 
 export const MODEL_MAP = {
-  [LLMModelTypes.SOON]: {
+  [LLMModelTypes.IMMEDIATE]: {
     provider: "gemini",
     envKey: "gemini",
     model: "gemini-2.5-flash",
   },
-  [LLMModelTypes.IMMEDIATE]: {
+  [LLMModelTypes.SOON]: {
     provider: "open-ai",
     envKey: "nvidia",
     model: "z-ai/glm4.7",

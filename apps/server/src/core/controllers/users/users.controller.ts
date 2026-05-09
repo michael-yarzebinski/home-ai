@@ -23,16 +23,16 @@ import type { AuthUser } from "../../auth/jwt.strategy";
 export class UsersController {
   constructor(private readonly userStore: UserStore) {}
 
-  private assertSelf(id: string, user: AuthUser) {
-    if (id !== user.id) {
+  private assertSelf(id: string, authUser: AuthUser) {
+    if (id !== authUser.id) {
       throw new ForbiddenException("Users can only access their own account");
     }
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    this.assertSelf(id, user);
-    const item = await this.userStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    this.assertSelf(id, authUser);
+    const item = await this.userStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`User ${id} not found`);
     return item;
   }
@@ -41,20 +41,20 @@ export class UsersController {
   async update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableUserApiSchema)) dto: UpdatableUserApi,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    this.assertSelf(id, user);
-    const existing = await this.userStore.getById(id, false, user);
+    this.assertSelf(id, authUser);
+    const existing = await this.userStore.getById(id, authUser);
     if (!existing) throw new NotFoundException(`User ${id} not found`);
 
     // Self-service updates must never allow role changes.
-    return this.userStore.update(id, { ...dto, role: existing.role }, user);
+    return this.userStore.update(id, { ...dto, role: existing.role }, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    this.assertSelf(id, user);
-    return this.userStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    this.assertSelf(id, authUser);
+    return this.userStore.softDelete(id, authUser);
   }
 }

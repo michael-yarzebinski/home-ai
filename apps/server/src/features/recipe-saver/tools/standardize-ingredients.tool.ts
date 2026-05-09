@@ -52,7 +52,10 @@ export class StandardizeIngredientsTool extends ToolHandler<
     params: z.infer<typeof StandardizeIngredientsSchema>,
     context: ToolContext,
   ): Promise<StructuredIngredient[]> {
-    const existing = await this.ingredientStore.getAll();
+    const existing = await this.ingredientStore.getAll(
+      context.requestUser,
+      false,
+    );
     const knownNames = existing
       .map((i) => i.name)
       .slice(0, 50)

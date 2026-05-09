@@ -3,7 +3,6 @@ import type { Knex } from "knex";
 
 import {
   AbstractEntityStore,
-  type RequestUser,
 } from "../abstract/abstract-entity.store";
 import type {
   NotificationQueue,
@@ -12,6 +11,7 @@ import type {
 } from "@home-ai/shared/domain/notification-queue/notification-queue";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface NotificationQueueRecord {
   id: string;
@@ -38,19 +38,17 @@ export class NotificationQueueStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query; // Admin sees all.
     return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.where("user_id", user.id);
   }
 
@@ -101,5 +99,36 @@ export class NotificationQueueStore extends AbstractEntityStore<
     return records.map((record) =>
       this.recordToDomain(record as NotificationQueueRecord),
     );
+  }
+
+  override async create(
+    dto: InsertableNotificationQueue,
+    user?: AuthUser,
+  ): Promise<NotificationQueue> {
+    const record = this.domainToRecord(dto as any);
+    const [inserted] = (await this.table
+      .insert(record as any)
+      .returning("*")) as NotificationQueueRecord[];
+    const domain = this.recordToDomain(inserted);
+
+    await this.auditStore.create({
+      entityType: this.entityType,
+      entityId: domain.id,
+      action: "create",
+      userId: user?.id,
+      changes: { old: null, new: inserted },
+    });
+
+    return domain;
+  }
+
+  async markAsSent(id: string): Promise<void> {
+    await this.table.where("id", id).update({ active: false });
+    await this.auditStore.create({
+      entityType: this.entityType,
+      entityId: id,
+      action: "mark_as_sent",
+      changes: { old: null, new: { active: false } },
+    });
   }
 }

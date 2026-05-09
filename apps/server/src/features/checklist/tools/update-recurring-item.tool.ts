@@ -116,19 +116,21 @@ export class UpdateRecurringItemTool extends ToolHandler<
     const { id, ...updates } = params;
     const existingRecurringItem = await this.recurringStore.getById(
       id,
-      false,
-      context.user,
+      context.requestUser,
     );
     const checklist = await this.checklistStore.getById(
       existingRecurringItem?.checklistId ?? "",
-      false,
-      context.user,
+      context.requestUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
     }
 
-    const item = await this.recurringStore.update(id, updates, context.user);
+    const item = await this.recurringStore.update(
+      id,
+      updates,
+      context.requestUser,
+    );
     return {
       success: true,
       item,

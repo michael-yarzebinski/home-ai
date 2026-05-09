@@ -41,9 +41,12 @@ export class GetFactTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof GetFactToolSchema>,
-    _context: ToolContext,
+    context: ToolContext,
   ): Promise<GetFactResult> {
-    const fact = await this.factsStore.getByKey(params.key);
+    const fact = await this.factsStore.getByKey(
+      params.key,
+      context.requestUser,
+    );
 
     if (!fact) {
       return {

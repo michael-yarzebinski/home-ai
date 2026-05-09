@@ -1,9 +1,7 @@
 import type { Knex } from "knex";
 
-import {
-  AbstractEntityStore,
-  type RequestUser,
-} from "src/core/stores/abstract/abstract-entity.store";
+import { AbstractEntityStore } from "src/core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "src/core/auth/jwt.strategy";
 import type {
   Checklist,
   InsertableChecklist,
@@ -38,21 +36,19 @@ export class ChecklistStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
       user.role,
     ]);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
       user.role,
     ]);
@@ -92,5 +88,19 @@ export class ChecklistStore extends AbstractEntityStore<
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  /** Active checklist the user may mutate per {@link validateUserForWrite} (write_roles). */
+  async getByIdForWrite(
+    id: string,
+    user: AuthUser,
+    includeInactive = false,
+  ): Promise<Checklist | null> {
+    let query = this.activeOrInactive(includeInactive);
+    query = this.validateUserForWrite(query, user);
+    const record = (await query
+      .where({ id })
+      .first()) as ChecklistRecord | null;
+    return record ? this.recordToDomain(record) : null;
   }
 }

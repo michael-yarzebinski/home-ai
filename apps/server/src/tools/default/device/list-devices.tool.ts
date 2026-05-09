@@ -44,7 +44,7 @@ export class ListDevicesTool extends ToolHandler<
     _params: z.infer<typeof ListDevicesToolSchema>,
     context: ToolContext,
   ): Promise<ListDevicesResult> {
-    const devices = await this.deviceStore.getAll(false, context.user);
+    const devices = await this.deviceStore.getAll(context.requestUser, false);
 
     const availableDevices = addPermissionFlags(devices, context.userRole);
 

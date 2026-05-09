@@ -8,9 +8,10 @@ import { DiscoverNotesTool } from "./tools/discover-note.tool";
 import { GetNoteTool } from "./tools/get-note.tool";
 import { ListNotesTool } from "./tools/list-notes.tool";
 import { RegisterNoteTool } from "./tools/register-note.tool";
+import { IntegrationsModule } from "../../integrations/integrations.module";
 
 @Module({
-  imports: [CoreModule],
+  imports: [CoreModule, IntegrationsModule],
   controllers: [NotesAdminController, NotesController],
   providers: [
     NoteStore,

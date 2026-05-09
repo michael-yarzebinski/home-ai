@@ -1,5 +1,7 @@
 import { User } from "@home-ai/shared/domain/user/user";
 import { Injectable } from "@nestjs/common";
+import { InjectRedis } from "@nestjs-modules/ioredis";
+import Redis from "ioredis";
 import { ClsService } from "nestjs-cls";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { McpService } from "../mcp/mcp.service";
@@ -9,10 +11,18 @@ import { AppConfigService } from "../../core/services/app-config.service";
 import {
   ChatMessage,
   LLMRole,
-} from "@home-ai/shared/domain/conversation/converstation";
+} from "@home-ai/shared/domain/conversation/conversation";
 import { ConversationStore } from "../../core/stores/conversation/conversation.store";
-import { NotificationService } from "../../core/services/notification.service";
 import { LLMModelTypes, LLMProviderService } from "../llm/llm.provider.sevice";
+import {
+  TOOL_EXECUTION_EVENT_CHANNEL,
+  type ToolExecutionEvent,
+} from "../../events/contracts/tool-execution.event";
+
+export type OrchestratorHandleEventOptions = {
+  /** When true, do not emit tool-execution pub/sub messages (e.g. orchestrator requery). */
+  suppressToolEvents: boolean;
+};
 
 @Injectable()
 export class OrchestratorService {
@@ -24,7 +34,7 @@ export class OrchestratorService {
     private readonly toolRegistry: ToolRegistry,
     private readonly appConfigService: AppConfigService,
     private readonly conversationStore: ConversationStore,
-    private readonly notificationService: NotificationService,
+    @InjectRedis() private readonly redis: Redis,
   ) { }
 
   async handleEvent(
@@ -32,11 +42,14 @@ export class OrchestratorService {
     input: string,
     externalId: string,
     modelType: LLMModelTypes = LLMModelTypes.SOON,
+    config: OrchestratorHandleEventOptions = {
+      suppressToolEvents: false,
+    },
   ): Promise<any> {
     return this.cls.run(async () => {
       const session = await this.conversationStore.getOrCreateSession(
         externalId,
-        user.id,
+        user,
       );
       const chatSessionId = session.id;
 
@@ -47,7 +60,7 @@ export class OrchestratorService {
         content: input,
         timestamp: new Date(),
       };
-      await this.conversationStore.addMessage(chatSessionId, userMessage);
+      await this.conversationStore.addMessage(chatSessionId, userMessage, user);
 
       await this.logStore.create({
         userId: user.id,
@@ -69,7 +82,7 @@ export class OrchestratorService {
 
       while (loopCount < MAX_STEPS) {
         const authorizedTools =
-          await this.toolRegistry.getAvailableToolsForUser(user.role);
+          await this.toolRegistry.getAvailableToolsForUser(user);
         const llmTools = authorizedTools.map((t) => ({
           name: t.name,
           description: t.handler.description,
@@ -108,11 +121,15 @@ export class OrchestratorService {
             typeof response.content === "string"
               ? response.content
               : JSON.stringify(response.content);
-          await this.conversationStore.addMessage(chatSessionId, {
-            role: LLMRole.ASSISTANT,
-            content: finalContent,
-            timestamp: new Date(),
-          });
+          await this.conversationStore.addMessage(
+            chatSessionId,
+            {
+              role: LLMRole.ASSISTANT,
+              content: finalContent,
+              timestamp: new Date(),
+            },
+            user,
+          );
 
           await this.logStore.create({
             userId: user.id,
@@ -127,7 +144,7 @@ export class OrchestratorService {
         for (const toolCall of response.toolCalls) {
           const tool = await this.toolRegistry.getRegisteredTool(
             toolCall.name,
-            user.role,
+            user,
           );
 
           if (!tool) {
@@ -168,10 +185,35 @@ export class OrchestratorService {
           }
 
           if (!tool.canWrite && tool.canRequest) {
+            const validatedArgs = tool.handler.parameters.parse(toolCall.args);
             const toolResult = await this.escalateToPendingAction(
               user,
               toolCall,
             );
+
+            if (!config.suppressToolEvents) {
+              try {
+                const readableId = JSON.parse(toolResult).readableId;
+                await this.publishToolExecutionEvent({
+                  eventType: "tool-executed",
+                  userId: user.id,
+                  toolName: toolCall.name,
+                  argsSummary: validatedArgs,
+                  resultSummary: toolResult,
+                  approval: {
+                    pendingActionReadableId: readableId,
+                    action: "requested",
+                  },
+                });
+              } catch (err: any) {
+                await this.logStore.create({
+                  userId: user.id,
+                  severity: "warn",
+                  message: `Failed to emit approval-requested tool event: ${err?.message ?? err}`,
+                  metadata: { toolCall, userRole: user.role },
+                });
+              }
+            }
 
             messages.push({
               role: "tool",
@@ -199,16 +241,15 @@ export class OrchestratorService {
             const contentString =
               toolResult?.content?.[0]?.text || JSON.stringify(toolResult);
 
-            await this.notificationService.notifyUsersByTool(
-              `${user.name} executed ${toolCall.name}`,
-              toolCall.name,
-              user.id,
-              {
-                isNotifying: true,
-                isRequesting: false,
-              },
-              "low",
-            );
+            if (!config.suppressToolEvents) {
+              await this.publishToolExecutionEvent({
+                eventType: "tool-executed",
+                userId: user.id,
+                toolName: toolCall.name,
+                argsSummary: validatedArgs,
+                resultSummary: toolResult,
+              });
+            }
 
             messages.push({
               role: "tool",
@@ -240,6 +281,9 @@ export class OrchestratorService {
     });
   }
 
+  /**
+   * Queues a deferred tool via propose-action MCP. Returns assistant-facing text and raw MCP payload for auditing / pub-sub.
+   */
   private async escalateToPendingAction(
     user: User,
     toolCall: any,
@@ -267,15 +311,34 @@ export class OrchestratorService {
     }
   }
 
+  /**
+   * Publishes a tool-execution event to Redis pub/sub. Failures are swallowed so orchestration continues.
+   */
+  private async publishToolExecutionEvent(
+    event: ToolExecutionEvent,
+  ): Promise<void> {
+    try {
+      await this.redis.publish(
+        TOOL_EXECUTION_EVENT_CHANNEL,
+        JSON.stringify(event),
+      );
+    } catch (err: any) {
+      await this.logStore.create({
+        userId: event.userId,
+        severity: "warn",
+        message: `Tool execution pub/sub publish failed: ${err?.message ?? err}`,
+        metadata: { event },
+      });
+    }
+  }
+
   private initializeClsContext(
     user: User,
     input: string,
     chatSessionId: string,
   ) {
-    this.cls.set("userId", user.id);
-    this.cls.set("userRole", user.role);
     this.cls.set("userName", user.name);
-    this.cls.set("user", { id: user.id, role: user.role, name: user.name });
+    this.cls.set("authUser", { id: user.id, role: user.role });
     this.cls.set("originalPrompt", input);
     this.cls.set("chatSessionId", chatSessionId);
     this.cls.set("currentISO", new Date().toISOString());
@@ -320,6 +383,9 @@ If a user asks to "add" or "save" information (like a Fact or Device) that alrea
 - **Action:** Inform the user that a similar entry exists and suggest UPDATING the existing record instead.
 - **Example:** "A fact about 'Dog Diet' already exists. Would you like me to update it with this new information?"
 
+## Return Rules
+- Unless the user asks for a specific result, return all of the relevant results.
+
 ## Approval Queue
 If an action is queued for approval, inform the user and provide the Request ID immediately.`;
   }
@@ -337,11 +403,15 @@ If an action is queued for approval, inform the user and provide the Request ID 
       message: "Orchestration loop timeout - MAX_STEPS reached",
       metadata: { chatSessionId, loopCount },
     });
-    await this.conversationStore.addMessage(chatSessionId, {
-      role: LLMRole.ASSISTANT,
-      content: timeoutError,
-      timestamp: new Date(),
-    });
+    await this.conversationStore.addMessage(
+      chatSessionId,
+      {
+        role: LLMRole.ASSISTANT,
+        content: timeoutError,
+        timestamp: new Date(),
+      },
+      user,
+    );
     return {
       sessionId: chatSessionId,
       response: timeoutError,

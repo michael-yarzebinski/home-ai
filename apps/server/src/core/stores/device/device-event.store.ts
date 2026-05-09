@@ -1,7 +1,6 @@
 import type { Knex } from "knex";
 import {
   AbstractEntityStore,
-  type RequestUser,
 } from "../abstract/abstract-entity.store";
 import type {
   DeviceEvent,
@@ -9,6 +8,7 @@ import type {
 } from "@home-ai/shared/domain/device/device-event";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface DeviceEventRecord {
   id: string;
@@ -35,16 +35,16 @@ export class DeviceEventStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
@@ -85,5 +85,22 @@ export class DeviceEventStore extends AbstractEntityStore<
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  override async create(data: InsertableDeviceEvent): Promise<DeviceEvent> {
+    const record = this.domainToRecord(data as any);
+    const [inserted] = (await this.table
+      .insert(record as any)
+      .returning("*")) as DeviceEventRecord[];
+    const domain = this.recordToDomain(inserted);
+
+    await this.auditStore.create({
+      entityType: this.entityType,
+      entityId: domain.id,
+      action: "create",
+      changes: { old: null, new: inserted },
+    });
+
+    return domain;
   }
 }

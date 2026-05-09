@@ -31,13 +31,13 @@ export class GetUserAssignedChecklistItemsTool extends ToolHandler<
   }
 
   async execute(
-    params: z.infer<typeof this.parameters>,
+    _params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<GetUserAssignedChecklistItemsResult> {
     const result = await this.checklistItemStore.getByAssigneeId(
-      context.user.id,
+      context.requestUser.id,
+      context.requestUser,
       false,
-      context.user,
     );
 
     return {

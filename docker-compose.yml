@@ -94,6 +94,7 @@ services:
       - RELAY_URL=http://host.docker.internal:3100
       - BLUEBUBBLES_URL=http://host.docker.internal:1234
       - HOME_ASSISTANT_URL=http://host.docker.internal:8123
+      - REDIS_HOST=host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

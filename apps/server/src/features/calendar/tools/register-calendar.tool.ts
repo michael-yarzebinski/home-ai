@@ -63,14 +63,17 @@ export class RegisterCalendarTool extends ToolHandler<
       ? params.writeRoles
       : [context.userRole];
 
-    const calendar = await this.calendarStore.create({
-      name: params.name,
-      friendlyName: params.friendlyName || params.name,
-      readRoles,
-      writeRoles,
-      color: params.color,
-      aliases: [],
-    });
+    const calendar = await this.calendarStore.create(
+      {
+        name: params.name,
+        friendlyName: params.friendlyName || params.name,
+        readRoles,
+        writeRoles,
+        color: params.color,
+        aliases: [],
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,

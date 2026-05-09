@@ -5,19 +5,53 @@ import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "../../decorators/tool.decorator";
 import { NotificationService } from "../../../core/services/notification.service";
+import { ToolParameterUtils } from "../../utils/tool-parameter-utils";
+
+/** Trims and removes only a matching pair of surrounding quotes (preserves apostrophes inside the body). */
+function preprocessNotificationMessage(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  let s = typeof value === "string" ? value.trim() : String(value).trim();
+  if (s.length >= 2) {
+    const a = s[0];
+    const b = s[s.length - 1];
+    if ((a === '"' && b === '"') || (a === "'" && b === "'")) {
+      s = s.slice(1, -1).trim();
+    }
+  }
+  return s;
+}
 
 const SendNotificationToolSchema = z.object({
-  userId: z.string().min(1).describe("User Id of the User to notify"),
+  userId: z
+    .preprocess(ToolParameterUtils.stripQuotes, z.string().min(1))
+    .describe("User Id of the User to notify"),
 
-  message: z.string().min(1).describe("The message content to send"),
+  message: z
+    .preprocess(preprocessNotificationMessage, z.string().min(1))
+    .describe("The message content to send"),
 
   importance: z
-    .enum(["low", "normal", "high"])
+    .preprocess(
+      (v) => {
+        if (ToolParameterUtils.isEmptyOptionalInput(v)) {
+          return "normal";
+        }
+        const s = String(ToolParameterUtils.stripQuotes(v)).toLowerCase();
+        if (s === "low" || s === "normal" || s === "high") {
+          return s;
+        }
+        return "normal";
+      },
+      z.enum(["low", "normal", "high"]),
+    )
     .default("normal")
     .describe("Optional importance level"),
 
   skipQuietHours: z
-    .boolean()
+    .preprocess((v) => {
+      const b = ToolParameterUtils.toBooleanValue(v);
+      return b === undefined ? false : b;
+    }, z.boolean())
     .default(false)
     .describe("If true, send immediately even if the user is in quiet hours"),
 });

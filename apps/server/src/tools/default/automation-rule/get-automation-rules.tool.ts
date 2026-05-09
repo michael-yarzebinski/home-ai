@@ -47,7 +47,7 @@ export class GetAutomationRulesTool extends ToolHandler<
   ) {
     // We pass the filters to the store.
     // The store will handle the complex JSONB querying logic.
-    const rules = await this.automationStore.getForTool(
+    const rules = await this.automationStore.getByTriggerType(
       params.triggerType,
       params.entityId,
     );

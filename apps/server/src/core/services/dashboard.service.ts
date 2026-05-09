@@ -4,7 +4,7 @@ import {
   type DashboardPeriod,
   type DashboardResult,
   type TimeBucket,
-} from "@home-ai/shared/domain/admin/dashboard/dashboard";
+} from "@home-ai/shared/admin/dashboard/dashboard";
 
 // Truncation unit drives how many data points appear in the chart.
 const PERIOD_CONFIG: Record<

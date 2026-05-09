@@ -5,7 +5,7 @@ import type {
   Ingredient,
   InsertableIngredient,
   UpdatableIngredient,
-} from "@home-ai/shared/domain/ingredient/ingredient";
+} from "@home-ai/shared/domain/recipe/ingredient";
 import { AuditStore } from "../../../core/stores/monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 
@@ -35,11 +35,11 @@ export class IngredientStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query; // Scoped to recipe via recipeId — no separate user filtering needed.
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query;
   }
 

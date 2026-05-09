@@ -152,4 +152,4 @@ import { BullModule } from "@nestjs/bullmq";
     DeviceEventStore,
   ],
 })
-export class CoreModule { }
+export class CoreModule {}

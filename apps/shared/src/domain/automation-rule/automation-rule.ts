@@ -4,6 +4,7 @@ export enum TriggerType {
     DEVICE = 'DEVICE',           // Custom internal Device wrapper (e.g., "Fridge")
     TIME = 'TIME',               // CRON-based scheduled tasks
     SYSTEM = 'SYSTEM',           // Internal app events (e.g., "Startup")
+    TOOL_EVENT = 'TOOL_EVENT',   // Tool execution events emitted by orchestrator
 }
 
 export const TriggerConfigDeviceSchema = z.object({
@@ -24,15 +25,22 @@ export const TriggerConfigSystemSchema = z.object({
   intent: z.string().optional(),
 });
 
+export const TriggerConfigToolEventSchema = z.object({
+  type: z.literal(TriggerType.TOOL_EVENT),
+  toolName: z.string().optional(),
+});
+
 export const TriggerConfigSchema = z.discriminatedUnion('type', [
   TriggerConfigDeviceSchema,
   TriggerConfigTimeSchema,
   TriggerConfigSystemSchema,
+  TriggerConfigToolEventSchema,
 ]);
 
 export type TriggerConfigDevice = z.infer<typeof TriggerConfigDeviceSchema>;
 export type TriggerConfigTime = z.infer<typeof TriggerConfigTimeSchema>;
 export type TriggerConfigSystem = z.infer<typeof TriggerConfigSystemSchema>;
+export type TriggerConfigToolEvent = z.infer<typeof TriggerConfigToolEventSchema>;
 export type TriggerConfig = z.infer<typeof TriggerConfigSchema>;
 
 export enum ActionType {

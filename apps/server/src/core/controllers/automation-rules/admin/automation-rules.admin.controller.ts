@@ -1,14 +1,12 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
   Param,
   Post,
-  Put,
 } from "@nestjs/common";
 import { AutomationRuleStore } from "../../../stores/automation-rule/automation-rule.store";
 import { Roles } from "../../../../common/decorators/roles.decorator";
@@ -20,10 +18,10 @@ import {
 } from "@home-ai/shared/search/search";
 import {
   InsertableAutomationRuleSchema,
-  UpdatableAutomationRuleSchema,
   type InsertableAutomationRule,
-  type UpdatableAutomationRule,
 } from "@home-ai/shared/domain/automation-rule/automation-rule";
+import { AuthUser } from "../../../auth/jwt.strategy";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
 
 @Controller("v1/admin/automation-rules")
 @Roles(Role.ADMIN)
@@ -34,13 +32,14 @@ export class AutomationRulesAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.search(dto);
+    return this.automationRuleStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.automationRuleStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.automationRuleStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`AutomationRule ${id} not found`);
     return item;
   }
@@ -50,28 +49,14 @@ export class AutomationRulesAdminController {
   create(
     @Body(new ZodValidationPipe(InsertableAutomationRuleSchema))
     dto: InsertableAutomationRule,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.create(dto);
-  }
-
-  @Put(":id")
-  update(
-    @Param("id") id: string,
-    @Body(new ZodValidationPipe(UpdatableAutomationRuleSchema))
-    dto: UpdatableAutomationRule,
-  ) {
-    return this.automationRuleStore.update(id, dto);
-  }
-
-  @Delete(":id")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.automationRuleStore.softDelete(id);
+    return this.automationRuleStore.create(dto, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.automationRuleStore.restore(id);
-    return this.automationRuleStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.automationRuleStore.restore(id, authUser);
+    return this.automationRuleStore.getById(id, authUser);
   }
 }

@@ -8,13 +8,13 @@ export class ToolsController {
   constructor(private readonly toolStore: ToolStore) {}
 
   @Get()
-  getAll(@CurrentUser() user: AuthUser) {
-    return this.toolStore.getAll(false, user);
+  getAll(@CurrentUser() authUser: AuthUser) {
+    return this.toolStore.getAll(authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.toolStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.toolStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`Tool ${id} not found`);
     return item;
   }

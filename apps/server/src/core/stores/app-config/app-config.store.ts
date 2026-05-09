@@ -5,9 +5,12 @@ import type {
   InsertableAppConfig,
   UpdatableAppConfig,
 } from "@home-ai/shared/domain/app-config/app-config";
-import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import {
+  AbstractEntityStore,
+} from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface AppConfigRecord {
   id: string;
@@ -33,11 +36,17 @@ export class AppConfigStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    _user: AuthUser,
+  ): Knex.QueryBuilder {
     return query; // Admin-only — role enforced at route level.
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    _user: AuthUser,
+  ): Knex.QueryBuilder {
     return query;
   }
 

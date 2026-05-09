@@ -8,13 +8,13 @@ export class AppConfigController {
   constructor(private readonly appConfigStore: AppConfigStore) {}
 
   @Get()
-  getAll(@CurrentUser() user: AuthUser) {
-    return this.appConfigStore.getAll(false, user);
+  getAll(@CurrentUser() authUser: AuthUser) {
+    return this.appConfigStore.getAll(authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.appConfigStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.appConfigStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`AppConfig ${id} not found`);
     return item;
   }

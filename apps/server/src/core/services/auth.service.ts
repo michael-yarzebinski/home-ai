@@ -19,14 +19,8 @@ export class AuthService {
   ) {}
 
   async login(name: string, code: string): Promise<LoginResult> {
-    const users = await this.userStore.search({
-      query: name,
-      page: 1,
-      pageSize: 5,
-    });
-    const user = users.items.find(
-      (u) => u.name.toLowerCase() === name.toLowerCase(),
-    );
+    const users = await this.userStore.getAll();
+    const user = users.find((u) => u.name.toLowerCase() === name.toLowerCase());
 
     if (!user) throw new UnauthorizedException("Invalid name or code");
 

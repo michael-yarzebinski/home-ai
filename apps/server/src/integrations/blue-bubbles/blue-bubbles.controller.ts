@@ -18,7 +18,7 @@ export class BlueBubblesController {
     private readonly blueBubblesService: BlueBubblesService,
     private readonly orchestratorService: OrchestratorService,
     private readonly logStore: LogStore,
-  ) { }
+  ) {}
 
   @Post("webhook")
   @Public()

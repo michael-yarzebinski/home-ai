@@ -20,7 +20,7 @@ import {
 @Controller("v1/admin/ai-audit")
 @Roles(Role.ADMIN)
 export class AIAuditAdminController {
-  constructor(private readonly aiAuditStore: AIAuditStore) { }
+  constructor(private readonly aiAuditStore: AIAuditStore) {}
 
   @Post("search")
   @HttpCode(HttpStatus.OK)

@@ -9,9 +9,10 @@ import { GetCalendarEventsTool } from "./tools/get-calendar-events.tool";
 import { ListCalendarsTool } from "./tools/list-calendars.tool";
 import { RegisterCalendarTool } from "./tools/register-calendar.tool";
 import { UpdateCalendarEventTool } from "./tools/update-calendar-event.tool";
+import { IntegrationsModule } from "../../integrations/integrations.module";
 
 @Module({
-  imports: [CoreModule],
+  imports: [CoreModule, IntegrationsModule],
   controllers: [CalendarsAdminController, CalendarsController],
   providers: [
     CalendarStore,

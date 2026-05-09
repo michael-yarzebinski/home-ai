@@ -83,10 +83,9 @@ export class AddChecklistItemTool extends ToolHandler<
     params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<AddChecklistItemResult> {
-    const checklist = await this.checklistStore.getById(
+    const checklist = await this.checklistStore.getByIdForWrite(
       params.checklistId,
-      false,
-      context.user,
+      context.requestUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
@@ -98,12 +97,12 @@ export class AddChecklistItemTool extends ToolHandler<
         title: params.title,
         description: params.description,
         priority: params.priority,
-        assigneeId: params.assigneeId ?? context.user.id,
+        assigneeId: params.assigneeId,
         tags: params.tags,
         status: ChecklistItemStatus.PENDING,
         metadata: {},
       },
-      context.user,
+      context.requestUser,
     );
 
     return {

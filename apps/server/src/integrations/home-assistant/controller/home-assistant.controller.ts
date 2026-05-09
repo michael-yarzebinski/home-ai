@@ -26,9 +26,9 @@ export class HomeAssistantController {
   @Get("device-status")
   async getDeviceStatus(
     @Param("id") deviceId: string,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    const device = await this.deviceStore.getById(deviceId, false, user);
+    const device = await this.deviceStore.getById(deviceId, authUser, false);
     if (!device) {
       throw new NotFoundException("Device not found");
     }
@@ -38,12 +38,11 @@ export class HomeAssistantController {
   @Post("call-service")
   async callService(
     @Body(new ZodValidationPipe(CallServiceSchema)) payload: CallService,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
     const device = await this.deviceStore.getById(
-      payload.deviceId,
+      payload.deviceId, authUser,
       false,
-      user,
     );
     if (!device) {
       throw new NotFoundException("Device not found");

@@ -31,14 +31,14 @@ export class DevicesController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.deviceStore.search({ ...dto, includeInactive: false }, user);
+    return this.deviceStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const device = await this.deviceStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const device = await this.deviceStore.getById(id, authUser);
     if (!device) throw new NotFoundException(`Device ${id} not found`);
     return device;
   }
@@ -47,14 +47,14 @@ export class DevicesController {
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableDeviceSchema)) dto: UpdatableDevice,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.deviceStore.update(id, dto, user);
+    return this.deviceStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.deviceStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.deviceStore.softDelete(id, authUser);
   }
 }

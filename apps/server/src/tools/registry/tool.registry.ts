@@ -7,6 +7,7 @@ import type { RegisteredTool } from "../types/registered-tool";
 import { ToolStore } from "../../core/stores/tool/tool.store";
 import { Tool } from "@home-ai/shared/domain/tool/tool";
 import { Role } from "@home-ai/shared/domain/role/role";
+import type { AuthUser } from "../../core/auth/jwt.strategy";
 
 @Injectable()
 export class ToolRegistry implements OnModuleInit {
@@ -33,8 +34,10 @@ export class ToolRegistry implements OnModuleInit {
     }
   }
 
-  async getAvailableTools(): Promise<RegisteredTool[]> {
-    const tools = await this.toolStore.getAll();
+  async getAvailableTools(
+    requestUser?: AuthUser,
+  ): Promise<RegisteredTool[]> {
+    const tools = await this.toolStore.getAll(requestUser);
     const result: RegisteredTool[] = [];
 
     for (const tool of tools) {
@@ -56,8 +59,10 @@ export class ToolRegistry implements OnModuleInit {
    * Returns all tools the given user role is allowed to request.
    * Queries the database every time so changes are reflected instantly.
    */
-  async getAvailableToolsForUser(userRole: Role): Promise<RegisteredTool[]> {
-    const dbTools = await this.toolStore.getAll();
+  async getAvailableToolsForUser(
+    requestUser: AuthUser,
+  ): Promise<RegisteredTool[]> {
+    const dbTools = await this.toolStore.getAll(requestUser, false);
     const result: RegisteredTool[] = [];
 
     for (const dbTool of dbTools) {
@@ -66,8 +71,8 @@ export class ToolRegistry implements OnModuleInit {
       const handler = this.handlers.get(dbTool.name);
       if (!handler) continue;
 
-      const canRequest = dbTool.requestRoles.includes(userRole);
-      const canWrite = dbTool.writeRoles.includes(userRole);
+      const canRequest = dbTool.requestRoles.includes(requestUser.role);
+      const canWrite = dbTool.writeRoles.includes(requestUser.role);
 
       if (canRequest || canWrite) {
         result.push({
@@ -87,15 +92,19 @@ export class ToolRegistry implements OnModuleInit {
    */
   async getRegisteredTool(
     name: string,
-    userRole: Role,
+    requestUser: AuthUser,
   ): Promise<RegisteredTool | undefined> {
-    const tool = await this.toolStore.getByName(name);
+    const tool = await this.toolStore.getByName(name, requestUser);
     if (!tool) return undefined;
 
     const handler = this.handlers.get(name);
     if (!handler) return undefined;
 
-    const registeredTool = this.buildRegisteredTool(tool, handler, userRole);
+    const registeredTool = this.buildRegisteredTool(
+      tool,
+      handler,
+      requestUser.role,
+    );
 
     if (!registeredTool.canRequest && !registeredTool.canWrite)
       return undefined;
@@ -105,15 +114,19 @@ export class ToolRegistry implements OnModuleInit {
 
   async getRegisteredToolById(
     id: string,
-    userRole: Role,
+    requestUser: AuthUser,
   ): Promise<RegisteredTool | undefined> {
-    const tool = await this.toolStore.getById(id);
+    const tool = await this.toolStore.getById(id, requestUser, false);
     if (!tool) return undefined;
 
     const handler = this.handlers.get(tool.name);
     if (!handler) return undefined;
 
-    const registeredTool = this.buildRegisteredTool(tool, handler, userRole);
+    const registeredTool = this.buildRegisteredTool(
+      tool,
+      handler,
+      requestUser.role,
+    );
 
     if (!registeredTool.canRequest && !registeredTool.canWrite)
       return undefined;

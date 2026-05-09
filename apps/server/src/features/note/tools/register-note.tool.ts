@@ -56,18 +56,21 @@ export class RegisterNoteTool extends ToolHandler<
   ): Promise<RegisterNoteResult> {
     const readRoles = params.readRoles?.length
       ? (params.readRoles as Role[])
-      : [context.userRole];
+      : [context.requestUser.role];
     const writeRoles = params.writeRoles?.length
       ? (params.writeRoles as Role[])
-      : [context.userRole];
+      : [context.requestUser.role];
 
-    const note = await this.noteStore.create({
-      name: params.name,
-      friendlyName: params.friendlyName || params.name,
-      readRoles,
-      writeRoles,
-      aliases: [],
-    });
+    const note = await this.noteStore.create(
+      {
+        name: params.name,
+        friendlyName: params.friendlyName || params.name,
+        readRoles,
+        writeRoles,
+        aliases: [],
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,

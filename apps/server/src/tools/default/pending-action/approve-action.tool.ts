@@ -6,12 +6,9 @@ import { NotificationService } from "../../../core/services/notification.service
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "../../decorators/tool.decorator";
-import {
-  LLMModelTypes,
-  LLMProviderService,
-} from "../../../ai/llm/llm.provider.sevice";
+import { LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
 
-const ApproveActionToolSchema = z.object({
+export const ApproveActionToolSchema = z.object({
   readableId: z
     .number()
     .int()
@@ -31,7 +28,8 @@ export class ApproveActionTool extends ToolHandler<
   typeof ApproveActionToolSchema,
   ApproveActionResult
 > {
-  readonly name = "approve-action";
+  static readonly toolName = "approve-action" as const;
+  readonly name = ApproveActionTool.toolName;
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
@@ -56,6 +54,7 @@ export class ApproveActionTool extends ToolHandler<
     // 1. Fetch the action
     const pendingAction = await this.pendingActionStore.getByReadableId(
       params.readableId,
+      context.requestUser,
     );
 
     if (!pendingAction) {
@@ -75,7 +74,7 @@ export class ApproveActionTool extends ToolHandler<
     // 2. Permission Check
     const originalTool = await this.toolRegistry.getRegisteredToolById(
       pendingAction.toolId,
-      context.userRole,
+      context.requestUser,
     );
 
     if (!originalTool) {
@@ -92,68 +91,23 @@ export class ApproveActionTool extends ToolHandler<
       };
     }
 
-    try {
-      // 3. Deterministic Execution (Associate with the Approver's context)
-      const result = await originalTool.handler.execute(
-        pendingAction.proposedArgs as any,
-        context,
-      );
+    // 3. Deterministic Execution (Associate with the Approver's context)
+    const result = await originalTool.handler.execute(
+      pendingAction.proposedArgs as any,
+      context,
+    );
 
-      // 4. Update Status in DB
-      await this.pendingActionStore.approve(pendingAction.id, context.userId);
+    // 4. Update Status in DB
+    await this.pendingActionStore.approve(
+      pendingAction.id,
+      context.userId,
+      context.requestUser,
+    );
 
-      // 5. Generate a personalized notification for the original requester
-      const generationPrompt = `
-        You are a Home AI. An action requested by a family member was just approved and executed.
-        
-        CONTEXT:
-        - Approver: ${context.userName || "A parent"}
-        - Original Tool: ${originalTool.name}
-        - Action Result: ${JSON.stringify(result)}
-        - Request ID: #${pendingAction.readableId}
-
-        TASK:
-        Generate a short, friendly message to the ORIGINAL REQUESTER letting them know it's done. 
-        Example: "Good news! [Approver] approved your request to [Action]. It's all set."
-
-        RETURN PLAIN TEXT ONLY.
-      `;
-
-      const aiResponse = await this.llmProviderService.query(
-        {
-          messages: [{ role: "system", content: generationPrompt }],
-          context: {
-            userId: context.userId,
-            chatSessionId: context.chatSessionId,
-            originalPrompt: `Generating approval notification for #${pendingAction.readableId}`,
-          },
-        },
-        LLMModelTypes.IMMEDIATE,
-      );
-
-      const notifyMsg =
-        typeof aiResponse.content === "string"
-          ? aiResponse.content
-          : "Your request was approved and executed!";
-
-      // 6. Notify the Requester
-      await this.notificationService.notifyUser(
-        notifyMsg,
-        pendingAction.requesterId, // Send to the person who asked
-        context.userId, // From the person who approved
-        "medium",
-      );
-
-      return {
-        success: true,
-        message: `✅ Action #${params.readableId} approved and executed.`,
-        originalToolResult: result,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: `Execution failed for #${params.readableId}: ${err.message}`,
-      };
-    }
+    return {
+      success: true,
+      message: `✅ Action #${params.readableId} approved and executed.`,
+      originalToolResult: result,
+    };
   }
 }

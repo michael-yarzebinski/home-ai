@@ -1,9 +1,7 @@
 import type { Knex } from "knex";
 
-import {
-  AbstractEntityStore,
-  type RequestUser,
-} from "../../../core/stores/abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../../../core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "../../../core/auth/jwt.strategy";
 import type {
   Note,
   InsertableNote,
@@ -36,20 +34,24 @@ export class NoteStore extends AbstractEntityStore<
     super(knex, auditStore, { tableName: "notes", entityType: "notes" });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user?: AuthUser,
   ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.whereRaw("? = ANY(read_roles)", [user.role]);
+    return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user?: AuthUser,
   ): Knex.QueryBuilder {
     if (!user) return query;
-    return query.whereRaw("? = ANY(write_roles)", [user.role]);
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
   protected applyTextSearch(

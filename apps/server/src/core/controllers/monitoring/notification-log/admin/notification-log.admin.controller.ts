@@ -20,7 +20,7 @@ import {
 @Controller("v1/admin/notification-log")
 @Roles(Role.ADMIN)
 export class NotificationLogAdminController {
-  constructor(private readonly notificationLogStore: NotificationLogStore) { }
+  constructor(private readonly notificationLogStore: NotificationLogStore) {}
 
   @Post("search")
   @HttpCode(HttpStatus.OK)

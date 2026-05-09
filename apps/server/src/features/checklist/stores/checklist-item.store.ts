@@ -1,9 +1,7 @@
 import type { Knex } from "knex";
 
-import {
-  AbstractEntityStore,
-  type RequestUser,
-} from "src/core/stores/abstract/abstract-entity.store";
+import { AbstractEntityStore } from "src/core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "src/core/auth/jwt.strategy";
 import {
   type ChecklistItem,
   type InsertableChecklistItem,
@@ -48,16 +46,16 @@ export class ChecklistItemStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
@@ -121,11 +119,11 @@ export class ChecklistItemStore extends AbstractEntityStore<
 
   async getByChecklistId(
     checklistId: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<ChecklistItem[]> {
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.where({ checklist_id: checklistId });
     const records = (await query.orderBy(
       this.defaultOrder.column,
@@ -134,13 +132,44 @@ export class ChecklistItemStore extends AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
+  async getLatestByRecurringItemIds(
+    recurringItemIds: string[],
+    includeInactive = false,
+  ): Promise<Map<string, ChecklistItem>> {
+    if (!recurringItemIds.length) return new Map();
+
+    const query = this.activeOrInactive(includeInactive);
+    const records = (await query
+      .whereIn("recurring_item_id", recurringItemIds)
+      .whereNotNull("recurring_item_id")
+      .orderBy("recurring_item_id", "asc")
+      .orderBy("created_at", "desc")) as (ChecklistItemRecord & {
+      recurring_item_id: string;
+    })[];
+
+    const latestByRecurringId = new Map<string, ChecklistItem>();
+    for (const record of records) {
+      // We only want the latest one, so skip any others
+      if (latestByRecurringId.has(record.recurring_item_id)) {
+        continue;
+      }
+
+      latestByRecurringId.set(
+        record.recurring_item_id,
+        this.recordToDomain(record),
+      );
+    }
+
+    return latestByRecurringId;
+  }
+
   async getByDependsOn(
     itemId: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<ChecklistItem[]> {
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.whereRaw("jsonb_exists(depends_on, ?)", [itemId]);
     const records = (await query.orderBy(
       this.defaultOrder.column,
@@ -151,13 +180,13 @@ export class ChecklistItemStore extends AbstractEntityStore<
 
   async getByDependsOnMany(
     itemIds: string[],
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<ChecklistItem[]> {
     if (!itemIds.length) return [];
 
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.whereRaw("jsonb_exists_any(depends_on, ?::text[])", [
       itemIds,
     ]);
@@ -170,11 +199,11 @@ export class ChecklistItemStore extends AbstractEntityStore<
 
   async getByTag(
     tag: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<ChecklistItem[]> {
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.whereRaw("jsonb_exists(tags, ?)", [tag]);
     const records = (await query.orderBy(
       this.defaultOrder.column,
@@ -185,11 +214,11 @@ export class ChecklistItemStore extends AbstractEntityStore<
 
   async getByAssigneeId(
     assigneeId: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<ChecklistItem[]> {
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query
       .where({ assignee_id: assigneeId })
       .whereIn("status", [

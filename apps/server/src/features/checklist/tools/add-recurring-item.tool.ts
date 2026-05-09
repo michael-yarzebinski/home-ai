@@ -125,7 +125,7 @@ export class AddRecurringItemTool extends ToolHandler<
     params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<AddRecurringItemResult> {
-    const item = await this.recurringStore.create(params, context.user);
+    const item = await this.recurringStore.create(params, context.requestUser);
     return {
       success: true,
       item,

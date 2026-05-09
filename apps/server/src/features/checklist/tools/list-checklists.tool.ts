@@ -31,13 +31,16 @@ export class ListChecklistsTool extends ToolHandler<
   }
 
   async execute(
-    params: z.infer<typeof this.parameters>,
+    _params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<ListChecklistsResult> {
-    const checklists = await this.checklistStore.getAll(false, context.user);
+    const checklists = await this.checklistStore.getAll(
+      context.requestUser,
+      false,
+    );
     const availableChecklists = addPermissionFlags(
       checklists,
-      context.userRole,
+      context.requestUser.role,
     );
 
     return {

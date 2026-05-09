@@ -43,7 +43,7 @@ export class ListFactsTool extends ToolHandler<
     _params: z.infer<typeof ListFactsToolSchema>,
     context: ToolContext,
   ): Promise<ListFactsResult> {
-    let facts = await this.factsStore.getAll();
+    let facts = await this.factsStore.getAll(context.requestUser);
 
     const availableFacts = addPermissionFlags(facts, context.userRole);
 

@@ -1,9 +1,7 @@
 import type { Knex } from "knex";
 
-import {
-  AbstractEntityStore,
-  type RequestUser,
-} from "src/core/stores/abstract/abstract-entity.store";
+import { AbstractEntityStore } from "src/core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "src/core/auth/jwt.strategy";
 import type {
   InsertableRecurringChecklistItem,
   RecurringChecklistItem,
@@ -45,16 +43,16 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    _user?: RequestUser,
+    _user: AuthUser,
   ): Knex.QueryBuilder {
     return query;
   }
@@ -116,11 +114,11 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
 
   async getByChecklistId(
     checklistId: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<RecurringChecklistItem[]> {
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.where({ checklist_id: checklistId });
     const records = (await query.orderBy(
       this.defaultOrder.column,
@@ -129,15 +127,31 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
+  async getByTriggerType(
+    triggerType: RecurringChecklistItemTriggerType,
+  ): Promise<RecurringChecklistItem[]> {
+    let query = this.active;
+    const records = (await query
+      .where({
+        trigger_type: triggerType,
+      })
+      .orderBy(
+        this.defaultOrder.column,
+        this.defaultOrder.direction,
+      )) as RecurringChecklistItemRecord[];
+
+    return records.map((r) => this.recordToDomain(r));
+  }
+
   async getByDependsOnMany(
     recurringItemIds: string[],
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<RecurringChecklistItem[]> {
     if (!recurringItemIds.length) return [];
 
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.whereRaw(
       "jsonb_exists_any(depends_on_recurring_ids, ?::text[])",
       [recurringItemIds],
@@ -149,24 +163,29 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
-  async getTags(user?: RequestUser): Promise<string[]> {
-    const tags = (await this.validateForRead(this.active, user).select(
+  async getTags(user: AuthUser): Promise<string[]> {
+    const tags = (await this.validateUserForRead(this.active, user).select(
       "tags",
     )) as { tags: string[] }[];
     return [
-      ...new Set(tags.map((t) => t.tags).flat().filter((t) => t !== undefined)),
+      ...new Set(
+        tags
+          .map((t) => t.tags)
+          .flat()
+          .filter((t) => t !== undefined),
+      ),
     ];
   }
 
   async getByTags(
     tags: string[],
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<RecurringChecklistItem[]> {
     if (!tags.length) return [];
 
     let query = this.activeOrInactive(includeInactive);
-    query = this.validateForRead(query, user);
+    query = this.validateUserForRead(query, user);
     query = query.whereRaw("jsonb_exists_any(tags, ?::text[])", [tags]);
     const records = (await query.orderBy(
       this.defaultOrder.column,

@@ -1,7 +1,7 @@
 // core/stores/log/log.store.ts
 import type { Knex } from "knex";
 import { AbstractMonitoringStore } from "../abstract/abstract-monitoring.store";
-import type { Log } from "@home-ai/shared/domain/log/log";
+import type { Log } from "@home-ai/shared/domain/monitoring/log/log";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Insertable } from "@home-ai/shared/common/crud.helper";
 

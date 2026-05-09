@@ -3,13 +3,13 @@ import { Knex } from "knex";
 import { AppConfigService } from "../../services/app-config.service";
 import {
   AbstractEntityStore,
-  type RequestUser,
 } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import {
   Conversation,
   ChatMessage,
-} from "@home-ai/shared/domain/conversation/converstation";
+} from "@home-ai/shared/domain/conversation/conversation";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 /**
  * Database Record Type
@@ -100,19 +100,17 @@ export class ConversationStore extends AbstractEntityStore<
     };
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.where("user_id", user.id);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.where("user_id", user.id);
   }
 
@@ -136,7 +134,7 @@ export class ConversationStore extends AbstractEntityStore<
    */
   async getOrCreateSession(
     externalId: string,
-    userId: string,
+    user: AuthUser,
   ): Promise<Conversation> {
     const now = new Date();
 
@@ -161,20 +159,23 @@ export class ConversationStore extends AbstractEntityStore<
     }
 
     // Create a new session if none exists or expired
-    return this.create({
-      externalId,
-      userId,
-      messages: [],
-      lastActivity: now.getTime(),
-      isActive: true,
-    } as any);
+    return this.create(
+      {
+        externalId,
+        userId: user.id,
+        messages: [],
+        lastActivity: now.getTime(),
+        isActive: true,
+      } as any,
+      user,
+    );
   }
 
   /**
    * Appends a message and updates the activity timestamp
    */
-  async addMessage(sessionId: string, message: ChatMessage) {
-    const session = await this.getById(sessionId);
+  async addMessage(sessionId: string, message: ChatMessage, user: AuthUser) {
+    const session = await this.getById(sessionId, user);
     if (!session) return;
 
     session.messages.push(message);

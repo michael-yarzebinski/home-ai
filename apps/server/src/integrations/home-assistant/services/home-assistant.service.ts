@@ -27,12 +27,16 @@ import { Queue } from "bullmq";
 import { EventQueueBuffer, EventQueueItem } from "../types/event-queue";
 import { DeviceEventStore } from "../../../core/stores/device/device-event.store";
 import { DeviceStatus } from "@home-ai/shared/domain/device/device-status";
+import { User } from "../../../../../shared/dist/domain/user/user";
+import { UserStore } from "../../../core/stores/user/user.store";
 
 @Injectable()
 export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   private connection: Connection | null = null;
   private entities: HassEntities = {};
   private services: HassServices = {};
+  private automationUserId: string;
+  private automationUser: User;
 
   private deviceCooldownMinutes: number;
 
@@ -44,14 +48,28 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     private readonly logStore: LogStore,
     private readonly automationRuleStore: AutomationRuleStore,
     private readonly deviceEventStore: DeviceEventStore,
+    private readonly userStore: UserStore,
   ) {
     this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>(
       "HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES",
     );
+    this.automationUserId =
+      this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
   }
 
   async onModuleInit() {
     await this.connect();
+    const automationUser = await this.userStore.getById(
+      this.automationUserId,
+      undefined,
+      false,
+    );
+    if (!automationUser) {
+      throw new Error(
+        `HomeAssistantProcessor: AUTOMATION_USER_ID "${this.automationUserId}" does not match any user`,
+      );
+    }
+    this.automationUser = automationUser;
   }
 
   onModuleDestroy() {

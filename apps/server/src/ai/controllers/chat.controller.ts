@@ -8,7 +8,7 @@ import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import {
   ChatRequestSchema,
   type ChatRequest,
-} from "@home-ai/shared/domain/conversation/converstation";
+} from "@home-ai/shared/domain/conversation/conversation";
 import type { AuthUser } from "../../core/auth/jwt.strategy";
 
 @Controller("v1/chat")

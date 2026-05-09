@@ -34,7 +34,9 @@ export class GetRecurringItemTagsTool extends ToolHandler<
     _params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<GetRecurringItemTagsResult> {
-    const tags = await this.recurringChecklistItemStore.getTags(context.user);
+    const tags = await this.recurringChecklistItemStore.getTags(
+      context.requestUser,
+    );
     const sortedTags = [...tags].sort((a, b) => a.localeCompare(b));
 
     return {

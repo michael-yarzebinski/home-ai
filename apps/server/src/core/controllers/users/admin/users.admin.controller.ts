@@ -25,6 +25,9 @@ import {
   UpdatableUserApiSchema,
   type UpdatableUserApi,
 } from "@home-ai/shared/domain/user/user";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import { AuthUser } from "../../../auth/jwt.strategy";
+import { User } from "@home-ai/shared/domain/user/user";
 
 // Admin create: API-safe fields + a plaintext accessCode that gets hashed before storage.
 const AdminCreateUserSchema: ReturnType<
@@ -43,44 +46,47 @@ export class UsersAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.userStore.search(dto);
+    return this.userStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const user = await this.userStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const user = await this.userStore.getById(id, authUser);
     if (!user) throw new NotFoundException(`User ${id} not found`);
-    return user;
+    return user as User;
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(AdminCreateUserSchema)) dto: AdminCreateUserDto,
+    @CurrentUser() authUser: AuthUser,
   ) {
     const { accessCode, ...rest } = dto;
     const accessCodeHash = await bcrypt.hash(accessCode, 12);
-    return this.userStore.create({ ...rest, accessCodeHash } as any);
+    return this.userStore.create({ ...rest, accessCodeHash } as any, authUser);
   }
 
   @Put(":id")
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableUserApiSchema)) dto: UpdatableUserApi,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.userStore.update(id, dto as any);
+    return this.userStore.update(id, dto as any, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.userStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.userStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.userStore.restore(id);
-    return this.userStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.userStore.restore(id, authUser);
+    return this.userStore.getById(id, authUser);
   }
 }

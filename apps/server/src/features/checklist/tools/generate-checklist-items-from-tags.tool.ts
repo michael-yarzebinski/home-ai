@@ -54,14 +54,13 @@ export class GenerateChecklistItemsFromTagsTool extends ToolHandler<
   ): Promise<GenerateChecklistItemsFromTagsResult> {
     const recurringItems = await this.recurringChecklistItemStore.getByTags(
       params.tags,
-      false,
-      context.user,
+      context.requestUser,
     );
 
     const items =
       await this.checklistManager.generateChecklistItemsFromRecurringItems(
         recurringItems,
-        context.user,
+        context.requestUser,
       );
 
     const tagList = params.tags.join(", ");

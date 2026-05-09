@@ -1,6 +1,7 @@
 // src/core/stores/tool/tool.store.ts
 import type { Knex } from "knex";
 import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import type { AuthUser } from "../../auth/jwt.strategy";
 import type {
   Tool,
   InsertableTool,
@@ -34,12 +35,22 @@ export class ToolStore extends AbstractEntityStore<
     super(knex, auditStore, { tableName: "tools", entityType: "tools" });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
-    return query; // Admin-managed.
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.whereRaw("request_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
-    return query;
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
   protected applyTextSearch(
@@ -84,8 +95,37 @@ export class ToolStore extends AbstractEntityStore<
     };
   }
 
-  async getByName(name: string): Promise<Tool | undefined> {
-    const record = await this.active.where("name", name).first();
+  async getByName(name: string, user?: AuthUser): Promise<Tool | undefined> {
+    let query = this.active.where("name", name);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const record = await query.first();
     return record ? this.recordToDomain(record) : undefined;
+  }
+
+  override async getById(
+    id: string,
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<Tool | null> {
+    let query = this.activeOrInactive(includeInactive).where({ id });
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const record = (await query.first()) as ToolRecord | null;
+    return record ? this.recordToDomain(record) : null;
+  }
+
+  override async getAll(
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<Tool[]> {
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const records = (await query) as ToolRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 }

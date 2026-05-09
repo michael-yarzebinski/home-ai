@@ -55,14 +55,17 @@ export class ListPendingActionsTool extends ToolHandler<
   ): Promise<ListPendingActionsResult> {
     const pendingActions = await this.pendingActionStore.getAllPendingActions();
     const availableTools = await this.toolRegistry.getAvailableToolsForUser(
-      context.userRole,
+      context.requestUser,
     );
     const toolsMap = new Map(availableTools.map((t) => [t.id, t]));
 
     const requesterIds = [
       ...new Set(pendingActions.map((pa) => pa.requesterId)),
     ];
-    const requesters = await this.userStore.getByIds(requesterIds);
+    const requesters = await this.userStore.getByIds(
+      requesterIds,
+      context.requestUser,
+    );
     const requestersMap = new Map(requesters.map((u) => [u.id, u]));
 
     const enrichedActions: EnrichedPendingAction[] = [];

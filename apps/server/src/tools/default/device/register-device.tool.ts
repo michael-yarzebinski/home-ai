@@ -102,17 +102,20 @@ export class RegisterDeviceTool extends ToolHandler<
       ? params.writeRoles
       : [context.userRole];
 
-    const device = await this.deviceStore.create({
-      slug: params.slug,
-      friendlyName: params.friendlyName,
-      room: params.room,
-      category: params.category,
-      aliases: params.aliases || [],
-      readRoles,
-      writeRoles,
-      isTimeSensitive: params.isTimeSensitive,
-      extraMetadata: {},
-    });
+    const device = await this.deviceStore.create(
+      {
+        slug: params.slug,
+        friendlyName: params.friendlyName,
+        room: params.room,
+        category: params.category,
+        aliases: params.aliases || [],
+        readRoles,
+        writeRoles,
+        isTimeSensitive: params.isTimeSensitive,
+        extraMetadata: {},
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,

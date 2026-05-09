@@ -33,11 +33,11 @@ export class RecipeStore extends AbstractEntityStore<
     super(knex, auditStore, { tableName: "recipes", entityType: "recipes" });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query; // Admin-managed library content.
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query;
   }
 

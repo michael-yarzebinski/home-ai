@@ -51,4 +51,4 @@ import { AIModule } from "../ai/ai.module";
   ],
   exports: [ToolRegistry],
 })
-export class ToolsModule { }
+export class ToolsModule {}

@@ -53,11 +53,11 @@ const AddAutomationRuleSchema = z.object({
       const s = ToolParameterUtils.stripQuotes(v);
       return typeof s === "string" ? s.toUpperCase() : s;
     }, z.nativeEnum(TriggerType))
-    .describe("Trigger type: DEVICE, RAW_ENTITY, TIME, SYSTEM, WEBHOOK"),
+    .describe("Trigger type: DEVICE, TIME, SYSTEM, TOOL_EVENT"),
   triggerParams: z
     .preprocess(toRecord, z.record(z.string(), z.any()))
     .describe(
-      "Trigger parameters by type. DEVICE: {deviceId, intent}. RAW_ENTITY: {entityId, intent}. TIME: {cron, timezone}. SYSTEM: {eventName, intent?}. WEBHOOK: {slug, secret?}.",
+      "Trigger parameters by type. DEVICE: {deviceId, intent}. TIME: {cron, timezone}. SYSTEM: {eventName, intent?}. TOOL_EVENT: {toolName?}.",
     ),
   actions: z
     .preprocess(ToolParameterUtils.toUnknownArray, z.array(ActionSchema).min(1))
@@ -96,14 +96,17 @@ export class AddAutomationRuleTool extends ToolHandler<
       params.triggerParams,
     );
 
-    const rule = await this.automationStore.create({
-      userId: context.userId,
-      name: params.name,
-      description: params.description,
-      trigger,
-      actions: params.actions.map((a) => ({ ...a, id: crypto.randomUUID() })),
-      cooldownMinutes: params.cooldownMinutes,
-    });
+    const rule = await this.automationStore.create(
+      {
+        userId: context.userId,
+        name: params.name,
+        description: params.description,
+        trigger,
+        actions: params.actions.map((a) => ({ ...a, id: crypto.randomUUID() })),
+        cooldownMinutes: params.cooldownMinutes,
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,
@@ -148,6 +151,16 @@ const buildTriggerConfig = (
         eventName: getRequiredString(triggerParams, "eventName"),
         ...(typeof intent === "string" && intent.trim().length > 0
           ? { intent: intent.trim() }
+          : {}),
+      };
+    }
+    case TriggerType.TOOL_EVENT: {
+      const toolName = triggerParams.toolName;
+
+      return {
+        type: TriggerType.TOOL_EVENT,
+        ...(typeof toolName === "string" && toolName.trim().length > 0
+          ? { toolName: toolName.trim() }
           : {}),
       };
     }

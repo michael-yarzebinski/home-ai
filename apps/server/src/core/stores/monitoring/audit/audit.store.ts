@@ -1,6 +1,6 @@
 // core/stores/audit/audit.store.ts
 import { AbstractMonitoringStore } from "../abstract/abstract-monitoring.store";
-import type { Audit } from "@home-ai/shared/domain/audit/audit";
+import type { Audit } from "@home-ai/shared/domain/monitoring/audit/audit";
 import { Knex } from "knex";
 import { Inject, Injectable } from "@nestjs/common";
 

@@ -1,14 +1,12 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
   NotFoundException,
   Param,
   Post,
-  Put,
 } from "@nestjs/common";
 import { CalendarStore } from "../../stores/calendar.store";
 import { Roles } from "../../../../common/decorators/roles.decorator";
@@ -18,12 +16,9 @@ import {
   SearchCriteriaSchema,
   type SearchCriteriaBase,
 } from "@home-ai/shared/search/search";
-import {
-  InsertableCalendarSchema,
-  UpdatableCalendarSchema,
-  type InsertableCalendar,
-  type UpdatableCalendar,
-} from "@home-ai/shared/domain/calendar/calendar";
+
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import { AuthUser } from "../../../../core/auth/jwt.strategy";
 
 @Controller("v1/admin/calendars")
 @Roles(Role.ADMIN)
@@ -34,44 +29,21 @@ export class CalendarsAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.calendarStore.search(dto);
+    return this.calendarStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.calendarStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.calendarStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`Calendar ${id} not found`);
     return item;
   }
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @Body(new ZodValidationPipe(InsertableCalendarSchema))
-    dto: InsertableCalendar,
-  ) {
-    return this.calendarStore.create(dto);
-  }
-
-  @Put(":id")
-  update(
-    @Param("id") id: string,
-    @Body(new ZodValidationPipe(UpdatableCalendarSchema))
-    dto: UpdatableCalendar,
-  ) {
-    return this.calendarStore.update(id, dto);
-  }
-
-  @Delete(":id")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.calendarStore.softDelete(id);
-  }
-
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.calendarStore.restore(id);
-    return this.calendarStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.calendarStore.restore(id, authUser);
+    return this.calendarStore.getById(id, authUser);
   }
 }

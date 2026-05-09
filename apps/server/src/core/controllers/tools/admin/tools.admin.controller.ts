@@ -19,11 +19,11 @@ import {
   type SearchCriteriaBase,
 } from "@home-ai/shared/search/search";
 import {
-  InsertableToolSchema,
   UpdatableToolSchema,
-  type InsertableTool,
   type UpdatableTool,
 } from "@home-ai/shared/domain/tool/tool";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import { AuthUser } from "../../../auth/jwt.strategy";
 
 @Controller("v1/admin/tools")
 @Roles(Role.ADMIN)
@@ -34,42 +34,36 @@ export class ToolsAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.toolStore.search(dto);
+    return this.toolStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.toolStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.toolStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`Tool ${id} not found`);
     return item;
-  }
-
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @Body(new ZodValidationPipe(InsertableToolSchema)) dto: InsertableTool,
-  ) {
-    return this.toolStore.create(dto);
   }
 
   @Put(":id")
   update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableToolSchema)) dto: UpdatableTool,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.toolStore.update(id, dto);
+    return this.toolStore.update(id, dto, authUser);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.toolStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.toolStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.toolStore.restore(id);
-    return this.toolStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.toolStore.restore(id, authUser);
+    return this.toolStore.getById(id, authUser, true);
   }
 }

@@ -15,13 +15,13 @@ export class NotificationQueueProcessor {
     private readonly blueBubblesService: BlueBubblesService,
     private readonly userStore: UserStore,
     private readonly logStore: LogStore,
-  ) { }
+  ) {}
 
   /**
    * Runs every minute to process queued notifications.
    * Respects per-user quiet hours.
    */
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async processNotificationQueue() {
     const start = Date.now();
 
@@ -78,7 +78,7 @@ export class NotificationQueueProcessor {
           message: notification.message,
         });
 
-        await this.notificationQueueStore.softDelete(notification.id);
+        await this.notificationQueueStore.markAsSent(notification.id);
 
         await this.logStore.create({
           userId: user.id,

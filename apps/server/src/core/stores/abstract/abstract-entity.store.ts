@@ -1,22 +1,18 @@
 import { Knex } from "knex";
 import { BaseStore } from "./base.store.interface";
-import type {
-  Insertable,
-  Updatable,
-} from "@home-ai/shared/common/crud.helper";
+import type { Insertable, Updatable } from "@home-ai/shared/common/crud.helper";
 import type {
   SearchCriteria,
   SearchCriteriaBase,
 } from "@home-ai/shared/search/search";
-import type { Role } from "@home-ai/shared/domain/role/role";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Paginated } from "@home-ai/shared/search/pagination";
 import { Id } from "../monitoring/abstract/abstract-monitoring.store";
 import { EntityNotFoundError } from "../../../common/errors/entity-not-found.error";
 import { Inject, Injectable } from "@nestjs/common";
-
-export type RequestUser = { id: string; role: Role };
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export type AuditableEntity = Id & {
   active: boolean;
@@ -38,11 +34,11 @@ export abstract class AbstractEntityStore<
   TUpdatable,
   TSearchCriteria
 > {
-  private readonly tableName: string;
-  private readonly entityType: string;
+  protected readonly tableName: string;
+  protected readonly entityType: string;
 
-  private readonly knex: Knex;
-  private readonly auditStore: AuditStore;
+  protected readonly knex: Knex;
+  protected readonly auditStore: AuditStore;
 
   protected constructor(
     @Inject("KNEX_CONNECTION") knex: Knex,
@@ -53,6 +49,26 @@ export abstract class AbstractEntityStore<
     this.auditStore = auditStore;
     this.tableName = options.tableName;
     this.entityType = options.entityType;
+  }
+
+  protected validateForRead(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    if (user.role === Role.ADMIN) {
+      return query;
+    }
+    return this.validateUserForRead(query, user);
+  }
+
+  protected validateForWrite(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    if (user.role === Role.ADMIN) {
+      return query;
+    }
+    return this.validateUserForWrite(query, user);
   }
 
   // ---------------------------------------------------------------------------
@@ -69,9 +85,9 @@ export abstract class AbstractEntityStore<
    * - Regular user: add WHERE user_id = user.id (for user-scoped entities).
    * - Shared entities (devices, calendars, etc.): return query unchanged.
    */
-  protected abstract validateForRead(
+  protected abstract validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder;
 
   /**
@@ -81,9 +97,9 @@ export abstract class AbstractEntityStore<
    *
    * Same scoping rules as validateForRead.
    */
-  protected abstract validateForWrite(
+  protected abstract validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder;
 
   /**
@@ -133,7 +149,7 @@ export abstract class AbstractEntityStore<
    */
   async search(
     criteria: SearchCriteria<TSearchCriteria>,
-    user?: RequestUser,
+    user: AuthUser,
   ): Promise<Paginated<TDomain>> {
     let query = this.table;
 
@@ -171,8 +187,8 @@ export abstract class AbstractEntityStore<
 
   async getById(
     id: string,
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<TDomain | null> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
@@ -182,8 +198,8 @@ export abstract class AbstractEntityStore<
 
   async getByIds(
     ids: string[],
+    user: AuthUser,
     includeInactive = false,
-    user?: RequestUser,
   ): Promise<TDomain[]> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
@@ -191,10 +207,7 @@ export abstract class AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
-  async getAll(
-    includeInactive = false,
-    user?: RequestUser,
-  ): Promise<TDomain[]> {
+  async getAll(user: AuthUser, includeInactive = false): Promise<TDomain[]> {
     let query = this.activeOrInactive(includeInactive);
     query = this.validateForRead(query, user);
     const records = (await query) as TRecord[];
@@ -205,7 +218,7 @@ export abstract class AbstractEntityStore<
   // Write operations
   // ---------------------------------------------------------------------------
 
-  async create(data: TInsertable, user?: RequestUser): Promise<TDomain> {
+  async create(data: TInsertable, user: AuthUser): Promise<TDomain> {
     const record = this.domainToRecord(data as any);
     const [inserted] = (await this.table
       .insert(record as any)
@@ -216,7 +229,7 @@ export abstract class AbstractEntityStore<
       entityType: this.entityType,
       entityId: domain.id,
       action: "create",
-      userId: user?.id,
+      userId: user.id,
       changes: { old: null, new: inserted },
     });
 
@@ -226,9 +239,9 @@ export abstract class AbstractEntityStore<
   async update(
     id: string,
     update: TUpdatable,
-    user?: RequestUser,
+    user: AuthUser,
   ): Promise<TDomain> {
-    const old = await this.getById(id, true);
+    const old = await this.getById(id, user, true);
     if (!old) throw new EntityNotFoundError(this.entityType, id);
 
     const fullRecord = this.domainToRecord(update as any);
@@ -251,14 +264,14 @@ export abstract class AbstractEntityStore<
       entityType: this.entityType,
       entityId: id,
       action: "update",
-      userId: user?.id,
+      userId: user.id,
       changes: { old, new: updated },
     });
 
     return domain;
   }
 
-  async softDelete(id: string, user?: RequestUser): Promise<void> {
+  async softDelete(id: string, user: AuthUser): Promise<void> {
     let query = this.table.where({ id });
     query = this.validateForWrite(query, user);
     await query.update({ active: false } as any);
@@ -267,12 +280,12 @@ export abstract class AbstractEntityStore<
       entityType: this.entityType,
       entityId: id,
       action: "soft_delete",
-      userId: user?.id,
+      userId: user.id,
       changes: {},
     });
   }
 
-  async restore(id: string, user?: RequestUser): Promise<void> {
+  async restore(id: string, user: AuthUser): Promise<void> {
     let query = this.table.where({ id });
     query = this.validateForWrite(query, user);
     await query.update({ active: true } as any);
@@ -281,7 +294,7 @@ export abstract class AbstractEntityStore<
       entityType: this.entityType,
       entityId: id,
       action: "restore",
-      userId: user?.id,
+      userId: user.id,
       changes: {},
     });
   }

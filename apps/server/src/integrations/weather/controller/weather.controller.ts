@@ -19,7 +19,7 @@ export class WeatherController {
   @Post("get-weather")
   async getWeather(
     @Body(new ZodValidationPipe(WeatherRequestSchema)) payload: WeatherRequest,
-    @CurrentUser() _user: AuthUser,
+    @CurrentUser() _authUser: AuthUser,
   ) {
     const zipCode = await this.appConfigService.getFromDb<string>("ZIP_CODE");
     if (!zipCode) {

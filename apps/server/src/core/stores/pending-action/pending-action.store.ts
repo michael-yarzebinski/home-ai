@@ -1,9 +1,6 @@
 // src/core/stores/pending-action/pending-action.store.ts
 import type { Knex } from "knex";
-import {
-  AbstractEntityStore,
-  type RequestUser,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import type {
   InsertablePendingAction,
   PendingAction,
@@ -11,6 +8,7 @@ import type {
 } from "@home-ai/shared/domain/pending-action/pending-action";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface PendingActionRecord {
   id: string;
@@ -40,19 +38,17 @@ export class PendingActionStore extends AbstractEntityStore<
     });
   }
 
-  protected validateForRead(
+  protected validateUserForRead(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query; // Admin sees all.
     return query.where("requester_id", user.id);
   }
 
-  protected validateForWrite(
+  protected validateUserForWrite(
     query: Knex.QueryBuilder,
-    user?: RequestUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    if (!user) return query;
     return query.where("requester_id", user.id);
   }
 
@@ -100,17 +96,31 @@ export class PendingActionStore extends AbstractEntityStore<
 
   async getByReadableId(
     readableId: number,
+    user?: AuthUser,
+    includeInactive = false,
   ): Promise<PendingAction | undefined> {
-    const record = await this.active.where("readable_id", readableId).first();
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateUserForRead(query, user);
+    }
+    const record = await query.where("readable_id", readableId).first();
 
     return record ? this.recordToDomain(record) : record;
   }
 
-  async approve(id: string, approvedBy: string): Promise<PendingAction> {
-    return this.update(id, {
-      status: "approved",
-      executedBy: approvedBy,
-    });
+  async approve(
+    id: string,
+    approvedBy: string,
+    user: AuthUser,
+  ): Promise<PendingAction> {
+    return this.update(
+      id,
+      {
+        status: "approved",
+        executedBy: approvedBy,
+      },
+      user,
+    );
   }
 
   async getAllPendingActions(): Promise<PendingAction[]> {

@@ -66,7 +66,7 @@ export class UpdateDeviceTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof UpdateDeviceToolSchema>,
-    _context: ToolContext,
+    context: ToolContext,
   ): Promise<UpdateDeviceResult> {
     const device = await this.deviceStore.getBySlug(params.slug);
 
@@ -78,15 +78,19 @@ export class UpdateDeviceTool extends ToolHandler<
       };
     }
 
-    const updatedDevice = await this.deviceStore.update(device.id, {
-      friendlyName: params.friendlyName,
-      room: params.room,
-      category: params.category,
-      aliases: params.aliases,
-      readRoles: params.readRoles as Role[],
-      writeRoles: params.writeRoles as Role[],
-      extraMetadata: params.extraMetadata,
-    });
+    const updatedDevice = await this.deviceStore.update(
+      device.id,
+      {
+        friendlyName: params.friendlyName,
+        room: params.room,
+        category: params.category,
+        aliases: params.aliases,
+        readRoles: params.readRoles as Role[],
+        writeRoles: params.writeRoles as Role[],
+        extraMetadata: params.extraMetadata,
+      },
+      context.requestUser,
+    );
 
     return {
       success: true,

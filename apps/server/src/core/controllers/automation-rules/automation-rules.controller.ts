@@ -33,17 +33,17 @@ export class AutomationRulesController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
     return this.automationRuleStore.search(
       { ...dto, includeInactive: false },
-      user,
+      authUser,
     );
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    const item = await this.automationRuleStore.getById(id, false, user);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.automationRuleStore.getById(id, authUser);
     if (!item) throw new NotFoundException(`Automation rule ${id} not found`);
     return item;
   }
@@ -53,9 +53,9 @@ export class AutomationRulesController {
   create(
     @Body(new ZodValidationPipe(InsertableAutomationRuleSchema))
     dto: InsertableAutomationRule,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.create({ ...dto, userId: user.id }, user);
+    return this.automationRuleStore.create({ ...dto, userId: authUser.id }, authUser);
   }
 
   @Put(":id")
@@ -63,14 +63,18 @@ export class AutomationRulesController {
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableAutomationRuleSchema))
     dto: UpdatableAutomationRule,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.update(id, dto, user);
+    return this.automationRuleStore.update(
+      id,
+      { ...dto, userId: authUser.id },
+      authUser,
+    );
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.automationRuleStore.softDelete(id, user);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.automationRuleStore.softDelete(id, authUser);
   }
 }

@@ -1,6 +1,7 @@
 // src/core/stores/user/user.store.ts
 import type { Knex } from "knex";
 import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import type { AuthUser } from "../../auth/jwt.strategy";
 import type {
   User,
   InsertableUser,
@@ -35,11 +36,11 @@ export class UserStore extends AbstractEntityStore<
     super(knex, auditStore, { tableName: "users", entityType: "users" });
   }
 
-  protected validateForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query; // Admin-managed — role enforced at route level.
   }
 
-  protected validateForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+  protected validateUserForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
     return query;
   }
 
@@ -83,6 +84,31 @@ export class UserStore extends AbstractEntityStore<
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  override async getById(
+    id: string,
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<User | null> {
+    let query = this.activeOrInactive(includeInactive).where({ id });
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const record = (await query.first()) as UserRecord | null;
+    return record ? this.recordToDomain(record) : null;
+  }
+
+  override async getAll(
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<User[]> {
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const records = (await query) as UserRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 
   async getByPhoneNumber(phoneNumber: string): Promise<User | undefined> {

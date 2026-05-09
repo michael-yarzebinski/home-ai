@@ -8,7 +8,6 @@ import {
   NotFoundException,
   Param,
   Post,
-  Put,
 } from "@nestjs/common";
 import { PendingActionStore } from "../../../stores/pending-action/pending-action.store";
 import { Roles } from "../../../../common/decorators/roles.decorator";
@@ -18,12 +17,8 @@ import {
   SearchCriteriaSchema,
   type SearchCriteriaBase,
 } from "@home-ai/shared/search/search";
-import {
-  InsertablePendingActionSchema,
-  UpdatablePendingActionSchema,
-  type InsertablePendingAction,
-  type UpdatablePendingAction,
-} from "@home-ai/shared/domain/pending-action/pending-action";
+import { AuthUser } from "../../../auth/jwt.strategy";
+import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
 
 @Controller("v1/admin/pending-actions")
 @Roles(Role.ADMIN)
@@ -34,44 +29,27 @@ export class PendingActionsAdminController {
   @HttpCode(HttpStatus.OK)
   search(
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
   ) {
-    return this.pendingActionStore.search(dto);
+    return this.pendingActionStore.search(dto, authUser);
   }
 
   @Get(":id")
-  async getById(@Param("id") id: string) {
-    const item = await this.pendingActionStore.getById(id, true);
+  async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const item = await this.pendingActionStore.getById(id, authUser, true);
     if (!item) throw new NotFoundException(`PendingAction ${id} not found`);
     return item;
   }
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @Body(new ZodValidationPipe(InsertablePendingActionSchema))
-    dto: InsertablePendingAction,
-  ) {
-    return this.pendingActionStore.create(dto);
-  }
-
-  @Put(":id")
-  update(
-    @Param("id") id: string,
-    @Body(new ZodValidationPipe(UpdatablePendingActionSchema))
-    dto: UpdatablePendingAction,
-  ) {
-    return this.pendingActionStore.update(id, dto);
-  }
-
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  softDelete(@Param("id") id: string) {
-    return this.pendingActionStore.softDelete(id);
+  softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    return this.pendingActionStore.softDelete(id, authUser);
   }
 
   @Post(":id/restore")
-  async restore(@Param("id") id: string) {
-    await this.pendingActionStore.restore(id);
-    return this.pendingActionStore.getById(id, true);
+  async restore(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    await this.pendingActionStore.restore(id, authUser);
+    return this.pendingActionStore.getById(id, authUser, true);
   }
 }
