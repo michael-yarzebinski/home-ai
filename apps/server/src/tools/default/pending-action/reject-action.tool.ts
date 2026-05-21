@@ -57,7 +57,7 @@ export class RejectActionTool extends ToolHandler<
     // 1. Fetch the action
     const pendingAction = await this.pendingActionStore.getByReadableId(
       params.readableId,
-      context.requestUser,
+      context.authUser,
     );
 
     if (!pendingAction) {
@@ -77,7 +77,7 @@ export class RejectActionTool extends ToolHandler<
     // 2. Permission Check (Same as approve, only authorized roles can reject)
     const originalTool = await this.toolRegistry.getRegisteredToolById(
       pendingAction.toolId,
-      context.requestUser,
+      context.authUser,
     );
 
     if (!originalTool || !originalTool.canWrite) {
@@ -92,7 +92,7 @@ export class RejectActionTool extends ToolHandler<
       {
         status: "rejected",
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

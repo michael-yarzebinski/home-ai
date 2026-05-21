@@ -33,7 +33,10 @@ export class DevicesController {
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.deviceStore.search({ ...dto, includeInactive: false }, authUser);
+    return this.deviceStore.search(
+      { ...dto, includeInactive: false },
+      authUser,
+    );
   }
 
   @Get(":id")

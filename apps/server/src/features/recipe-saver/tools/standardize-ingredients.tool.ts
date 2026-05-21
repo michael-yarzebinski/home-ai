@@ -52,10 +52,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
     params: z.infer<typeof StandardizeIngredientsSchema>,
     context: ToolContext,
   ): Promise<StructuredIngredient[]> {
-    const existing = await this.ingredientStore.getAll(
-      context.requestUser,
-      false,
-    );
+    const existing = await this.ingredientStore.getAll(context.authUser, false);
     const knownNames = existing
       .map((i) => i.name)
       .slice(0, 50)
@@ -92,7 +89,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
         ],
         jsonMode: true,
         context: {
-          userId: context.userId,
+          userId: context.authUser.id,
           chatSessionId: context.chatSessionId,
           originalPrompt: `Standardizing ${params.ingredients.length} ingredients`,
         },

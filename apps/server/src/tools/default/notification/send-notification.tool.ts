@@ -88,7 +88,7 @@ export class SendNotificationTool extends ToolHandler<
     await this.notificationService.notifyUser(
       params.message,
       params.userId,
-      context.userId,
+      context.authUser.id,
       params.importance,
     );
 

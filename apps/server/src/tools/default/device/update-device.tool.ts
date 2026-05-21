@@ -89,7 +89,7 @@ export class UpdateDeviceTool extends ToolHandler<
         writeRoles: params.writeRoles as Role[],
         extraMetadata: params.extraMetadata,
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

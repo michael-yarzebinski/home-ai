@@ -1,9 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Knex } from "knex";
 import { AppConfigService } from "../../services/app-config.service";
-import {
-  AbstractEntityStore,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import {
   Conversation,

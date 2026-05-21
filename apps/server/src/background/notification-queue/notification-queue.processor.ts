@@ -6,16 +6,22 @@ import { NotificationLogStore } from "../../core/stores/monitoring/notification-
 import { BlueBubblesService } from "../../integrations/blue-bubbles/blue-bubbles.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { UserStore } from "../../core/stores/user/user.store";
+import { AppConfigService } from "../../core/services/app-config.service";
 
 @Injectable()
 export class NotificationQueueProcessor {
+  private readonly automationUserId: string;
+
   constructor(
     private readonly notificationQueueStore: NotificationQueueStore,
     private readonly notificationLogStore: NotificationLogStore,
     private readonly blueBubblesService: BlueBubblesService,
     private readonly userStore: UserStore,
     private readonly logStore: LogStore,
-  ) {}
+    private readonly appConfigService: AppConfigService,
+  ) {
+    this.automationUserId = this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
+  }
 
   /**
    * Runs every minute to process queued notifications.
@@ -50,6 +56,10 @@ export class NotificationQueueProcessor {
               userId: notification.userId,
             },
           });
+          continue;
+        }
+
+        if (user.id === '00000000-0000-0000-0000-000000000000' || user.id === this.automationUserId) {
           continue;
         }
 

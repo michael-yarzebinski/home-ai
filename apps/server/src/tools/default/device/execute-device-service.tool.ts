@@ -78,12 +78,12 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
         lastTriggeredService: {
           entityId: params.data?.entity_id ?? "",
           service: params.service,
-          triggeredBy: context.userId,
+          triggeredBy: context.authUser.id,
           timestamp: new Date(),
           metadata: params.data,
         },
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

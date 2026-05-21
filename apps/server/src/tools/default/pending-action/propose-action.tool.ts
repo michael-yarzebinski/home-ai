@@ -59,7 +59,7 @@ export class ProposeActionTool extends ToolHandler<
   ): Promise<ProposeActionResult> {
     const tool = await this.toolStore.getByName(
       params.toolName,
-      context.requestUser,
+      context.authUser,
     );
 
     if (!tool) {
@@ -68,13 +68,13 @@ export class ProposeActionTool extends ToolHandler<
 
     const pendingAction = await this.pendingActionStore.create(
       {
-        requesterId: context.userId,
+        requesterId: context.authUser.id,
         toolId: tool.id,
         proposedArgs: params.proposedArgs || {},
         reason: params.reason,
         status: "pending",
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

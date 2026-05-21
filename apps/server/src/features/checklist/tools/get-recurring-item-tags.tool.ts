@@ -35,7 +35,7 @@ export class GetRecurringItemTagsTool extends ToolHandler<
     context: ToolContext,
   ): Promise<GetRecurringItemTagsResult> {
     const tags = await this.recurringChecklistItemStore.getTags(
-      context.requestUser,
+      context.authUser,
     );
     const sortedTags = [...tags].sort((a, b) => a.localeCompare(b));
 

@@ -2,6 +2,7 @@ import { AuthUser } from "../../core/auth/jwt.strategy";
 
 export interface ToolContext {
   authUser: AuthUser;
+  userName: string;
 
   /** * Session: Where does this action live?
    * Used for auditing, message threading, and "Inception" sub-calls.
@@ -35,8 +36,4 @@ export interface ToolContext {
   llmContext: {
     originalPrompt: string;
   };
-
-  /** * Extensibility: For tool-specific dynamic data.
-   */
-  [key: string]: any;
 }

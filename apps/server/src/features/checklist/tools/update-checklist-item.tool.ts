@@ -111,14 +111,14 @@ export class UpdateChecklistItemTool extends ToolHandler<
 
     const existingItem = await this.checklistItemStore.getById(
       id,
-      context.requestUser,
+      context.authUser,
     );
     if (!existingItem) {
       throw new NotFoundException("Checklist item not found");
     }
     const checklist = await this.checklistStore.getById(
       existingItem.checklistId,
-      context.requestUser,
+      context.authUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
@@ -127,7 +127,7 @@ export class UpdateChecklistItemTool extends ToolHandler<
     const item = await this.checklistItemStore.update(
       id,
       updates,
-      context.requestUser,
+      context.authUser,
     );
 
     return {

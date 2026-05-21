@@ -28,7 +28,8 @@ export class IngredientsController {
     @CurrentUser() authUser: AuthUser,
   ) {
     return this.ingredientStore.search(
-      { ...dto, includeInactive: false }, authUser,
+      { ...dto, includeInactive: false },
+      authUser,
     );
   }
 

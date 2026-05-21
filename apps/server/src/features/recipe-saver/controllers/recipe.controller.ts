@@ -33,7 +33,10 @@ export class RecipeController {
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.recipeStore.search({ ...dto, includeInactive: false }, authUser);
+    return this.recipeStore.search(
+      { ...dto, includeInactive: false },
+      authUser,
+    );
   }
 
   @Get(":id")

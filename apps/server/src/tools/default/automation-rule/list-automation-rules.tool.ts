@@ -22,7 +22,7 @@ export class ListAutomationRulesTool extends ToolHandler<
   }
 
   async execute(_params: any, context: ToolContext) {
-    const rules = await this.automationStore.getByUserId(context.userId);
+    const rules = await this.automationStore.getByUserId(context.authUser.id);
     return {
       count: rules.length,
       rules: rules.map((r) => ({

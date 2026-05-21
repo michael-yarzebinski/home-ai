@@ -36,7 +36,8 @@ export class PendingActionsController {
     if (!action) throw new NotFoundException(`Pending action ${id} not found`);
 
     // Only admins or the requester's parent/admin role may approve.
-    const canApprove = authUser.role === Role.ADMIN || authUser.role === Role.PARENT;
+    const canApprove =
+      authUser.role === Role.ADMIN || authUser.role === Role.PARENT;
     if (!canApprove)
       throw new ForbiddenException("Insufficient role to approve actions");
 
@@ -55,7 +56,8 @@ export class PendingActionsController {
     const action = await this.pendingActionStore.getById(id, authUser);
     if (!action) throw new NotFoundException(`Pending action ${id} not found`);
 
-    const canReject = authUser.role === Role.ADMIN || authUser.role === Role.PARENT;
+    const canReject =
+      authUser.role === Role.ADMIN || authUser.role === Role.PARENT;
     if (!canReject)
       throw new ForbiddenException("Insufficient role to reject actions");
 
@@ -67,7 +69,8 @@ export class PendingActionsController {
       {
         status: "rejected",
         reason: dto.reason,
-      }, authUser,
+      },
+      authUser,
     );
   }
 }

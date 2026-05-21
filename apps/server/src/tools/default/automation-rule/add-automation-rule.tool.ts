@@ -98,14 +98,14 @@ export class AddAutomationRuleTool extends ToolHandler<
 
     const rule = await this.automationStore.create(
       {
-        userId: context.userId,
+        userId: context.authUser.id,
         name: params.name,
         description: params.description,
         trigger,
         actions: params.actions.map((a) => ({ ...a, id: crypto.randomUUID() })),
         cooldownMinutes: params.cooldownMinutes,
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

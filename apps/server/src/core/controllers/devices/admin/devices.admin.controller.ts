@@ -23,7 +23,7 @@ import { CurrentUser } from "../../../../common/decorators/current-user.decorato
 @Controller("v1/admin/devices")
 @Roles(Role.ADMIN)
 export class DevicesAdminController {
-  constructor(private readonly deviceStore: DeviceStore) {}
+  constructor(private readonly deviceStore: DeviceStore) { }
 
   @Post("search")
   @HttpCode(HttpStatus.OK)

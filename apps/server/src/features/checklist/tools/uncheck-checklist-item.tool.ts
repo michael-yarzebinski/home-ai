@@ -47,7 +47,7 @@ export class UncheckChecklistItemTool extends ToolHandler<
     const item = await this.checklistManager.uncheckItem(
       params.checklistId,
       params.checklistItemId,
-      context.requestUser,
+      context.authUser,
     );
 
     return {

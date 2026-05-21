@@ -34,9 +34,7 @@ export class ToolRegistry implements OnModuleInit {
     }
   }
 
-  async getAvailableTools(
-    requestUser?: AuthUser,
-  ): Promise<RegisteredTool[]> {
+  async getAvailableTools(requestUser?: AuthUser): Promise<RegisteredTool[]> {
     const tools = await this.toolStore.getAll(requestUser);
     const result: RegisteredTool[] = [];
 

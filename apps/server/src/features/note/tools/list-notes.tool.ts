@@ -43,8 +43,8 @@ export class ListNotesTool extends ToolHandler<
     _params: z.infer<typeof ListNotesToolSchema>,
     context: ToolContext,
   ): Promise<ListNotesResult> {
-    const notes = await this.noteStore.getAll(context.requestUser);
-    const availableNotes = addPermissionFlags(notes, context.userRole);
+    const notes = await this.noteStore.getAll(context.authUser);
+    const availableNotes = addPermissionFlags(notes, context.authUser.role);
 
     return {
       notes: availableNotes,

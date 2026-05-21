@@ -59,7 +59,8 @@ export class ChecklistItemsController {
     authUser: AuthUser,
   ): Promise<void> {
     const checklist = await this.checklistStore.getByIdForWrite(
-      checklistId, authUser,
+      checklistId,
+      authUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
@@ -101,14 +102,22 @@ export class ChecklistItemsController {
   async check(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
     const item = await this.getChecklistItemWrapper(id, authUser);
     await this.ensureChecklistReadableForUser(item.checklistId, authUser);
-    return this.checklistManagerService.checkItem(item.checklistId, id, authUser);
+    return this.checklistManagerService.checkItem(
+      item.checklistId,
+      id,
+      authUser,
+    );
   }
 
   @Post(":id/uncheck")
   async uncheck(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
     const item = await this.getChecklistItemWrapper(id, authUser);
     await this.ensureChecklistReadableForUser(item.checklistId, authUser);
-    return this.checklistManagerService.uncheckItem(item.checklistId, id, authUser);
+    return this.checklistManagerService.uncheckItem(
+      item.checklistId,
+      id,
+      authUser,
+    );
   }
 
   @Post(":id/assign")
@@ -128,7 +137,8 @@ export class ChecklistItemsController {
 
     return this.checklistItemStore.update(
       id,
-      { assigneeId: dto.assigneeId }, authUser,
+      { assigneeId: dto.assigneeId },
+      authUser,
     );
   }
 
@@ -136,6 +146,10 @@ export class ChecklistItemsController {
   async unassign(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
     const item = await this.getChecklistItemWrapper(id, authUser);
     await this.ensureChecklistWritableForUser(item.checklistId, authUser);
-    return this.checklistItemStore.update(id, { assigneeId: undefined }, authUser);
+    return this.checklistItemStore.update(
+      id,
+      { assigneeId: undefined },
+      authUser,
+    );
   }
 }

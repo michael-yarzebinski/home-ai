@@ -85,7 +85,7 @@ export class AddChecklistItemTool extends ToolHandler<
   ): Promise<AddChecklistItemResult> {
     const checklist = await this.checklistStore.getByIdForWrite(
       params.checklistId,
-      context.requestUser,
+      context.authUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
@@ -102,7 +102,7 @@ export class AddChecklistItemTool extends ToolHandler<
         status: ChecklistItemStatus.PENDING,
         metadata: {},
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

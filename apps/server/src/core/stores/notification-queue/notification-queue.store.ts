@@ -1,9 +1,7 @@
 // src/core/stores/notification-queue/notification-queue.store.ts
 import type { Knex } from "knex";
 
-import {
-  AbstractEntityStore,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import type {
   NotificationQueue,
   InsertableNotificationQueue,

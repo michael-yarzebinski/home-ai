@@ -5,9 +5,11 @@ import {
   ClipboardList,
   Home,
   LayoutDashboard,
+  ListChecks,
   MessageSquare,
   Plug,
   Radio,
+  Recycle,
   Search,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -43,6 +45,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
       { icon: Search, label: 'Entity Search', href: '/entities' },
+      { icon: Recycle, label: 'Forms playground', href: '/dev/automation-rule-playground' },
     ],
   },
 
@@ -57,6 +60,7 @@ const NAV_SECTIONS: NavSection[] = [
         requiredRoles: [Role.ADMIN, Role.PARENT],
       },
       { icon: MessageSquare, label: 'Chat', href: '/chat' },
+      { icon: ListChecks, label: 'Checklists', href: '/checklists/all' },
     ],
   },
   {

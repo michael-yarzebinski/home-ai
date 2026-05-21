@@ -35,12 +35,12 @@ export class ListChecklistsTool extends ToolHandler<
     context: ToolContext,
   ): Promise<ListChecklistsResult> {
     const checklists = await this.checklistStore.getAll(
-      context.requestUser,
+      context.authUser,
       false,
     );
     const availableChecklists = addPermissionFlags(
       checklists,
-      context.requestUser.role,
+      context.authUser.role,
     );
 
     return {

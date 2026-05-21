@@ -134,7 +134,7 @@ const restore = useAdminDeviceRestore();
 
 ## Todos
 
-- [ ] TanStack Query + `QueryClientProvider`.
-- [ ] `src/api/client.ts`.
-- [ ] `src/api/devices/` six files (reference).
-- [ ] Same pattern for other resources; skip `admin/` when absent.
+- [x] TanStack Query + `QueryClientProvider`.
+- [x] `src/api/client.ts`.
+- [x] `src/api/devices/` six files (reference).
+- [x] Same pattern for at least one additional resource (`automation-rules/`); extend for others as needed.

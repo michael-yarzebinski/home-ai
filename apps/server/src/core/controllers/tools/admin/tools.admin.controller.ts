@@ -28,7 +28,7 @@ import { AuthUser } from "../../../auth/jwt.strategy";
 @Controller("v1/admin/tools")
 @Roles(Role.ADMIN)
 export class ToolsAdminController {
-  constructor(private readonly toolStore: ToolStore) {}
+  constructor(private readonly toolStore: ToolStore) { }
 
   @Post("search")
   @HttpCode(HttpStatus.OK)

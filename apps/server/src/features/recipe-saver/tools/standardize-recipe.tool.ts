@@ -59,10 +59,7 @@ export class StandardizeRecipeTool extends ToolHandler<
     params: z.infer<typeof StandardizeRecipeSchema>,
     context: ToolContext,
   ): Promise<StructuredRecipe> {
-    const existing = await this.ingredientStore.getAll(
-      context.requestUser,
-      false,
-    );
+    const existing = await this.ingredientStore.getAll(context.authUser, false);
     const knownNames = existing
       .map((i) => i.name)
       .slice(0, 100)
@@ -70,7 +67,6 @@ export class StandardizeRecipeTool extends ToolHandler<
 
     const systemPrompt = `
       You are a specialized recipe extraction engine. 
-      Target User: ${context.userName || "User"}
       Preferred Units: ${context.preferences?.units || "Imperial"}
 
       TASK: 
@@ -103,7 +99,7 @@ export class StandardizeRecipeTool extends ToolHandler<
         ],
         jsonMode: true,
         context: {
-          userId: context.userId,
+          userId: context.authUser.id,
           chatSessionId: context.chatSessionId,
           originalPrompt: `Standardizing recipe extraction`,
         },

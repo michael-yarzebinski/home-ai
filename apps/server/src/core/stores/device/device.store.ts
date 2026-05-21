@@ -1,7 +1,5 @@
 import type { Knex } from "knex";
-import {
-  AbstractEntityStore,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import type {
   Device,
   InsertableDevice,

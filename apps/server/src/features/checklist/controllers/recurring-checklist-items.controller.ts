@@ -39,7 +39,8 @@ export class RecurringChecklistItemsController {
     authUser: AuthUser,
   ): Promise<RecurringChecklistItem> {
     const recurring = await this.recurringChecklistItemStore.getById(
-      recurringItemId, authUser,
+      recurringItemId,
+      authUser,
     );
     if (!recurring) {
       throw new NotFoundException("Recurring checklist item not found");
@@ -62,7 +63,8 @@ export class RecurringChecklistItemsController {
     authUser: AuthUser,
   ): Promise<void> {
     const checklist = await this.checklistStore.getByIdForWrite(
-      checklistId, authUser,
+      checklistId,
+      authUser,
     );
     if (!checklist) {
       throw new NotFoundException("Checklist not found");
@@ -76,7 +78,8 @@ export class RecurringChecklistItemsController {
     @CurrentUser() authUser: AuthUser,
   ) {
     return this.recurringChecklistItemStore.search(
-      { ...dto, includeInactive: false }, authUser,
+      { ...dto, includeInactive: false },
+      authUser,
     );
   }
 
@@ -94,10 +97,12 @@ export class RecurringChecklistItemsController {
   @Get(":id")
   async getById(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
     const recurringChecklistItem = await this.getRecurringChecklistItemWrapper(
-      id, authUser,
+      id,
+      authUser,
     );
     await this.ensureChecklistReadableForUser(
-      recurringChecklistItem.checklistId, authUser,
+      recurringChecklistItem.checklistId,
+      authUser,
     );
     return recurringChecklistItem;
   }
@@ -110,10 +115,12 @@ export class RecurringChecklistItemsController {
     @CurrentUser() authUser: AuthUser,
   ) {
     const recurringChecklistItem = await this.getRecurringChecklistItemWrapper(
-      id, authUser,
+      id,
+      authUser,
     );
     await this.ensureChecklistWritableForUser(
-      recurringChecklistItem.checklistId, authUser,
+      recurringChecklistItem.checklistId,
+      authUser,
     );
     return this.recurringChecklistItemStore.update(id, dto, authUser);
   }
@@ -122,10 +129,12 @@ export class RecurringChecklistItemsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async softDelete(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
     const recurringChecklistItem = await this.getRecurringChecklistItemWrapper(
-      id, authUser,
+      id,
+      authUser,
     );
     await this.ensureChecklistWritableForUser(
-      recurringChecklistItem.checklistId, authUser,
+      recurringChecklistItem.checklistId,
+      authUser,
     );
     await this.recurringChecklistItemStore.softDelete(id, authUser);
   }

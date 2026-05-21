@@ -63,10 +63,10 @@ export class AddChecklistTool extends ToolHandler<
   ): Promise<AddChecklistResult> {
     const readRoles = params.readRoles?.length
       ? params.readRoles
-      : [context.userRole];
+      : [context.authUser.role];
     const writeRoles = params.writeRoles?.length
       ? params.writeRoles
-      : [context.userRole];
+      : [context.authUser.role];
 
     const checklist = await this.checklistStore.create(
       {
@@ -75,7 +75,7 @@ export class AddChecklistTool extends ToolHandler<
         readRoles,
         writeRoles,
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

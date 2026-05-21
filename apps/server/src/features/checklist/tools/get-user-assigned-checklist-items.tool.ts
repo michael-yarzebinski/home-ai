@@ -35,8 +35,8 @@ export class GetUserAssignedChecklistItemsTool extends ToolHandler<
     context: ToolContext,
   ): Promise<GetUserAssignedChecklistItemsResult> {
     const result = await this.checklistItemStore.getByAssigneeId(
-      context.requestUser.id,
-      context.requestUser,
+      context.authUser.id,
+      context.authUser,
       false,
     );
 

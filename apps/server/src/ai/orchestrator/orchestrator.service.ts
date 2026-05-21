@@ -35,7 +35,7 @@ export class OrchestratorService {
     private readonly appConfigService: AppConfigService,
     private readonly conversationStore: ConversationStore,
     @InjectRedis() private readonly redis: Redis,
-  ) { }
+  ) {}
 
   async handleEvent(
     user: User,

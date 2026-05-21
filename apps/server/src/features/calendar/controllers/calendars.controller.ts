@@ -33,7 +33,10 @@ export class CalendarsController {
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.calendarStore.search({ ...dto, includeInactive: false }, authUser);
+    return this.calendarStore.search(
+      { ...dto, includeInactive: false },
+      authUser,
+    );
   }
 
   @Get(":id")

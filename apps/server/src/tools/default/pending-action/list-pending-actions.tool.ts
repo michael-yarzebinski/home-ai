@@ -55,7 +55,7 @@ export class ListPendingActionsTool extends ToolHandler<
   ): Promise<ListPendingActionsResult> {
     const pendingActions = await this.pendingActionStore.getAllPendingActions();
     const availableTools = await this.toolRegistry.getAvailableToolsForUser(
-      context.requestUser,
+      context.authUser,
     );
     const toolsMap = new Map(availableTools.map((t) => [t.id, t]));
 
@@ -64,7 +64,7 @@ export class ListPendingActionsTool extends ToolHandler<
     ];
     const requesters = await this.userStore.getByIds(
       requesterIds,
-      context.requestUser,
+      context.authUser,
     );
     const requestersMap = new Map(requesters.map((u) => [u.id, u]));
 

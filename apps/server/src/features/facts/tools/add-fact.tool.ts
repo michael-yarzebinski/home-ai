@@ -71,10 +71,10 @@ export class AddFactTool extends ToolHandler<
   ): Promise<AddFactResult> {
     const readRoles = params.readRoles?.length
       ? (params.readRoles as Role[])
-      : [context.requestUser.role];
+      : [context.authUser.role];
     const writeRoles = params.writeRoles?.length
       ? (params.writeRoles as Role[])
-      : [context.requestUser.role];
+      : [context.authUser.role];
 
     const fact = await this.factsStore.create(
       {
@@ -84,7 +84,7 @@ export class AddFactTool extends ToolHandler<
         readRoles,
         writeRoles,
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

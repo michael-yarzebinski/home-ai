@@ -23,7 +23,7 @@ export class HomeAssistantController {
     private readonly homeAssistantService: HomeAssistantService,
   ) {}
 
-  @Get("device-status")
+  @Get("device-status/:id")
   async getDeviceStatus(
     @Param("id") deviceId: string,
     @CurrentUser() authUser: AuthUser,
@@ -41,7 +41,8 @@ export class HomeAssistantController {
     @CurrentUser() authUser: AuthUser,
   ) {
     const device = await this.deviceStore.getById(
-      payload.deviceId, authUser,
+      payload.deviceId,
+      authUser,
       false,
     );
     if (!device) {

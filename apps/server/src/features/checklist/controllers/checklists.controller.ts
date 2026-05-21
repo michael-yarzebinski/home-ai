@@ -36,7 +36,10 @@ export class ChecklistsController {
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.checklistStore.search({ ...dto, includeInactive: false }, authUser);
+    return this.checklistStore.search(
+      { ...dto, includeInactive: false },
+      authUser,
+    );
   }
 
   @Get(":id")

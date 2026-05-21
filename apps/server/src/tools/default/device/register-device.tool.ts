@@ -97,10 +97,10 @@ export class RegisterDeviceTool extends ToolHandler<
   ): Promise<RegisterDeviceResult> {
     const readRoles = params.readRoles?.length
       ? params.readRoles
-      : [context.userRole];
+      : [context.authUser.role];
     const writeRoles = params.writeRoles?.length
       ? params.writeRoles
-      : [context.userRole];
+      : [context.authUser.role];
 
     const device = await this.deviceStore.create(
       {
@@ -114,7 +114,7 @@ export class RegisterDeviceTool extends ToolHandler<
         isTimeSensitive: params.isTimeSensitive,
         extraMetadata: {},
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

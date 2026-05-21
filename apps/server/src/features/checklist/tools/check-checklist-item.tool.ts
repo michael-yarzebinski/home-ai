@@ -47,7 +47,7 @@ export class CheckChecklistItemTool extends ToolHandler<
     const item = await this.checklistManager.checkItem(
       params.checklistId,
       params.checklistItemId,
-      context.requestUser,
+      context.authUser,
     );
 
     return {

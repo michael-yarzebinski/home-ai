@@ -9,6 +9,7 @@ import {
   NotFoundException,
   Param,
   Put,
+  Post,
 } from "@nestjs/common";
 import { UserStore } from "../../stores/user/user.store";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -18,15 +19,25 @@ import {
   type UpdatableUserApi,
 } from "@home-ai/shared/domain/user/user";
 import type { AuthUser } from "../../auth/jwt.strategy";
+import { SearchCriteriaBase, SearchCriteriaSchema } from "../../../../../shared/dist/search/search";
 
 @Controller("v1/users")
 export class UsersController {
-  constructor(private readonly userStore: UserStore) {}
+  constructor(private readonly userStore: UserStore) { }
 
   private assertSelf(id: string, authUser: AuthUser) {
     if (id !== authUser.id) {
       throw new ForbiddenException("Users can only access their own account");
     }
+  }
+
+  @Post("search")
+  @HttpCode(HttpStatus.OK)
+  search(
+    @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
+    @CurrentUser() authUser: AuthUser,
+  ) {
+    return this.userStore.search({ ...dto, includeInactive: false }, authUser);
   }
 
   @Get(":id")

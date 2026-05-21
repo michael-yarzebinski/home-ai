@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api, apiToken, SESSION_KEY } from '@/lib/api';
+import { Role } from '@home-ai/shared/domain/role/role';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -16,6 +17,7 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  isAdmin: boolean | null;
   /** Calls POST /v1/auth/login, stores JWT, returns success/error */
   login: (name: string, code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -108,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin: user ? user.role === Role.ADMIN : null, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

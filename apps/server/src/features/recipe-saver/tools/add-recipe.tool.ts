@@ -101,7 +101,7 @@ export class AddRecipeTool extends ToolHandler<
           prepTimeMinutes: params.prepTimeMinutes,
           cookTimeMinutes: params.cookTimeMinutes,
         },
-        context.requestUser,
+        context.authUser,
       );
 
       const readableId = recipe.readableId;
@@ -136,7 +136,7 @@ export class AddRecipeTool extends ToolHandler<
             unit: ingredient.unit,
             notes: ingredient.notes,
           },
-          context.requestUser,
+          context.authUser,
         );
       }
 

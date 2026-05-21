@@ -55,7 +55,10 @@ export class AutomationRulesController {
     dto: InsertableAutomationRule,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.create({ ...dto, userId: authUser.id }, authUser);
+    return this.automationRuleStore.create(
+      { ...dto, userId: authUser.id },
+      authUser,
+    );
   }
 
   @Put(":id")

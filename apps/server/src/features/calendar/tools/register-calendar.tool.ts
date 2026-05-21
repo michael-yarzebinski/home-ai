@@ -58,10 +58,10 @@ export class RegisterCalendarTool extends ToolHandler<
   ): Promise<RegisterCalendarResult> {
     const readRoles = params.readRoles?.length
       ? params.readRoles
-      : [context.userRole];
+      : [context.authUser.role];
     const writeRoles = params.writeRoles?.length
       ? params.writeRoles
-      : [context.userRole];
+      : [context.authUser.role];
 
     const calendar = await this.calendarStore.create(
       {
@@ -72,7 +72,7 @@ export class RegisterCalendarTool extends ToolHandler<
         color: params.color,
         aliases: [],
       },
-      context.requestUser,
+      context.authUser,
     );
 
     return {

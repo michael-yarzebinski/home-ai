@@ -67,7 +67,7 @@ export class UpdateAutomationRuleTool extends ToolHandler<
     // Logic to merge triggerParams if they exist
     const existing = await this.automationStore.getById(
       id,
-      context.requestUser,
+      context.authUser,
       false,
     );
     if (!existing) return { success: false, message: "Rule not found" };
@@ -78,7 +78,7 @@ export class UpdateAutomationRuleTool extends ToolHandler<
       delete finalUpdate.triggerParams;
     }
 
-    await this.automationStore.update(id, finalUpdate, context.requestUser);
+    await this.automationStore.update(id, finalUpdate, context.authUser);
     return { success: true, message: `✅ Rule ${id} updated successfully.` };
   }
 }

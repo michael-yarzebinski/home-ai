@@ -54,7 +54,7 @@ export class ApproveActionTool extends ToolHandler<
     // 1. Fetch the action
     const pendingAction = await this.pendingActionStore.getByReadableId(
       params.readableId,
-      context.requestUser,
+      context.authUser,
     );
 
     if (!pendingAction) {
@@ -74,7 +74,7 @@ export class ApproveActionTool extends ToolHandler<
     // 2. Permission Check
     const originalTool = await this.toolRegistry.getRegisteredToolById(
       pendingAction.toolId,
-      context.requestUser,
+      context.authUser,
     );
 
     if (!originalTool) {
@@ -100,8 +100,8 @@ export class ApproveActionTool extends ToolHandler<
     // 4. Update Status in DB
     await this.pendingActionStore.approve(
       pendingAction.id,
-      context.userId,
-      context.requestUser,
+      context.authUser.id,
+      context.authUser,
     );
 
     return {

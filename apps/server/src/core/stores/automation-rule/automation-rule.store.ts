@@ -1,8 +1,6 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { Knex } from "knex";
-import {
-  AbstractEntityStore,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import type {
   AutomationAction,

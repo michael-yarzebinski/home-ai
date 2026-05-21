@@ -5,9 +5,7 @@ import type {
   InsertableAppConfig,
   UpdatableAppConfig,
 } from "@home-ai/shared/domain/app-config/app-config";
-import {
-  AbstractEntityStore,
-} from "../abstract/abstract-entity.store";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { AuthUser } from "../../auth/jwt.strategy";
