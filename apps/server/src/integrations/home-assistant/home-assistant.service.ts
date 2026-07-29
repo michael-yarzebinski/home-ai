@@ -141,7 +141,25 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     const automationRuleIds = Array.from(
       new Set(events.flatMap((event) => event.ruleIds)),
     );
-    const automationRules = await this.automationRuleStore.getByIds(automationRuleIds);
+    const loadedRules = await this.automationRuleStore.getByIds(automationRuleIds);
+    // Re-check cooldown at flush time so concurrent events cannot re-run the same rules.
+    const automationRules = HomeAssistantUtils.filterAutomationRules(
+      loadedRules,
+      device,
+      this.deviceCooldownMinutes,
+    );
+
+    if (automationRules.length === 0) {
+      await this.logStore.create({
+        severity: "info",
+        message: `Skipping automation flush — all rules for device ${device.slug} are on cooldown`,
+        metadata: { deviceId: device.id, ruleIds: automationRuleIds },
+      });
+      return;
+    }
+
+    // Stamp lastRun before the LLM call so subsequent HA events are filtered immediately.
+    await this.automationRuleStore.markRulesRan(automationRules.map((rule) => rule.id));
 
     const deviceState = await this.getDeviceStateAndServices(device.slug);
 
@@ -349,12 +367,13 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
 
     this.eventQueue.set(deviceId, waitingEvents);
 
+    // No debounce delay: coalesce only events already in this tick (setTimeout 0),
+    // then flush. Rule cooldown (lastRun) owns LLM throttling.
     const timeoutName = `buffer_${deviceId}`;
     if (!this.doesTimeoutExist(timeoutName)) {
-      const waitTime = this.deviceCooldownMinutes * 60 * 1000;
       const timeout = setTimeout(() => {
         this.handleEventQueue(deviceId);
-      }, waitTime);
+      }, 0);
       this.schedulerRegistry.addTimeout(timeoutName, timeout);
     }
   }

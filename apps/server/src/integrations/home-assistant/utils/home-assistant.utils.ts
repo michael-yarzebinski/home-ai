@@ -18,12 +18,23 @@ export class HomeAssistantUtils {
     }
 
     static isRulePassedCoolDown(rule: AutomationRule) {
-        if (!rule.lastRun) {
+        const lastRunMs = HomeAssistantUtils.toTimestamp(rule.lastRun);
+        if (lastRunMs === null) {
             return true;
         }
 
-        const nextAllowedAt = rule.lastRun.getTime() + rule.cooldownMinutes * 60000;
+        const nextAllowedAt = lastRunMs + rule.cooldownMinutes * 60000;
         return Date.now() >= nextAllowedAt;
+    }
+
+    /** Coerce Date | string | undefined from DB/JSON into epoch ms. */
+    static toTimestamp(value: Date | string | undefined | null): number | null {
+        if (value == null) {
+            return null;
+        }
+
+        const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+        return Number.isNaN(ms) ? null : ms;
     }
 
     // NOTE:

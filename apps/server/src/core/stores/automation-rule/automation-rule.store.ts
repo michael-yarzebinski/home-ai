@@ -41,7 +41,7 @@ export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, Aut
       trigger: trigger,
       actions: record.actions as AutomationAction[],
       cooldownMinutes: record.cooldown_minutes,
-      lastRun: record.last_run ?? undefined,
+      lastRun: record.last_run ? new Date(record.last_run) : undefined,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };
@@ -96,5 +96,20 @@ export class AutomationRuleStore extends AbstractEntityStore<AutomationRule, Aut
 
   async getForDevice(entityId: string): Promise<AutomationRule[]> {
     return this.getForTool(TriggerType.DEVICE, entityId);
+  }
+
+  /**
+   * Marks rules as recently run so cooldown filtering suppresses re-evaluation.
+   * Direct column update — avoids partial-domain domainToRecord side effects and audit spam.
+   */
+  async markRulesRan(ruleIds: string[], ranAt: Date = new Date()): Promise<void> {
+    if (ruleIds.length === 0) {
+      return;
+    }
+
+    await this.table.whereIn("id", ruleIds).update({
+      last_run: ranAt,
+      updated_at: ranAt,
+    });
   }
 }
