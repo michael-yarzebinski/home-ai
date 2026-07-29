@@ -1,87 +1,115 @@
-# Home AI — Working Todo
+# Tech Debt
 
-Maintained by Cursor agents. Update this file when priorities change, items complete, or new work is discovered. Prefer editing in place over creating parallel lists.
+General backlog of things to tackle — focused on tech debt and correctness, not a product roadmap.
 
-Last updated: 2026-07-29
+**How to use**
+- Add new items under **Open**
+- Each item needs a **title**, **date added**, and a collapsible **description**
+- Move finished items to **Done** (keep the original date added; optionally note completed date in the description)
+- Cursor agents should maintain this file when debt is found or resolved
 
 ---
 
-## Active focus: Automation latency vs event stacking
+## Open
 
-**Dilemma:** Notifications feel too slow, but removing delay risks floods and loses the ability to compile related HA entity changes into one evaluation.
+### Automation notifications are too slow
+- **Added:** 2026-07-29
+- **Status:** open
 
-**Current direction (not implemented — prior PR scraped):**
-- Short per-device coalesce window (~30s) to stack events
+<details>
+<summary>Description</summary>
+
+Device events wait `HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES` (default 5) before the LLM runs, then notifications sit in Postgres `notification_queue` until a cron that runs every 10 minutes. End-to-end can feel like 5–15+ minutes.
+
+Desired direction (not implemented):
+- ~30s per-device coalesce so related HA entity changes compile into one evaluation
 - Per-rule `cooldownMinutes` + persisted `lastRun` as the anti-flood throttle
-- Fast notification delivery (do not leave alerts sitting on a long cron)
-- In-memory buffer first; Redis only if multi-instance / durability is needed later
-- No device-level `lastTriggeredService` suppression of automations (that fights the point of rules)
+- Faster notification delivery (shorter cron or immediate send for automation alerts)
+- In-memory buffer is enough for single-process; Redis only if multi-instance later
 
-**What exists on `main` today:**
-- HA `state_changed` → match Device by slug-in-entity_id → load DEVICE rules
-- Per-device event buffer waits `HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES` (default 5) before LLM
-- Device service-call cooldown can suppress *all* rules for that device
-- Rule `lastRun` is filtered but **never written** → rule cooldown is ineffective
-- Automation path uses SOON (free/slower) model
-- `send-notification` enqueues to Postgres `notification_queue`
-- Notification cron is every **10 minutes** (comment incorrectly says every minute)
-- No Redis in this repo for device events (buffer is in-memory `Map` + timer)
+Related: closed speculative PR #1 in favor of tracking here first.
+
+</details>
+
+### Rule cooldown (`lastRun`) never persists
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+`HomeAssistantUtils.isRulePassedCoolDown` checks `automation_rules.last_run`, but nothing writes `lastRun` after a rule is evaluated. Cooldown is effectively dead. Stamp `lastRun` before the LLM call and re-filter at flush time so concurrent events cannot double-fire.
+
+</details>
+
+### Device service-call cooldown suppresses all automations
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+If `device.lastTriggeredService` is within `HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES`, *all* DEVICE rules for that device are skipped. That fights the point of automation rules (e.g. AI or user turns something on, then a follow-up state change cannot notify). Likely remove device-level suppression and keep only per-rule cooldown.
+
+</details>
+
+### Automation `deviceId` UUID vs slug mismatch
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+Rule lookup uses device UUID (`getForDevice(matchingDevice.id)`), but the orchestration prompt tells the LLM that `rule.trigger.deviceId` should equal `device.slug`. Creation guidance also says to use list-devices for deviceId. Pick one canonical id and make store, tools, and prompts agree.
+
+</details>
+
+### TIME and SYSTEM automation triggers are unwired
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+Schemas and CRUD tools allow `TIME` (cron) and `SYSTEM` (eventName) triggers, but only HA `state_changed` → DEVICE rules actually fire. Either implement schedulers/emitters or stop advertising those trigger types until they work.
+
+</details>
+
+### Notification queue cron comment is wrong
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+`notification-queue.processor.ts` comment says it runs every minute; code uses `CronExpression.EVERY_10_MINUTES`. Fix the comment when changing the schedule, and decide the real desired interval as part of notification latency work.
+
+</details>
+
+### ActionType is advisory only
+- **Added:** 2026-07-29
+- **Status:** open
+
+<details>
+<summary>Description</summary>
+
+Automation actions have `ActionType` (`NOTIFICATION`, `TASK`, `HA_SERVICE`, `SCRIPT`) but execution is whatever tools the Automation user can call via the LLM. Decide whether ActionType should map to real executors or remain natural-language guidance.
+
+</details>
 
 ---
 
-## Todo
+## Done
 
-### P0 — Make the intended controls work
+<!--
+### Example completed item
+- **Added:** YYYY-MM-DD
+- **Status:** done (YYYY-MM-DD)
 
-- [ ] Persist `automation_rules.last_run` when a rule is evaluated (stamp before LLM call)
-- [ ] Re-filter rules by `lastRun` / `cooldownMinutes` at flush time so concurrent events cannot double-fire
-- [ ] Confirm existing rules have sensible `cooldownMinutes` (create tool defaults to 60)
+<details>
+<summary>Description</summary>
 
-### P1 — Coalesce without multi-minute lag
+What it was and how it was resolved.
 
-- [ ] Replace multi-minute HA debounce with a short per-device coalesce window (**target: 30 seconds**)
-- [ ] On flush: one SOON orchestrator call with compiled transitions + eligible rules
-- [ ] Keep buffer in-memory for single-process home-ai; document Redis as a later option only
-- [ ] Stop using `HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES` as the event compile delay
-- [ ] Remove or stop using device `lastTriggeredService` suppression for automation eligibility
-- [ ] Update `.env.example` comments so cooldown knobs match real behavior
-
-### P2 — Timely notification delivery
-
-- [ ] Speed up notification drain (e.g. every 30s) **or** bypass the queue for automation alerts and send via BlueBubbles immediately
-- [ ] Keep quiet-hours behavior for non-urgent / queued messages
-- [ ] Fix misleading cron comment in `notification-queue.processor.ts`
-
-### P3 — Correctness / friction already found
-
-- [ ] Resolve `deviceId` mismatch: store lookup uses UUID; automation prompt tells LLM to match slug
-- [ ] Decide fate of `TIME` / `SYSTEM` triggers (schema exists; nothing fires them)
-- [ ] Decide whether `ActionType` should drive real executors or stay advisory NL for the LLM
-- [ ] Consider whether `isTimeSensitive` on devices should affect coalesce / delivery priority
-
-### P4 — Optional later architecture
-
-- [ ] If running multiple server replicas: move per-device event buffer to Redis (or similar) with TTL = coalesce window
-- [ ] Per-rule or per-user digest mode (“stack 3 fridge events → one message”) beyond single coalesce flush
-- [ ] Metrics/logging: event → flush → LLM → notify enqueue → send (latency breakdown)
-
----
-
-## Decisions log
-
-| Date | Decision |
-|------|----------|
-| 2026-07-29 | Scrapbed latency PR (`#1` closed). Capture work here instead of merging speculative code. |
-| 2026-07-29 | Prefer ~30s event compile over 5-minute device cooldown. |
-| 2026-07-29 | Rule `lastRun` cooldown = anti-flood; coalesce window = event stacking. Separate knobs. |
-| 2026-07-29 | No Redis required for device events in current single-process setup. |
-
----
-
-## Agent maintenance notes
-
-When working this area:
-1. Check boxes / move items as status changes.
-2. Add newly discovered issues under the right priority.
-3. Append notable decisions to the decisions log.
-4. Do not re-open large speculative refactors without updating this file first.
+</details>
+-->
