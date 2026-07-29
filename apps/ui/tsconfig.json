@@ -2,7 +2,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@home-ai/shared/*": ["../shared/src/*"]
+      "@home-ai/shared/*": ["../shared/src/*"],
+      "@/*": ["./src/*"]
     },
     "target": "ES2020",
     "useDefineForClassFields": true,

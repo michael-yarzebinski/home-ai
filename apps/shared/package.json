@@ -18,13 +18,17 @@
     "./search/*": {
       "types": "./dist/search/*.d.ts",
       "default": "./dist/search/*.js"
+    },
+    "./common/*": {
+      "types": "./dist/common/*.d.ts",
+      "default": "./dist/common/*.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "zod": "^4.1.12"
+    "zod": "^4.4.1"
   },
   "devDependencies": {
     "typescript": "^5.6.0"

@@ -1,14 +1,12 @@
 import { Module } from "@nestjs/common";
-import { AuditStore } from "./stores/audit/audit.store";
-import { AIAuditStore } from "./stores/ai-audit/ai-audit.store";
-import { LogStore } from "./stores/log/log.store";
-import { NotificationLogStore } from "./stores/notification-log/notification-log.store";
+import { AuditStore } from "./stores/monitoring/audit/audit.store";
+import { AIAuditStore } from "./stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "./stores/monitoring/log/log.store";
+import { NotificationLogStore } from "./stores/monitoring/notification-log/notification-log.store";
 import { NotificationQueueStore } from "./stores/notification-queue/notification-queue.store";
 import { ToolStore } from "./stores/tool/tool.store";
 import { UserStore } from "./stores/user/user.store";
 import { DeviceStore } from "./stores/device/device.store";
-import { CalendarStore } from "./stores/calendar/calendar.store";
-import { NoteStore } from "./stores/note/note.store";
 import { PendingActionStore } from "./stores/pending-action/pending-action.store";
 import { AppConfigService } from "./services/app-config.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -17,10 +15,51 @@ import knex, { Knex } from "knex";
 import * as pg from "pg";
 import { ConversationStore } from "./stores/conversation/conversation.store";
 import { NotificationService } from "./services/notification.service";
+import { DashboardService } from "./services/dashboard.service";
+import { AuthService } from "./services/auth.service";
 import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.store";
+import { JwtModule } from "@nestjs/jwt";
+import { PassportModule } from "@nestjs/passport";
+import { JwtStrategy } from "./auth/jwt.strategy";
+import { AuthController } from "./controllers/auth/auth.controller";
+import { AppConfigController } from "./controllers/app-config/app-config.controller";
+import { AutomationRulesController } from "./controllers/automation-rules/automation-rules.controller";
+import { ChatSessionsController } from "./controllers/chat-sessions/chat-sessions.controller";
+import { DevicesController } from "./controllers/devices/devices.controller";
+import { DeviceEventsController } from "./controllers/devices/device-events.controller";
+import { PendingActionsController } from "./controllers/pending-actions/pending-actions.controller";
+import { ToolsController } from "./controllers/tools/tools.controller";
+import { UsersController } from "./controllers/users/users.controller";
+import { DeviceEventStore } from "./stores/device/device-event.store";
+import { BullModule } from "@nestjs/bullmq";
 
 @Module({
-  imports: [ConfigModule],
+  imports: [
+    ConfigModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>("JWT_SECRET"),
+        signOptions: { expiresIn: "12h" },
+      }),
+      inject: [ConfigService],
+    }),
+    BullModule.registerQueue({
+      name: "ha-events",
+    }),
+  ],
+  controllers: [
+    AppConfigController,
+    AuthController,
+    AutomationRulesController,
+    ChatSessionsController,
+    DevicesController,
+    DeviceEventsController,
+    PendingActionsController,
+    ToolsController,
+    UsersController,
+  ],
   providers: [
     {
       provide: "KNEX_CONNECTION",
@@ -71,7 +110,6 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
       },
       inject: [ConfigService],
     },
-
     AppConfigStore,
     AuditStore,
     AIAuditStore,
@@ -82,16 +120,20 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
     ToolStore,
     UserStore,
     DeviceStore,
-    CalendarStore,
-    NoteStore,
     PendingActionStore,
     AutomationRuleStore,
 
     AppConfigService,
+    AuthService,
+    DashboardService,
+    JwtStrategy,
     NotificationService,
+    DeviceEventStore,
   ],
   exports: [
     "KNEX_CONNECTION",
+    BullModule,
+    AppConfigStore,
     AuditStore,
     AIAuditStore,
     ConversationStore,
@@ -101,13 +143,15 @@ import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.st
     ToolStore,
     UserStore,
     DeviceStore,
-    CalendarStore,
-    NoteStore,
     PendingActionStore,
     AutomationRuleStore,
 
     AppConfigService,
+    AuthService,
+    DashboardService,
+    JwtModule,
     NotificationService,
+    DeviceEventStore,
   ],
 })
-export class CoreModule { }
+export class CoreModule {}

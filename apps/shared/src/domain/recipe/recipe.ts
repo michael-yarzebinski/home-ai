@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { z } from 'zod';
 
 export const RecipeSchema = z.object({
@@ -15,5 +14,10 @@ export const RecipeSchema = z.object({
 });
 
 export type Recipe = z.infer<typeof RecipeSchema>;
-export type InsertableRecipe = Insertable<Recipe>;
-export type UpdatableRecipe = Updatable<Recipe>;
+
+// readableId is auto-assigned by the database.
+export const InsertableRecipeSchema = RecipeSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true, readableId: true });
+export const UpdatableRecipeSchema = InsertableRecipeSchema.partial();
+
+export type InsertableRecipe = z.infer<typeof InsertableRecipeSchema>;
+export type UpdatableRecipe = z.infer<typeof UpdatableRecipeSchema>;

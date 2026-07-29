@@ -1,9 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { GoogleGenerativeAI, Content, Part } from "@google/generative-ai";
 import { LLMServiceBase } from "../../abstract/llm.service.base";
-import { LLMQueryParams, UnifiedMessage, UnifiedToolCall } from "../../types/llm-query-params";
+import {
+  LLMQueryParams,
+  UnifiedMessage,
+  UnifiedToolCall,
+} from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
-import { AIAuditStore } from "../../../core/stores/ai-audit/ai-audit.store";
+import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
 
 @Injectable()
 export class GeminiLLMService extends LLMServiceBase {
@@ -15,7 +19,7 @@ export class GeminiLLMService extends LLMServiceBase {
     private readonly modelConfig: {
       model: string;
       apiKey: string;
-    }
+    },
   ) {
     super(aiAuditStore);
     this.model = modelConfig.model;
@@ -37,7 +41,9 @@ export class GeminiLLMService extends LLMServiceBase {
     });
 
     // 2. Convert UnifiedMessages to Gemini "Content" format
-    const contents: Content[] = params.messages.map((msg) => this.mapMessageToContent(msg));
+    const contents: Content[] = params.messages.map((msg) =>
+      this.mapMessageToContent(msg),
+    );
 
     // 3. Send Request
     const result = await model.generateContent({ contents });
@@ -47,8 +53,10 @@ export class GeminiLLMService extends LLMServiceBase {
 
     // 4. Parse the Response
     const candidate = response.candidates?.[0];
-    const text = response.text()
-    const thoughtSignature = candidate?.content?.parts?.find(this.isThoughtSignaturePart)?.thoughtSignature;  // Is there a cleaner way?
+    const rawText = response.text();
+    const thoughtSignature = candidate?.content?.parts?.find(
+      this.isThoughtSignaturePart,
+    )?.thoughtSignature;
     const functionCalls = response.functionCalls();
 
     const toolCalls: UnifiedToolCall[] | undefined = functionCalls?.map(
@@ -59,20 +67,45 @@ export class GeminiLLMService extends LLMServiceBase {
       }),
     );
 
+    // Gemini 2.5 Flash (and other thinking models) can return an empty text part
+    // on the final turn after tool use — the model put all its output into reasoning
+    // (thoughtSignature) and emitted no visible content. When this happens with no
+    // function calls we make one targeted follow-up asking for a plain-text reply,
+    // keeping this quirk fully contained inside the provider.
+    let text = rawText?.trim() ?? "";
+    if (!text && (!toolCalls || toolCalls.length === 0)) {
+      const summaryContents: Content[] = [
+        ...contents,
+        { role: "model", parts: [{ text: "" }] },
+        {
+          role: "user",
+          parts: [
+            {
+              text: "Please respond with a brief plain-text summary of what you just did or your answer.",
+            },
+          ],
+        },
+      ];
+      const summaryResult = await model.generateContent({
+        contents: summaryContents,
+      });
+      text = summaryResult.response.text()?.trim() || "Done.";
+    }
+
     const finalResponse: LLMResponse = {
       content: text,
       toolCalls,
       latencyMs,
       usage: response.usageMetadata
         ? {
-          promptTokens: response.usageMetadata.promptTokenCount,
-          completionTokens: response.usageMetadata.candidatesTokenCount,
-          totalTokens: response.usageMetadata.totalTokenCount,
-        }
+            promptTokens: response.usageMetadata.promptTokenCount,
+            completionTokens: response.usageMetadata.candidatesTokenCount,
+            totalTokens: response.usageMetadata.totalTokenCount,
+          }
         : undefined,
       metadata: {
         thoughtSignature,
-      }
+      },
     };
 
     // 5. Log for Audit
@@ -97,7 +130,9 @@ export class GeminiLLMService extends LLMServiceBase {
 
         // Safety check: ensure _def exists
         if (!zodValue._def) {
-          console.warn(`Tool ${tool.name} parameter ${key} is missing Zod definition.`);
+          console.warn(
+            `Tool ${tool.name} parameter ${key} is missing Zod definition.`,
+          );
           continue;
         }
 
@@ -137,22 +172,25 @@ export class GeminiLLMService extends LLMServiceBase {
    * Handles Thought Signatures for Gemini 3.1
    */
   private mapMessageToContent(msg: UnifiedMessage): Content {
-    const role = msg.role === 'assistant' ? 'model' : 'user';
+    const role = msg.role === "assistant" ? "model" : "user";
     const parts: any[] = [];
 
     // 1. TOOL TURN (The Result)
-    if (msg.role === 'tool') {
+    if (msg.role === "tool") {
       parts.push({
         functionResponse: {
           name: msg.name!,
-          response: typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content,
+          response:
+            typeof msg.content === "string"
+              ? JSON.parse(msg.content)
+              : msg.content,
         },
       });
       return { role, parts };
     }
 
     // 2. ASSISTANT TURN (The Action)
-    if (msg.role === 'assistant') {
+    if (msg.role === "assistant") {
       if (msg.toolCalls && msg.toolCalls.length > 0) {
         return {
           role,
@@ -161,7 +199,7 @@ export class GeminiLLMService extends LLMServiceBase {
               functionCall: {
                 name: call.name,
                 args: call.args,
-              }
+              },
             };
 
             // Attach to the PART, not the functionCall object
@@ -170,7 +208,7 @@ export class GeminiLLMService extends LLMServiceBase {
             }
 
             return part;
-          })
+          }),
         };
       }
     }
@@ -180,7 +218,9 @@ export class GeminiLLMService extends LLMServiceBase {
     return { role, parts };
   }
 
-  private isThoughtSignaturePart(part: any): part is Part & { thoughtSignature: string } {
+  private isThoughtSignaturePart(
+    part: any,
+  ): part is Part & { thoughtSignature: string } {
     return part && !!part.thoughtSignature;
   }
 }

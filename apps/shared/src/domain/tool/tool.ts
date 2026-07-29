@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { RoleSchema } from '../role/role';
 import { z } from 'zod';
 
@@ -16,5 +15,9 @@ export const ToolSchema = z.object({
 });
 
 export type Tool = z.infer<typeof ToolSchema>;
-export type InsertableTool = Insertable<Tool>;
-export type UpdatableTool = Updatable<Tool>;
+
+export const InsertableToolSchema = ToolSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableToolSchema = InsertableToolSchema.partial();
+
+export type InsertableTool = z.infer<typeof InsertableToolSchema>;
+export type UpdatableTool = z.infer<typeof UpdatableToolSchema>;

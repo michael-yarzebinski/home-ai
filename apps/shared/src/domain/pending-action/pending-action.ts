@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from "../helper/crud.helper";
 import { z } from 'zod';
 
 export const PendingActionSchema = z.object({
@@ -16,5 +15,10 @@ export const PendingActionSchema = z.object({
 });
 
 export type PendingAction = z.infer<typeof PendingActionSchema>;
-export type InsertablePendingAction = Insertable<PendingAction>;
-export type UpdatablePendingAction = Updatable<PendingAction>;
+
+// readableId is auto-assigned by the database.
+export const InsertablePendingActionSchema = PendingActionSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true, readableId: true });
+export const UpdatablePendingActionSchema = InsertablePendingActionSchema.partial();
+
+export type InsertablePendingAction = z.infer<typeof InsertablePendingActionSchema>;
+export type UpdatablePendingAction = z.infer<typeof UpdatablePendingActionSchema>;

@@ -11,22 +11,46 @@ import { Injectable } from "@nestjs/common";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const IngredientSchema = z.object({
-  name: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Ingredient name is required")),
-  quantity: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
+  name: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(1, "Ingredient name is required"),
+  ),
+  quantity: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
   unit: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
   notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
 });
 
 const AddRecipeToolSchema = z.object({
-  title: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(1, "Recipe title is required")),
+  title: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(1, "Recipe title is required"),
+  ),
   ingredients: z
     .preprocess(ToolParameterUtils.toUnknownArray, z.array(IngredientSchema))
     .describe("The structured list of ingredients."),
-  instructions: z.preprocess(ToolParameterUtils.toStringValue, z.string().min(10, "Instructions are too short")),
-  servings: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  prepTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  cookTimeMinutes: z.preprocess(ToolParameterUtils.toNumberValue, z.number().optional()),
-  url: z.preprocess(ToolParameterUtils.toStringValue, z.string().url().optional().or(z.literal(""))),
+  instructions: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().min(10, "Instructions are too short"),
+  ),
+  servings: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  prepTimeMinutes: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  cookTimeMinutes: z.preprocess(
+    ToolParameterUtils.toNumberValue,
+    z.number().optional(),
+  ),
+  url: z.preprocess(
+    ToolParameterUtils.toStringValue,
+    z.string().url().optional().or(z.literal("")),
+  ),
   notes: z.preprocess(ToolParameterUtils.toStringValue, z.string().optional()),
   temporaryPdfPath: z.preprocess(
     ToolParameterUtils.toStringValue,
@@ -69,13 +93,16 @@ export class AddRecipeTool extends ToolHandler<
   ): Promise<AddRecipeResult> {
     try {
       // Create the base recipe record
-      const recipe = await this.recipeStore.create({
-        title: params.title,
-        url: params.url || undefined,
-        servings: params.servings,
-        prepTimeMinutes: params.prepTimeMinutes,
-        cookTimeMinutes: params.cookTimeMinutes,
-      });
+      const recipe = await this.recipeStore.create(
+        {
+          title: params.title,
+          url: params.url || undefined,
+          servings: params.servings,
+          prepTimeMinutes: params.prepTimeMinutes,
+          cookTimeMinutes: params.cookTimeMinutes,
+        },
+        context.authUser,
+      );
 
       const readableId = recipe.readableId;
       const attachmentsDir = await this.appConfigService.getFromEnv(
@@ -84,24 +111,33 @@ export class AddRecipeTool extends ToolHandler<
 
       // Handle PDF movement from temporary storage to permanent storage
       const finalPdfFilename = `${readableId}.pdf`;
-      const finalPdfPath = path.join(attachmentsDir, "recipes", finalPdfFilename);
+      const finalPdfPath = path.join(
+        attachmentsDir,
+        "recipes",
+        finalPdfFilename,
+      );
 
       try {
         await fs.access(params.temporaryPdfPath);
         await fs.rename(params.temporaryPdfPath, finalPdfPath);
-      } catch (e) {
-        console.warn(`[AddRecipeTool] PDF file not found at ${params.temporaryPdfPath}. Skipping rename.`);
+      } catch {
+        console.warn(
+          `[AddRecipeTool] PDF file not found at ${params.temporaryPdfPath}. Skipping rename.`,
+        );
       }
 
       // Save standardized ingredients
       for (const ingredient of params.ingredients) {
-        await this.ingredientStore.create({
-          recipeId: recipe.id,
-          name: ingredient.name,
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
-          notes: ingredient.notes,
-        });
+        await this.ingredientStore.create(
+          {
+            recipeId: recipe.id,
+            name: ingredient.name,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+            notes: ingredient.notes,
+          },
+          context.authUser,
+        );
       }
 
       return {

@@ -1,11 +1,13 @@
 // features/ingredients/ingredients.store.ts
-import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../../../core/stores/abstract/abstract-entity.store';
-import type { Ingredient } from '@home-ai/shared/domain/ingredient/ingredient';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { AuditStore } from '../../../core/stores/audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
+import type { Knex } from "knex";
+import { AbstractEntityStore } from "../../../core/stores/abstract/abstract-entity.store";
+import type {
+  Ingredient,
+  InsertableIngredient,
+  UpdatableIngredient,
+} from "@home-ai/shared/domain/recipe/ingredient";
+import { AuditStore } from "../../../core/stores/monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
 
 export interface IngredientRecord {
   id: string;
@@ -20,20 +22,35 @@ export interface IngredientRecord {
 }
 
 @Injectable()
-export class IngredientStore extends AbstractEntityStore<Ingredient, IngredientRecord> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'ingredients', entityType: 'ingredients' });
+export class IngredientStore extends AbstractEntityStore<
+  Ingredient,
+  IngredientRecord,
+  InsertableIngredient,
+  UpdatableIngredient
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, {
+      tableName: "ingredients",
+      entityType: "ingredients",
+    });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Ingredient>> {
-    return {
-        items: [],
-        total: 0,
-        page: criteria.page,
-        pageSize: criteria.pageSize,
-        hasNext: false,
-        hasPrevious: false,
-      };
+  protected validateUserForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query; // Scoped to recipe via recipeId — no separate user filtering needed.
+  }
+
+  protected validateUserForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query;
+  }
+
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike("name", like).orWhereILike("notes", like),
+    );
   }
 
   protected recordToDomain(record: IngredientRecord): Ingredient {
@@ -62,5 +79,12 @@ export class IngredientStore extends AbstractEntityStore<Ingredient, IngredientR
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  async getByRecipeId(recipeId: string): Promise<Ingredient[]> {
+    const records = (await this.active
+      .where({ recipe_id: recipeId })
+      .orderBy('name', 'asc')) as IngredientRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 }

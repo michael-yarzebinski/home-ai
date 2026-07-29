@@ -2,8 +2,8 @@ import { Injectable, OnModuleInit } from "@nestjs/common";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ToolRegistry } from "src/tools/registry/tool.registry";
 import { ClsService } from "nestjs-cls";
-import { Role } from "@home-ai/shared/domain/role/role";
 import { ToolContext } from "../../tools/types/tool-context";
+import { AuthUser } from "../../core/auth/jwt.strategy";
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -36,31 +36,30 @@ export class McpService implements OnModuleInit {
   }
 
   async execute(name: string, args: any) {
-      // Pull user info from CLS (set by the Orchestrator)
-      const userRole = this.cls.get<Role>("userRole");
+    // Pull user info from CLS (set by the Orchestrator)
+    const authUser = this.cls.get<AuthUser>("authUser");
 
-      // 2. Use the registry's built-in RBAC check
-      const registeredTool = await this.toolRegistry.getRegisteredTool(
-        name,
-        userRole,
-      );
+    // 2. Use the registry's built-in RBAC check
+    const registeredTool = await this.toolRegistry.getRegisteredTool(
+      name,
+      authUser,
+    );
 
-      if (!registeredTool) {
-        throw new Error(`Unauthorized or unknown tool: ${name}`);
-      }
-      const context = this.getToolContext();
+    if (!registeredTool) {
+      throw new Error(`Unauthorized or unknown tool: ${name}`);
+    }
+    const context = this.getToolContext();
 
-      const result = await registeredTool.handler.execute(args, context);
+    const result = await registeredTool.handler.execute(args, context);
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      };
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
   }
 
   private getToolContext(): ToolContext {
     return {
-      userId: this.cls.get("userId"),
-      userRole: this.cls.get("userRole"),
+      authUser: this.cls.get<AuthUser>("authUser"),
       userName: this.cls.get("userName"),
       chatSessionId: this.cls.get("chatSessionId"),
       currentISO: this.cls.get("currentISO"),

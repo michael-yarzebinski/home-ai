@@ -1,14 +1,12 @@
 // src/ai/abstract/llm.service.ts
-import { Injectable } from '@nestjs/common';
-import { AIAuditStore } from '../../core/stores/ai-audit/ai-audit.store';
-import { LLMQueryParams, UnifiedMessage } from '../types/llm-query-params';
-import { LLMResponse } from '../types/llm-response';
-
-
+import { Injectable } from "@nestjs/common";
+import { AIAuditStore } from "../../core/stores/monitoring/ai-audit/ai-audit.store";
+import { LLMQueryParams, UnifiedMessage } from "../types/llm-query-params";
+import { LLMResponse } from "../types/llm-response";
 
 @Injectable()
 export abstract class LLMServiceBase {
-  constructor(protected readonly aiAuditStore: AIAuditStore) { }
+  constructor(protected readonly aiAuditStore: AIAuditStore) {}
 
   /**
    * The core method implemented by GeminiService or OllamaService.
@@ -18,9 +16,12 @@ export abstract class LLMServiceBase {
   /**
    * Helper to standardize the "Assistant" message for the next turn.
    */
-  protected createAssistantMessage(content: string, toolCalls?: any[]): UnifiedMessage {
+  protected createAssistantMessage(
+    content: string,
+    toolCalls?: any[],
+  ): UnifiedMessage {
     return {
-      role: 'assistant',
+      role: "assistant",
       content,
       toolCalls,
     };

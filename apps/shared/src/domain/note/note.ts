@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { RoleSchema } from '../role/role';
 import { z } from 'zod';
 
@@ -15,5 +14,9 @@ export const NoteSchema = z.object({
 });
 
 export type Note = z.infer<typeof NoteSchema>;
-export type InsertableNote = Insertable<Note>;
-export type UpdatableNote = Updatable<Note>;
+
+export const InsertableNoteSchema = NoteSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableNoteSchema = InsertableNoteSchema.partial();
+
+export type InsertableNote = z.infer<typeof InsertableNoteSchema>;
+export type UpdatableNote = z.infer<typeof UpdatableNoteSchema>;

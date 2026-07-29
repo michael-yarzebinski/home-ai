@@ -1,8 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
+import type { User } from "@home-ai/shared/domain/user/user";
 import { ToolStore } from "../stores/tool/tool.store";
 import { UserStore } from "../stores/user/user.store";
 import { NotificationQueueStore } from "../stores/notification-queue/notification-queue.store";
 import { AppConfigService } from "./app-config.service";
+
+export type NotifyUsersByToolContext =
+  | { isRequesting: true; isNotifying: false }
+  | { isRequesting: false; isNotifying: true };
 
 @Injectable()
 export class NotificationService {
@@ -13,7 +18,33 @@ export class NotificationService {
     private readonly userStore: UserStore,
     private readonly notificationQueueStore: NotificationQueueStore,
     private readonly appConfigService: AppConfigService,
-  ) { }
+  ) {}
+
+  /**
+   * Whether at least one user would receive a notification for this tool and context,
+   * using the same role resolution as {@link notifyUsersByTool} and the same recipient
+   * skips as {@link notifyUser} (requester and automation user excluded).
+   */
+  async hasUsersToNotifyByTool(
+    toolName: string,
+    requestingUserId: string,
+    context: NotifyUsersByToolContext,
+  ): Promise<boolean> {
+    const usersToNotify = await this.getUsersMatchingToolNotifyRoles(
+      toolName,
+      context,
+    );
+    if (usersToNotify.length === 0) {
+      return false;
+    }
+
+    const automationUserId =
+      await this.appConfigService.getFromEnv<string>("AUTOMATION_USER_ID");
+
+    return usersToNotify.some(
+      (u) => u.id !== requestingUserId && u.id !== automationUserId,
+    );
+  }
 
   /**
    * Dispatches notifications to authorized users based on the tool's notifyRoles configuration.
@@ -24,44 +55,27 @@ export class NotificationService {
   async notifyUsersByTool(
     message: string,
     toolName: string,
-    requesterId: string,
-    context:
-      | {
-        isRequesting: true;
-        isNotifying: false;
-      }
-      | {
-        isRequesting: false;
-        isNotifying: true;
-      },
+    requestingUserId: string,
+    context: NotifyUsersByToolContext,
     importance: string = "low",
   ): Promise<void> {
     try {
-      // 1. Fetch the tool to get notifyRoles
-      const tool = await this.toolStore.getByName(toolName);
-      if (!tool || !tool.notifyRoles || tool.notifyRoles.length === 0) {
-        this.logger.debug(
-          `No notification roles configured for tool: ${toolName}`,
-        );
-        return;
-      }
-
-      const rolesToNotify = context.isNotifying
-        ? tool.notifyRoles
-        : tool.writeRoles;
-
-      // 2. Find all users that match the notification roles
-      const usersToNotify = await this.userStore.getUsersByRoles(rolesToNotify);
+      const usersToNotify = await this.getUsersMatchingToolNotifyRoles(
+        toolName,
+        context,
+      );
 
       if (usersToNotify.length === 0) {
-        this.logger.debug(
-          `No target users found for roles: ${rolesToNotify.join(", ")}`,
-        );
         return;
       }
 
       for (const toNotify of usersToNotify) {
-        await this.notifyUser(message, toNotify.id, requesterId, importance);
+        await this.notifyUser(
+          message,
+          toNotify.id,
+          requestingUserId,
+          importance,
+        );
       }
 
       this.logger.log(
@@ -75,14 +89,45 @@ export class NotificationService {
     }
   }
 
+  private async getUsersMatchingToolNotifyRoles(
+    toolName: string,
+    context: NotifyUsersByToolContext,
+  ): Promise<User[]> {
+    const tool = await this.toolStore.getByName(toolName);
+    if (!tool || !tool.notifyRoles || tool.notifyRoles.length === 0) {
+      this.logger.debug(
+        `No notification roles configured for tool: ${toolName}`,
+      );
+      return [];
+    }
+
+    const rolesToNotify = context.isNotifying
+      ? tool.notifyRoles
+      : tool.writeRoles;
+
+    const usersToNotify = await this.userStore.getUsersByRoles(rolesToNotify);
+
+    if (usersToNotify.length === 0) {
+      this.logger.debug(
+        `No target users found for roles: ${rolesToNotify.join(", ")}`,
+      );
+    }
+
+    return usersToNotify;
+  }
+
   async notifyUser(
     message: string,
     toNotifyUserId: string,
-    originalRequestUserId?: string,
+    requestingUserId: string,
     importance: string = "low",
   ): Promise<void> {
-    const automationUserId = await this.appConfigService.getFromDb<string>("AUTOMATION_USER_ID");
-    if (toNotifyUserId === originalRequestUserId || toNotifyUserId === automationUserId) {
+    const automationUserId =
+      await this.appConfigService.getFromEnv<string>("AUTOMATION_USER_ID");
+    if (
+      toNotifyUserId === requestingUserId ||
+      toNotifyUserId === automationUserId
+    ) {
       return;
     }
 

@@ -1,7 +1,7 @@
 export type MessageRole = "system" | "user" | "assistant" | "tool";
 
 export interface UnifiedMessageMetadata {
-  thoughtSignature?: string;  // For Gemini 3.1+ reasoning chains
+  thoughtSignature?: string; // For Gemini 3.1+ reasoning chains
 }
 
 export interface UnifiedMessage {

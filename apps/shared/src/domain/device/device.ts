@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { RoleSchema } from '../role/role';
 import { z } from 'zod';
 
@@ -32,5 +31,9 @@ export const DeviceSchema = z.object({
 });
 
 export type Device = z.infer<typeof DeviceSchema>;
-export type InsertableDevice = Insertable<Device>;
-export type UpdatableDevice = Updatable<Device>;
+
+export const InsertableDeviceSchema = DeviceSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableDeviceSchema = InsertableDeviceSchema.partial();
+
+export type InsertableDevice = z.infer<typeof InsertableDeviceSchema>;
+export type UpdatableDevice = z.infer<typeof UpdatableDeviceSchema>;

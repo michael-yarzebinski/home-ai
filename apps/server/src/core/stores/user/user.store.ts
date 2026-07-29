@@ -1,10 +1,13 @@
 // src/core/stores/user/user.store.ts
 import type { Knex } from "knex";
 import { AbstractEntityStore } from "../abstract/abstract-entity.store";
-import type { User } from "@home-ai/shared/domain/user/user";
-import type { SearchCriteria } from "@home-ai/shared/search/search";
-import { Paginated } from "@home-ai/shared/search/pagination";
-import { AuditStore } from "../audit/audit.store";
+import type { AuthUser } from "../../auth/jwt.strategy";
+import type {
+  User,
+  InsertableUser,
+  UpdatableUser,
+} from "@home-ai/shared/domain/user/user";
+import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { Role } from "@home-ai/shared/domain/role/role";
 
@@ -23,20 +26,32 @@ export interface UserRecord {
 }
 
 @Injectable()
-export class UserStore extends AbstractEntityStore<User, UserRecord> {
+export class UserStore extends AbstractEntityStore<
+  User,
+  UserRecord,
+  InsertableUser,
+  UpdatableUser
+> {
   constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
     super(knex, auditStore, { tableName: "users", entityType: "users" });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<User>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateUserForRead(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query; // Admin-managed — role enforced at route level.
+  }
+
+  protected validateUserForWrite(query: Knex.QueryBuilder): Knex.QueryBuilder {
+    return query;
+  }
+
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike("name", like).orWhereILike("phone_number", like),
+    );
   }
 
   protected recordToDomain(record: UserRecord): User {
@@ -69,6 +84,31 @@ export class UserStore extends AbstractEntityStore<User, UserRecord> {
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  override async getById(
+    id: string,
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<User | null> {
+    let query = this.activeOrInactive(includeInactive).where({ id });
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const record = (await query.first()) as UserRecord | null;
+    return record ? this.recordToDomain(record) : null;
+  }
+
+  override async getAll(
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<User[]> {
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const records = (await query) as UserRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 
   async getByPhoneNumber(phoneNumber: string): Promise<User | undefined> {

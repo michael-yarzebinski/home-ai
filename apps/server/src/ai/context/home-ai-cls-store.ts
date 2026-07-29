@@ -1,6 +1,6 @@
 // src/core/context/cls-store.ts
-import { ClsStore } from 'nestjs-cls';
-import { Role } from '@home-ai/shared/domain/role/role';
+import { ClsStore } from "nestjs-cls";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 export interface HomeAIClsStore extends ClsStore {
   // --- Identity ---
@@ -17,13 +17,13 @@ export interface HomeAIClsStore extends ClsStore {
   currentISO: string;
   timezone: string;
   location?: {
-    room?: string;      // "Kitchen", "Living Room"
+    room?: string; // "Kitchen", "Living Room"
     coordinates?: string;
   };
 
   // --- Operational Settings ---
   preferences: {
-    units: 'metric' | 'imperial';
-    verbosity: 'concise' | 'detailed';
+    units: "metric" | "imperial";
+    verbosity: "concise" | "detailed";
   };
 }

@@ -6,10 +6,9 @@ import type {
   PendingAction,
   UpdatablePendingAction,
 } from "@home-ai/shared/domain/pending-action/pending-action";
-import type { SearchCriteria } from "@home-ai/shared/search/search";
-import { Paginated } from "@home-ai/shared/search/pagination";
-import { AuditStore } from "../audit/audit.store";
+import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface PendingActionRecord {
   id: string;
@@ -39,15 +38,28 @@ export class PendingActionStore extends AbstractEntityStore<
     });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<PendingAction>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.where("requester_id", user.id);
+  }
+
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.where("requester_id", user.id);
+  }
+
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike("status", like).orWhereILike("reason", like),
+    );
   }
 
   protected recordToDomain(record: PendingActionRecord): PendingAction {
@@ -84,17 +96,31 @@ export class PendingActionStore extends AbstractEntityStore<
 
   async getByReadableId(
     readableId: number,
+    user?: AuthUser,
+    includeInactive = false,
   ): Promise<PendingAction | undefined> {
-    const record = await this.active.where("readable_id", readableId).first();
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateUserForRead(query, user);
+    }
+    const record = await query.where("readable_id", readableId).first();
 
     return record ? this.recordToDomain(record) : record;
   }
 
-  async approve(id: string, approvedBy: string): Promise<PendingAction> {
-    return this.update(id, {
-      status: "approved",
-      executedBy: approvedBy,
-    });
+  async approve(
+    id: string,
+    approvedBy: string,
+    user: AuthUser,
+  ): Promise<PendingAction> {
+    return this.update(
+      id,
+      {
+        status: "approved",
+        executedBy: approvedBy,
+      },
+      user,
+    );
   }
 
   async getAllPendingActions(): Promise<PendingAction[]> {

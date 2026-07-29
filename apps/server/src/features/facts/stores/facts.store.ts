@@ -1,12 +1,15 @@
 // features/facts/facts.store.ts
-import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../../../core/stores/abstract/abstract-entity.store';
-import type { Fact } from '@home-ai/shared/domain/fact/fact';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { AuditStore } from '../../../core/stores/audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
-import { Role } from '@home-ai/shared/domain/role/role';
+import type { Knex } from "knex";
+import { AbstractEntityStore } from "../../../core/stores/abstract/abstract-entity.store";
+import type { AuthUser } from "../../../core/auth/jwt.strategy";
+import type {
+  Fact,
+  InsertableFact,
+  UpdatableFact,
+} from "@home-ai/shared/domain/fact/fact";
+import { AuditStore } from "../../../core/stores/monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
+import { Role } from "@home-ai/shared/domain/role/role";
 
 export interface FactRecord {
   id: string;
@@ -21,34 +24,49 @@ export interface FactRecord {
 }
 
 @Injectable()
-export class FactsStore extends AbstractEntityStore<Fact, FactRecord> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'facts', entityType: 'facts' });
+export class FactsStore extends AbstractEntityStore<
+  Fact,
+  FactRecord,
+  InsertableFact,
+  UpdatableFact
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, { tableName: "facts", entityType: "facts" });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Fact>> {
-    return {
-        items: [],
-        total: 0,
-        page: criteria.page,
-        pageSize: criteria.pageSize,
-        hasNext: false,
-        hasPrevious: false,
-      };
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    user?: AuthUser,
+  ): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  async getBySearch(search: string) {
-    const searchToLower = search.toLocaleLowerCase();
-    const searchLike = `%${search.toLowerCase()}%`;
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    user?: AuthUser,
+  ): Knex.QueryBuilder {
+    if (!user) return query;
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
+  }
 
-    const records = await this.active.where((builder) => {
-        builder
-          .whereILike('key', searchLike)
-          .orWhereILike('value', searchLike)
-          .orWhereRaw('? = ANY(tags)', [searchToLower]);
-      });
-
-    return records.map(r => this.recordToDomain(r));
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b
+        .whereILike("key", like)
+        .orWhereILike("value", like)
+        .orWhereRaw("tags @> jsonb_build_array(?::text)", [
+          search.toLowerCase(),
+        ]),
+    );
   }
 
   protected recordToDomain(record: FactRecord): Fact {
@@ -79,10 +97,11 @@ export class FactsStore extends AbstractEntityStore<Fact, FactRecord> {
     };
   }
 
-  async getByKey(key: string) : Promise<Fact | undefined> {
-    const record = await this.active.where('key', key).first();
+  async getByKey(key: string, user: AuthUser): Promise<Fact | undefined> {
+    let query = this.active;
+    query = this.validateUserForRead(query, user);
+    const record = await query.where("key", key).first();
 
     return record ? this.recordToDomain(record) : record;
   }
-
 }

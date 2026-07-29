@@ -1,12 +1,12 @@
 // src/tools/default/add-fact.tool.ts
-import { ToolHandler } from 'src/tools/abstract/tool-handler';
-import { ToolContext } from 'src/tools/types/tool-context';
-import { z } from 'zod';
-import { FactsStore } from '../stores/facts.store';
-import { Role } from '@home-ai/shared/domain/role/role';
-import { Injectable } from '@nestjs/common';
-import { Tool } from 'src/tools/decorators/tool.decorator';
-import { ToolParameterUtils } from 'src/tools/utils/tool-parameter-utils';
+import { ToolHandler } from "src/tools/abstract/tool-handler";
+import { ToolContext } from "src/tools/types/tool-context";
+import { z } from "zod";
+import { FactsStore } from "../stores/facts.store";
+import { Role } from "@home-ai/shared/domain/role/role";
+import { Injectable } from "@nestjs/common";
+import { Tool } from "src/tools/decorators/tool.decorator";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const AddFactToolSchema = z.object({
   key: z
@@ -17,7 +17,9 @@ const AddFactToolSchema = z.object({
 
   value: z
     .preprocess(ToolParameterUtils.toStringValue, z.string().min(1))
-    .describe('The specific value. Be concise but complete. (e.g. "Pizza", "1234-5678")'),
+    .describe(
+      'The specific value. Be concise but complete. (e.g. "Pizza", "1234-5678")',
+    ),
 
   tags: z
     .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
@@ -27,12 +29,16 @@ const AddFactToolSchema = z.object({
   readRoles: z
     .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
     .optional()
-    .describe("Roles that can read this fact. If omitted, defaults to current user's role."),
+    .describe(
+      "Roles that can read this fact. If omitted, defaults to current user's role.",
+    ),
 
   writeRoles: z
     .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
     .optional()
-    .describe("Roles that can update this fact. If omitted, defaults to current user's role."),
+    .describe(
+      "Roles that can update this fact. If omitted, defaults to current user's role.",
+    ),
 });
 
 export interface AddFactResult {
@@ -43,12 +49,15 @@ export interface AddFactResult {
 
 @Tool()
 @Injectable()
-export class AddFactTool extends ToolHandler<typeof AddFactToolSchema, AddFactResult> {
-  readonly name = 'add-fact';
+export class AddFactTool extends ToolHandler<
+  typeof AddFactToolSchema,
+  AddFactResult
+> {
+  readonly name = "add-fact";
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Add a new fact registered in Home AI. Confirm the key does not already exist via list-facts or get-fact before calling.';
+    "Add a new fact registered in Home AI. Confirm the key does not already exist via list-facts or get-fact before calling.";
 
   readonly parameters = AddFactToolSchema;
 
@@ -62,18 +71,21 @@ export class AddFactTool extends ToolHandler<typeof AddFactToolSchema, AddFactRe
   ): Promise<AddFactResult> {
     const readRoles = params.readRoles?.length
       ? (params.readRoles as Role[])
-      : [context.userRole];
+      : [context.authUser.role];
     const writeRoles = params.writeRoles?.length
       ? (params.writeRoles as Role[])
-      : [context.userRole];
+      : [context.authUser.role];
 
-    const fact = await this.factsStore.create({
-      key: params.key,
-      value: params.value,
-      tags: params.tags || [],
-      readRoles,
-      writeRoles,
-    });
+    const fact = await this.factsStore.create(
+      {
+        key: params.key,
+        value: params.value,
+        tags: params.tags || [],
+        readRoles,
+        writeRoles,
+      },
+      context.authUser,
+    );
 
     return {
       success: true,

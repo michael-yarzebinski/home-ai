@@ -1,12 +1,14 @@
 // core/stores/app-config/app-config.store.ts
-import type { Knex } from 'knex';
-import { AbstractMonitoringStore } from '../abstract/abstract-monitoring.store';
-import type { AppConfig } from '@home-ai/shared/domain/app-config/app-config';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import { AuditStore } from '../audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
+import type { Knex } from "knex";
+import type {
+  AppConfig,
+  InsertableAppConfig,
+  UpdatableAppConfig,
+} from "@home-ai/shared/domain/app-config/app-config";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface AppConfigRecord {
   id: string;
@@ -19,21 +21,41 @@ export interface AppConfigRecord {
 }
 
 @Injectable()
-export class AppConfigStore extends AbstractEntityStore<AppConfig, AppConfigRecord> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'app_config', entityType: 'app_config' });
+export class AppConfigStore extends AbstractEntityStore<
+  AppConfig,
+  AppConfigRecord,
+  InsertableAppConfig,
+  UpdatableAppConfig
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, {
+      tableName: "app_config",
+      entityType: "app_config",
+    });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<AppConfig>> {
-    // Basic implementation — expand as needed
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    _user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query; // Admin-only — role enforced at route level.
+  }
+
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    _user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query;
+  }
+
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b.whereILike("key", like).orWhereILike("description", like),
+    );
   }
 
   protected recordToDomain(record: AppConfigRecord): AppConfig {
@@ -60,8 +82,8 @@ export class AppConfigStore extends AbstractEntityStore<AppConfig, AppConfigReco
     };
   }
 
-  async getByKey(key: string) : Promise<AppConfig | undefined> {
-    const record = await this.active.where('key', key).first();
+  async getByKey(key: string): Promise<AppConfig | undefined> {
+    const record = await this.active.where("key", key).first();
     return record ? this.recordToDomain(record) : record;
   }
 }

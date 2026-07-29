@@ -1,4 +1,3 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
 import { z } from 'zod';
 
 export const NotificationQueueSchema = z.object({
@@ -13,5 +12,9 @@ export const NotificationQueueSchema = z.object({
 });
 
 export type NotificationQueue = z.infer<typeof NotificationQueueSchema>;
-export type InsertableNotificationQueue = Insertable<NotificationQueue>;
-export type UpdatableNotificationQueue = Updatable<NotificationQueue>;
+
+export const InsertableNotificationQueueSchema = NotificationQueueSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableNotificationQueueSchema = InsertableNotificationQueueSchema.partial();
+
+export type InsertableNotificationQueue = z.infer<typeof InsertableNotificationQueueSchema>;
+export type UpdatableNotificationQueue = z.infer<typeof UpdatableNotificationQueueSchema>;

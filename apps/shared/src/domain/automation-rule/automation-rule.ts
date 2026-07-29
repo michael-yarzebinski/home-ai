@@ -1,10 +1,10 @@
-import { Insertable, Updatable } from "../helper/crud.helper";
 import { z } from 'zod';
 
 export enum TriggerType {
-    DEVICE = 'DEVICE',           // Custom internal Device wrapper (e.g., "Fridge")
-    TIME = 'TIME',               // CRON-based scheduled tasks
-    SYSTEM = 'SYSTEM',           // Internal app events (e.g., "Startup")
+  DEVICE = 'DEVICE',           // Custom internal Device wrapper (e.g., "Fridge")
+  TIME = 'TIME',               // CRON-based scheduled tasks
+  SYSTEM = 'SYSTEM',           // Internal app events (e.g., "Startup")
+  TOOL_EVENT = 'TOOL_EVENT',   // Tool execution events emitted by orchestrator
 }
 
 export const TriggerConfigDeviceSchema = z.object({
@@ -25,22 +25,29 @@ export const TriggerConfigSystemSchema = z.object({
   intent: z.string().optional(),
 });
 
+export const TriggerConfigToolEventSchema = z.object({
+  type: z.literal(TriggerType.TOOL_EVENT),
+  toolName: z.string().optional(),
+});
+
 export const TriggerConfigSchema = z.discriminatedUnion('type', [
   TriggerConfigDeviceSchema,
   TriggerConfigTimeSchema,
   TriggerConfigSystemSchema,
+  TriggerConfigToolEventSchema,
 ]);
 
 export type TriggerConfigDevice = z.infer<typeof TriggerConfigDeviceSchema>;
 export type TriggerConfigTime = z.infer<typeof TriggerConfigTimeSchema>;
 export type TriggerConfigSystem = z.infer<typeof TriggerConfigSystemSchema>;
+export type TriggerConfigToolEvent = z.infer<typeof TriggerConfigToolEventSchema>;
 export type TriggerConfig = z.infer<typeof TriggerConfigSchema>;
 
 export enum ActionType {
-    NOTIFICATION = 'NOTIFICATION',
-    TASK = 'TASK', // Linked to your new Task/Job domain
-    HA_SERVICE = 'HA_SERVICE',
-    SCRIPT = 'SCRIPT'
+  NOTIFICATION = 'NOTIFICATION',
+  TASK = 'TASK', // Linked to your new Task/Job domain
+  HA_SERVICE = 'HA_SERVICE',
+  SCRIPT = 'SCRIPT'
 }
 
 /**
@@ -84,5 +91,8 @@ export const AutomationRuleSchema = z.object({
 
 export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
 
-export type InsertableAutomationRule = Insertable<AutomationRule>;
-export type UpdatableAutomationRule = Updatable<AutomationRule>;
+export const InsertableAutomationRuleSchema = AutomationRuleSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
+export const UpdatableAutomationRuleSchema = InsertableAutomationRuleSchema.omit({ userId: true }).partial();
+
+export type InsertableAutomationRule = z.infer<typeof InsertableAutomationRuleSchema>;
+export type UpdatableAutomationRule = z.infer<typeof UpdatableAutomationRuleSchema>;

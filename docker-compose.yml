@@ -1,4 +1,21 @@
 services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: home-ai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - home-ai-network
+
   postgres:
     image: postgres:16-alpine
     container_name: ai-home-postgres
@@ -12,7 +29,6 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      # Check against 'postgres' db instead of '${DB_NAME}' to avoid FATAL errors during init
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d postgres"]
       interval: 10s
       timeout: 5s
@@ -63,6 +79,27 @@ services:
     networks:
       - home-ai-network
 
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: home-ai-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/data
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      # chromadb/chroma image has no curl; verify port 8000 accepts connections
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - home-ai-network
+
   home-ai:
     build:
       context: .
@@ -72,20 +109,50 @@ services:
     ports:
       - "3000:3000"
     env_file: .env
+    environment:
+      - DB_HOST=postgres
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OLLAMA_HOST=http://ollama:11434
+      - RELAY_URL=http://host.docker.internal:3100
+      - BLUEBUBBLES_URL=http://host.docker.internal:1234
+      - HOME_ASSISTANT_URL=http://host.docker.internal:8123
+      - REDIS_HOST=host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./attachments:/app/attachments
+      - ./.env:/app/.env:ro
+      - ./home_ai_id_rsa:/root/.ssh/id_ed25519:ro
     depends_on:
       postgres:
         condition: service_healthy
       ollama:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    networks:
+      - home-ai-network
+
+  home-ai-ui:
+    build:
+      context: .
+      dockerfile: ./apps/ui/Dockerfile
+    container_name: home-ai-ui
+    restart: unless-stopped
+    ports:
+      - "${UI_PORT:-8080}:80"
+    depends_on:
+      home-ai:
+        condition: service_healthy
     networks:
       - home-ai-network
 
@@ -111,3 +178,5 @@ networks:
 volumes:
   postgres-data:
   ollama-data:
+  redis-data:
+  chroma-data:

@@ -1,4 +1,4 @@
-import { Insertable, Updatable } from '../helper/crud.helper';
+import { Insertable, Updatable } from '../../common/crud.helper';
 import { z } from 'zod';
 
 export const ChatSessionSchema = z.object({

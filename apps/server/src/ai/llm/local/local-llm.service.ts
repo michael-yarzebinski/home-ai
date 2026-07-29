@@ -2,8 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { LLMServiceBase } from "../../abstract/llm.service.base";
 import { LLMQueryParams, UnifiedToolCall } from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
-import { AIAuditStore } from "../../../core/stores/ai-audit/ai-audit.store";
-import { AppConfigService } from "../../../core/services/app-config.service";
+import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
 import OpenAI from "openai";
 
 @Injectable()
@@ -16,7 +15,7 @@ export class LocalLLMService extends LLMServiceBase {
     private readonly modelConfig: {
       model: string;
       baseURL: string;
-    }
+    },
   ) {
     super(aiAuditStore);
 
@@ -50,7 +49,6 @@ export class LocalLLMService extends LLMServiceBase {
         ? { type: "json_object" }
         : { type: "text" },
       stream: false,
-      // @ts-ignore - OpenAI SDK doesn't natively type Ollama's extra options
       extra_body: {
         options: {
           num_ctx: 8192,

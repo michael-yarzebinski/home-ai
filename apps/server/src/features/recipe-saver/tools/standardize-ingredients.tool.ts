@@ -5,7 +5,10 @@ import { ToolContext } from "src/tools/types/tool-context";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { IngredientStore } from "../stores/ingredients.store";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
-import { LLMModelTypes, LLMProviderService } from "../../../ai/llm/llm.provider.sevice";
+import {
+  LLMModelTypes,
+  LLMProviderService,
+} from "../../../ai/llm/llm.provider.sevice";
 
 const StandardizeIngredientsSchema = z.object({
   ingredients: z.preprocess(
@@ -49,7 +52,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
     params: z.infer<typeof StandardizeIngredientsSchema>,
     context: ToolContext,
   ): Promise<StructuredIngredient[]> {
-    const existing = await this.ingredientStore.getAll();
+    const existing = await this.ingredientStore.getAll(context.authUser, false);
     const knownNames = existing
       .map((i) => i.name)
       .slice(0, 50)
@@ -78,18 +81,21 @@ export class StandardizeIngredientsTool extends ToolHandler<
       - PREFER these existing names if they match: ${knownNames || "None"}.
     `;
 
-    const response = await this.llmProviderService.query({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: JSON.stringify(params.ingredients) },
-      ],
-      jsonMode: true,
-      context: {
-        userId: context.userId,
-        chatSessionId: context.chatSessionId,
-        originalPrompt: `Standardizing ${params.ingredients.length} ingredients`,
+    const response = await this.llmProviderService.query(
+      {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: JSON.stringify(params.ingredients) },
+        ],
+        jsonMode: true,
+        context: {
+          userId: context.authUser.id,
+          chatSessionId: context.chatSessionId,
+          originalPrompt: `Standardizing ${params.ingredients.length} ingredients`,
+        },
       },
-    }, LLMModelTypes.IMMEDIATE);
+      LLMModelTypes.IMMEDIATE,
+    );
 
     try {
       const parsed =

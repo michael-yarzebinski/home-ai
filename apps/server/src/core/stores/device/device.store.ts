@@ -1,12 +1,15 @@
-// core/stores/device/device.store.ts
-import type { Knex } from 'knex';
-import { AbstractEntityStore } from '../abstract/abstract-entity.store';
-import type { Device } from '@home-ai/shared/domain/device/device';
-import type { SearchCriteria } from '@home-ai/shared/search/search';
-import { Paginated } from '@home-ai/shared/search/pagination';
-import { AuditStore } from '../audit/audit.store';
-import { Inject, Injectable } from '@nestjs/common';
-import { Role } from '@home-ai/shared/domain/role/role';
+import type { Knex } from "knex";
+import { AbstractEntityStore } from "../abstract/abstract-entity.store";
+import type {
+  Device,
+  InsertableDevice,
+  UpdatableDevice,
+} from "@home-ai/shared/domain/device/device";
+
+import { AuditStore } from "../monitoring/audit/audit.store";
+import { Inject, Injectable } from "@nestjs/common";
+import { Role } from "@home-ai/shared/domain/role/role";
+import { AuthUser } from "../../auth/jwt.strategy";
 
 export interface DeviceRecord {
   id: string;
@@ -26,41 +29,67 @@ export interface DeviceRecord {
 }
 
 @Injectable()
-export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
-  constructor(@Inject('KNEX_CONNECTION') knex: Knex, auditStore: AuditStore) {
-    super(knex, auditStore, { tableName: 'devices', entityType: 'devices' });
+export class DeviceStore extends AbstractEntityStore<
+  Device,
+  DeviceRecord,
+  InsertableDevice,
+  UpdatableDevice
+> {
+  constructor(@Inject("KNEX_CONNECTION") knex: Knex, auditStore: AuditStore) {
+    super(knex, auditStore, { tableName: "devices", entityType: "devices" });
   }
 
-  async search(criteria: SearchCriteria): Promise<Paginated<Device>> {
-    return {
-      items: [],
-      total: 0,
-      page: criteria.page,
-      pageSize: criteria.pageSize,
-      hasNext: false,
-      hasPrevious: false,
-    };
+  // ---------------------------------------------------------------------------
+  // Row-level access control
+  // ---------------------------------------------------------------------------
+
+  protected validateUserForRead(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.whereRaw("read_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
   }
 
-  async getBySearch(search: string): Promise<Device[]> {
-    const searchToLower = search.toLocaleLowerCase();
-    const searchLike = `%${search.toLowerCase()}%`;
+  protected validateUserForWrite(
+    query: Knex.QueryBuilder,
+    user: AuthUser,
+  ): Knex.QueryBuilder {
+    return query.whereRaw("write_roles @> jsonb_build_array(?::text)", [
+      user.role,
+    ]);
+  }
 
-    const records = await this.active.where((builder) => {
-      builder
-        .whereILike('slug', searchLike)
-        .orWhereILike('friendly_name', searchLike)
-        .orWhereRaw('? = ANY(aliases)', [searchToLower]);
-    });
+  // ---------------------------------------------------------------------------
+  // Full-text search
+  // ---------------------------------------------------------------------------
 
-    return records.map(r => this.recordToDomain(r));
+  protected applyTextSearch(
+    query: Knex.QueryBuilder,
+    search: string,
+  ): Knex.QueryBuilder {
+    const like = `%${search.toLowerCase()}%`;
+    return query.where((b) =>
+      b
+        .whereILike("slug", like)
+        .orWhereILike("friendly_name", like)
+        .orWhereILike("room", like)
+        .orWhereILike("category", like)
+        .orWhereRaw("aliases @> jsonb_build_array(?::text)", [
+          search.toLowerCase(),
+        ]),
+    );
   }
 
   async getBySlug(slug: string): Promise<Device | undefined> {
-    const record = await this.active.where('slug', slug).first();
-
-    return record ? this.recordToDomain(record) : record;
+    const record = await this.active.where("slug", slug).first();
+    return record ? this.recordToDomain(record) : undefined;
   }
+
+  // ---------------------------------------------------------------------------
+  // Mapping
+  // ---------------------------------------------------------------------------
 
   protected recordToDomain(record: DeviceRecord): Device {
     return {
@@ -74,7 +103,7 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       writeRoles: record.write_roles as Role[],
       extraMetadata: record.extra_metadata,
       isTimeSensitive: record.is_time_sensitive,
-      lastTriggeredService: record.last_triggered_service ? record.last_triggered_service : undefined,
+      lastTriggeredService: record.last_triggered_service ?? undefined,
       active: record.active,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -93,10 +122,22 @@ export class DeviceStore extends AbstractEntityStore<Device, DeviceRecord> {
       write_roles: domain.writeRoles,
       extra_metadata: domain.extraMetadata,
       is_time_sensitive: domain.isTimeSensitive,
-      last_triggered_service: domain.lastTriggeredService ? domain.lastTriggeredService : null,
+      last_triggered_service: domain.lastTriggeredService ?? null,
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
+  }
+
+  override async getAll(
+    user?: AuthUser,
+    includeInactive = false,
+  ): Promise<Device[]> {
+    let query = this.activeOrInactive(includeInactive);
+    if (user) {
+      query = this.validateForRead(query, user);
+    }
+    const records = (await query) as DeviceRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 }
