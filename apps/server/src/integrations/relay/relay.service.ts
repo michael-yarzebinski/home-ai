@@ -22,10 +22,12 @@ export class RelayService {
    * Sends an AppleScript to the native Mac relay
    */
   async runAppleScript(script: string): Promise<string> {
+    const executeUrl = `${this.relayUrl.replace(/\/+$/, "")}/execute`;
+
     try {
       const response = await lastValueFrom(
         this.httpService.post(
-          this.relayUrl,
+          executeUrl,
           { script },
           { headers: { "RELAY-API-KEY": this.apiKey } },
         ),

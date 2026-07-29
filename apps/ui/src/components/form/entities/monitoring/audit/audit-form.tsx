@@ -26,7 +26,7 @@ export function AuditForm({
     <FormProvider {...form}>
       <form className="space-y-8">
         {/* Header Metadata */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 border rounded-lg bg-slate-50/50">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border/50 bg-muted/30 p-4">
           <div className="flex items-center gap-6">
             <EntityIdField value={initialData?.id}/>
             <div className="flex flex-col gap-1">
@@ -40,7 +40,7 @@ export function AuditForm({
           <div className="flex items-center gap-6">
             <div className="flex flex-col gap-1">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Entity Type</span>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                 <Database className="w-3.5 h-3.5 text-blue-500" />
                 {initialData?.entityType}
               </div>
@@ -67,12 +67,12 @@ export function AuditForm({
 
         {/* Change Set */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <History className="w-4 h-4" />
-            Diff / Change Data
+            Diff / change data
           </div>
-          <div className="rounded-md bg-slate-900 p-4 border border-slate-800 shadow-inner">
-            <pre className="text-xs text-blue-300 font-mono leading-relaxed overflow-x-auto">
+          <div className="rounded-md border border-border/50 bg-muted/50 p-4">
+            <pre className="text-xs font-mono leading-relaxed overflow-x-auto text-foreground">
               {initialData?.changes 
                 ? JSON.stringify(initialData.changes, null, 2) 
                 : "// No change data recorded"}
@@ -86,7 +86,7 @@ export function AuditForm({
             <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Fingerprint className="w-4 h-4" /> System Notes
             </label>
-            <div className="p-3 bg-amber-50 border border-amber-100 rounded text-sm text-amber-900 italic">
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-sm italic text-amber-700 dark:text-amber-300">
               {initialData.notes}
             </div>
           </div>

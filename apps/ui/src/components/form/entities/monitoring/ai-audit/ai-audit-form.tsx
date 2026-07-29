@@ -75,18 +75,18 @@ export function AIAuditForm({
             name="finalResponse" 
             label="AI Final Response" 
             viewMode="READ" 
-            className="bg-slate-50 italic"
+            className="bg-muted/30 italic"
           />
         </div>
 
         {/* Technical Details / Tool Calls */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <Zap className="w-4 h-4" />
-            Tool Execution Logs
+            Tool execution logs
           </div>
-          <div className="rounded-md bg-slate-950 p-4 overflow-x-auto">
-            <pre className="text-xs text-slate-300 font-mono">
+          <div className="rounded-md border border-border/50 bg-muted/50 p-4 overflow-x-auto">
+            <pre className="text-xs font-mono text-foreground">
               {initialData?.toolCalls 
                 ? JSON.stringify(initialData.toolCalls, null, 2) 
                 : "// No tool calls recorded for this interaction"}

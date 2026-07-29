@@ -16,10 +16,10 @@ import { EntityTimestampField } from '@/components/form/fields/domain/entity-tim
 import { MultiRoleSelectInput } from '@/components/form/fields/domain/multi-role-select-input';
 
 export type FactFormProps = Omit<EntityFormProps<InsertableFact, Fact>, 'viewMode'> & {
-    viewMode: 'EDIT' | 'READ';
+    viewMode: 'CREATE' | 'EDIT' | 'READ';
 };
 
-export function FactForm({ initialData, viewMode, onSubmit, isLoading }: FactFormProps) {
+export function FactForm({ initialData, viewMode, onSubmit, isLoading, formId }: FactFormProps) {
   const form = useForm<InsertableFact>({
     resolver: zodResolver(InsertableFactSchema),
     defaultValues: {
@@ -33,16 +33,15 @@ export function FactForm({ initialData, viewMode, onSubmit, isLoading }: FactFor
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <EntityIdField value={initialData?.id} />
+      <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {viewMode !== 'CREATE' && <EntityIdField value={initialData?.id} />}
 
         <div className="space-y-4">
           <TextInput
             name="key"
             label="Fact Key"
             placeholder="e.g. user.preferences.coffee"
-            viewMode={viewMode}
-            forceReadMode={viewMode === 'EDIT'}
+            viewMode={viewMode === 'READ' ? 'READ' : 'EDIT'}
             description="The unique identifier the AI uses to recall this fact."
           />
 
@@ -78,21 +77,25 @@ export function FactForm({ initialData, viewMode, onSubmit, isLoading }: FactFor
           </div>
         </div>
 
-        <div className="pt-4 space-y-1 border-t">
-          <EntityTimestampField 
-            createdAt={initialData?.createdAt} 
-            updatedAt={initialData?.updatedAt} 
-          />
-        </div>
+        {viewMode !== 'CREATE' && (
+          <div className="pt-4 space-y-1 border-t">
+            <EntityTimestampField 
+              createdAt={initialData?.createdAt} 
+              updatedAt={initialData?.updatedAt} 
+            />
+          </div>
+        )}
 
-        {viewMode === 'EDIT' && (
+        {(viewMode === 'EDIT' || viewMode === 'CREATE') && !formId && (
           <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={isLoading}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium disabled:opacity-50"
             >
-              {isLoading ? 'Updating...' : 'Update Fact'}
+              {viewMode === 'CREATE'
+                ? isLoading ? 'Creating...' : 'Create Fact'
+                : isLoading ? 'Updating...' : 'Update Fact'}
             </button>
           </div>
         )}

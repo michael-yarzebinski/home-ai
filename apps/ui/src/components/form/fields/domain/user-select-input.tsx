@@ -24,7 +24,7 @@ export function UserSelectInput<T extends FieldValues>({
   // We set a large pageSize to ensure we get the full list for the dropdown
   const criteria = useMemo(() => ({
     page: 1,
-    pageSize: 1000, 
+    pageSize: 100, 
     includeInactive: isAdmin ? includeInactive : false,
     role: roleFilter
   }), [isAdmin, includeInactive, roleFilter]);
@@ -48,7 +48,6 @@ export function UserSelectInput<T extends FieldValues>({
     return userList.map((u) => ({
       id: u.id,
       label: u.name,
-      subLabel: u.phoneNumber,
     }));
   }, [query.data, isAdmin]);
 

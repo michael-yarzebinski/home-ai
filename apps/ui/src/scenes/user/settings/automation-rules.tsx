@@ -49,7 +49,9 @@ export function SettingsAutomationRules() {
   // ── Mutations ─────────────────────────────────────────────────────────
 
   const handleSave = async (data: Partial<AutomationRule>) => {
-    if (modal.open && modal.mode === 'edit' && 'rule' in modal) {
+    // The modal is editable in both 'view' and 'edit' modes, so route on the
+    // presence of an existing rule id: an existing rule is always an update.
+    if (modal.open && 'rule' in modal && modal.rule['id']) {
       await api.put(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}/${modal.rule['id']}`, data);
     } else {
       await api.post(`${USER_API_BASE}/${AUTOMATION_RULES_PATH}`, data);
@@ -68,7 +70,7 @@ export function SettingsAutomationRules() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden -m-6">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden -m-2">
       {/* ── Page header ── */}
       <div className="px-6 py-4 border-b border-border flex-shrink-0 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-500/15 flex-shrink-0">

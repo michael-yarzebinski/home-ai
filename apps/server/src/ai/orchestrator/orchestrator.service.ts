@@ -18,6 +18,7 @@ import {
   TOOL_EXECUTION_EVENT_CHANNEL,
   type ToolExecutionEvent,
 } from "../../events/contracts/tool-execution.event";
+import { ChromaService } from "../memory/chroma.service";
 
 export type OrchestratorHandleEventOptions = {
   /** When true, do not emit tool-execution pub/sub messages (e.g. orchestrator requery). */
@@ -34,8 +35,9 @@ export class OrchestratorService {
     private readonly toolRegistry: ToolRegistry,
     private readonly appConfigService: AppConfigService,
     private readonly conversationStore: ConversationStore,
+    private readonly chromaService: ChromaService,
     @InjectRedis() private readonly redis: Redis,
-  ) {}
+  ) { }
 
   async handleEvent(
     user: User,
@@ -69,7 +71,7 @@ export class OrchestratorService {
         metadata: { input, chatSessionId, externalId },
       });
 
-      const systemPrompt = await this.generateSystemPrompt(user);
+      const systemPrompt = await this.generateSystemPrompt(user, input);
       const messages = this.assembleMessageContext(
         systemPrompt,
         session.messages,
@@ -362,14 +364,20 @@ export class OrchestratorService {
     ];
   }
 
-  private async generateSystemPrompt(user: User): Promise<string> {
+  private async generateSystemPrompt(user: User, input: string): Promise<string> {
     const aiName = await this.appConfigService.getFromDb("AI_NAME");
     const date = new Date().toLocaleDateString();
+
+    const memory = await this.getMemoryForUser(user, input);
 
     return `
 ## Identity
 You are ${aiName}. User: ${user.name} (${user.role}). Current Date: ${date}.
 Style: Professional, helpful, and extremely concise.
+
+## Long-Term Profile & Behavioral Context
+The following historical behaviors, user traits, and automated household observations have been extracted over time. Use these to tailor your tone, defaults, and physical home environment choices without explicitly stating why:
+${memory}
 
 ## Operational Protocol: Discovery First
 You must follow a "Read-Before-Write" workflow for all data domains (Devices, Facts, Calendar, Notes).
@@ -417,5 +425,21 @@ If an action is queued for approval, inform the user and provide the Request ID 
       response: timeoutError,
       error: "MAX_STEPS_EXCEEDED",
     };
+  }
+
+  private async getMemoryForUser(user: User, input: string): Promise<string> {
+    try {
+      const memory = await this.chromaService.getForUser(user.id, input);
+      return memory.map((m) => m.document).join("\n");
+    } catch (error: any) {
+      await this.logStore.create({
+        userId: user.id,
+        severity: "warn",
+        message: `Failed fetching long term memory context for system prompt assembly`,
+        metadata: { error: error?.message ?? error },
+      });
+
+      return ''
+    }
   }
 }

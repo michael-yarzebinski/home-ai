@@ -151,9 +151,21 @@ export abstract class AbstractEntityStore<
     criteria: SearchCriteria<TSearchCriteria>,
     user: AuthUser,
   ): Promise<Paginated<TDomain>> {
-    let query = this.table;
+    const query = this.validateForRead(this.table, user);
+    return this.paginateScopedSearch(query, criteria);
+  }
 
-    query = this.validateForRead(query, user);
+  /**
+   * Applies inactive filtering, text search, COUNT(*), and LIMIT/OFFSET to an
+   * already row-scoped base query. Subclasses can build their own scoped query
+   * (e.g. forced `user_id = ?`) and delegate here to reuse pagination logic
+   * without going through role-based validateForRead.
+   */
+  protected async paginateScopedSearch(
+    baseQuery: Knex.QueryBuilder,
+    criteria: SearchCriteria<TSearchCriteria>,
+  ): Promise<Paginated<TDomain>> {
+    let query = baseQuery;
 
     if (!criteria.includeInactive) {
       query = query.where({ active: true });
@@ -206,6 +218,7 @@ export abstract class AbstractEntityStore<
     const records = (await query.whereIn("id", ids)) as TRecord[];
     return records.map((r) => this.recordToDomain(r));
   }
+  
 
   async getAll(user: AuthUser, includeInactive = false): Promise<TDomain[]> {
     let query = this.activeOrInactive(includeInactive);

@@ -66,9 +66,11 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
         </div>
 
         {/* --- SECTION: Trigger Configuration --- */}
-        <div className="p-6 border rounded-lg bg-slate-50/50 space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h3 className="text-lg font-semibold">Trigger Configuration</h3>
+        <div className="rounded-lg border border-border/50 bg-muted/30 p-5 space-y-6">
+          <div className="flex items-center justify-between border-b border-border/50 pb-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Trigger configuration
+            </h3>
             <div className="w-64">
               <SelectInput
                 name="trigger.type"
@@ -89,7 +91,7 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
 
             {selectedTriggerType === TriggerType.TIME && (
               <>
-                <CronInput name="trigger.cron" label="Schedule (CRON)" viewMode={viewMode} />
+                <CronInput name="trigger.cron" label="Schedule" viewMode={viewMode} />
                 <TextInput name="trigger.timezone" label="Timezone" viewMode={viewMode} />
               </>
             )}
@@ -108,9 +110,11 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
         </div>
 
         {/* --- SECTION: Actions --- */}
-        <div className="space-y-4">
+        <div className="space-y-4 border-t border-border/50 pt-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Execution Actions</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Execution actions
+            </h3>
             {viewMode !== 'READ' && (
               <button
                 type="button"
@@ -123,7 +127,7 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
           </div>
 
           {fields.map((field, index) => (
-            <div key={field.id} className="relative p-6 border rounded-lg bg-white shadow-sm space-y-4">
+            <div key={field.id} className="relative rounded-lg border border-border/50 bg-card p-5 space-y-4">
               {viewMode !== 'READ' && (
                 <button
                   type="button"
@@ -180,13 +184,13 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
         )}
 
         {viewMode !== 'READ' && (
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end border-t border-border/50 pt-4">
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium disabled:opacity-50"
+              className="px-6 py-2 h-9 bg-primary text-primary-foreground rounded-md text-xs font-bold uppercase tracking-widest shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              {isLoading ? 'Saving Rule...' : viewMode === 'CREATE' ? 'Create Automation' : 'Save Changes'}
+              {isLoading ? 'Saving...' : viewMode === 'CREATE' ? 'Create automation' : 'Save changes'}
             </button>
           </div>
         )}

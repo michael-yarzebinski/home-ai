@@ -80,4 +80,11 @@ export class IngredientStore extends AbstractEntityStore<
       updated_at: domain.updatedAt,
     };
   }
+
+  async getByRecipeId(recipeId: string): Promise<Ingredient[]> {
+    const records = (await this.active
+      .where({ recipe_id: recipeId })
+      .orderBy('name', 'asc')) as IngredientRecord[];
+    return records.map((r) => this.recordToDomain(r));
+  }
 }

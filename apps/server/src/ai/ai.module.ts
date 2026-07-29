@@ -8,6 +8,7 @@ import { OrchestratorService } from "./orchestrator/orchestrator.service";
 import { ClsModule } from "nestjs-cls";
 import { ToolsModule } from "../tools/tool.module";
 import { ChatController } from "./controllers/chat.controller";
+import { MemoryAdminController } from "./controllers/admin/memory.admin.controller";
 import { OpenAILLMService } from "./llm/open-ai/open-ai-llm.service";
 import {
   LLM_REGISTRY,
@@ -17,6 +18,8 @@ import {
 } from "./llm/llm.provider.sevice";
 import { LLMServiceBase } from "./abstract/llm.service.base";
 import { LocalLLMService } from "./llm/local/local-llm.service";
+import { ChromaService } from "./memory/chroma.service";
+import { MemoryService } from "./memory/memory.service";
 
 @Module({
   imports: [CoreModule, ClsModule.forFeature(), forwardRef(() => ToolsModule)],
@@ -86,8 +89,11 @@ import { LocalLLMService } from "./llm/local/local-llm.service";
     LLMProviderService,
     OrchestratorService,
     McpService,
+
+    ChromaService,
+    MemoryService,
   ],
   exports: [OrchestratorService, McpService, LLMProviderService],
-  controllers: [ChatController],
+  controllers: [ChatController, MemoryAdminController],
 })
-export class AIModule {}
+export class AIModule { }

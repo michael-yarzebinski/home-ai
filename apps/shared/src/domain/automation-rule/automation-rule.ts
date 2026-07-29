@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export enum TriggerType {
-    DEVICE = 'DEVICE',           // Custom internal Device wrapper (e.g., "Fridge")
-    TIME = 'TIME',               // CRON-based scheduled tasks
-    SYSTEM = 'SYSTEM',           // Internal app events (e.g., "Startup")
-    TOOL_EVENT = 'TOOL_EVENT',   // Tool execution events emitted by orchestrator
+  DEVICE = 'DEVICE',           // Custom internal Device wrapper (e.g., "Fridge")
+  TIME = 'TIME',               // CRON-based scheduled tasks
+  SYSTEM = 'SYSTEM',           // Internal app events (e.g., "Startup")
+  TOOL_EVENT = 'TOOL_EVENT',   // Tool execution events emitted by orchestrator
 }
 
 export const TriggerConfigDeviceSchema = z.object({
@@ -44,10 +44,10 @@ export type TriggerConfigToolEvent = z.infer<typeof TriggerConfigToolEventSchema
 export type TriggerConfig = z.infer<typeof TriggerConfigSchema>;
 
 export enum ActionType {
-    NOTIFICATION = 'NOTIFICATION',
-    TASK = 'TASK', // Linked to your new Task/Job domain
-    HA_SERVICE = 'HA_SERVICE',
-    SCRIPT = 'SCRIPT'
+  NOTIFICATION = 'NOTIFICATION',
+  TASK = 'TASK', // Linked to your new Task/Job domain
+  HA_SERVICE = 'HA_SERVICE',
+  SCRIPT = 'SCRIPT'
 }
 
 /**
@@ -92,7 +92,7 @@ export const AutomationRuleSchema = z.object({
 export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
 
 export const InsertableAutomationRuleSchema = AutomationRuleSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
-export const UpdatableAutomationRuleSchema = InsertableAutomationRuleSchema.partial();
+export const UpdatableAutomationRuleSchema = InsertableAutomationRuleSchema.omit({ userId: true }).partial();
 
 export type InsertableAutomationRule = z.infer<typeof InsertableAutomationRuleSchema>;
 export type UpdatableAutomationRule = z.infer<typeof UpdatableAutomationRuleSchema>;

@@ -51,7 +51,7 @@ export function LogForm({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground bg-slate-100 px-2 py-1 rounded">
+          <div className="flex items-center gap-2 rounded bg-muted px-2 py-1 text-xs font-mono text-muted-foreground">
             <Terminal className="w-3 h-3" />
             System Log
           </div>
@@ -77,12 +77,12 @@ export function LogForm({
 
         {/* Metadata / Context Objects */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <FileJson className="w-4 h-4" />
-            Structured Metadata
+            Structured metadata
           </div>
-          <div className="rounded-md bg-[#1e1e1e] p-4 border border-slate-800">
-            <pre className="text-xs text-emerald-400 font-mono overflow-x-auto leading-relaxed">
+          <div className="rounded-md border border-border/50 bg-muted/50 p-4">
+            <pre className="text-xs font-mono leading-relaxed overflow-x-auto text-foreground">
               {initialData?.metadata 
                 ? JSON.stringify(initialData.metadata, null, 2) 
                 : "// No additional metadata provided"}

@@ -16,7 +16,7 @@ import { NumberInput } from '../../fields/general/number-input';
 
 export type RecipeFormProps = EntityFormProps<InsertableRecipe, Recipe>;
 
-export function RecipeForm({ initialData, viewMode, onSubmit, isLoading }: RecipeFormProps) {
+export function RecipeForm({ initialData, viewMode, onSubmit, isLoading, formId }: RecipeFormProps) {
   const form = useForm<InsertableRecipe>({
     resolver: zodResolver(InsertableRecipeSchema),
     defaultValues: {
@@ -30,7 +30,7 @@ export function RecipeForm({ initialData, viewMode, onSubmit, isLoading }: Recip
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex justify-between items-start">
           <EntityIdField value={initialData?.id} />
           {initialData?.readableId && (
@@ -86,7 +86,7 @@ export function RecipeForm({ initialData, viewMode, onSubmit, isLoading }: Recip
           </div>
         )}
 
-        {viewMode !== 'READ' && (
+        {viewMode !== 'READ' && !formId && (
           <div className="flex justify-end pt-2">
             <button
               type="submit"

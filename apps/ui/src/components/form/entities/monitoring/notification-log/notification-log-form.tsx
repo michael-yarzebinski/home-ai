@@ -28,14 +28,14 @@ export function NotificationLogForm({
             <EntityIdField value={initialData?.id}/>
             <div className="flex flex-col gap-1">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Channel</span>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                 <Send className="w-3.5 h-3.5 text-primary" />
                 System Dispatch
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
             <Bell className="w-3 h-3 text-blue-500" />
             Outbound Alert
           </div>
@@ -65,7 +65,7 @@ export function NotificationLogForm({
               name="message" 
               label="" 
               viewMode="READ" 
-              className="bg-slate-50/50 min-h-[120px] text-base leading-relaxed border-dashed"
+              className="min-h-[120px] border-dashed border-border/50 bg-muted/30 text-base leading-relaxed"
             />
             <div className="absolute top-2 right-2 opacity-10">
               <Bell className="w-12 h-12" />

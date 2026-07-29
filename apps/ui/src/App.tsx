@@ -14,6 +14,15 @@ import { EntitySearch } from './scenes/admin/entity-search';
 import { ChecklistHome } from './scenes/checklists/home/home';
 import { ChecklistsAll } from './scenes/checklists/all/all';
 import ChecklistDetails from './scenes/checklists/details/details';
+import { DevicesAll } from './scenes/devices/all/all';
+import { DeviceHome } from './scenes/devices/home/home';
+import DeviceDetails from './scenes/devices/details/details';
+import { FactHome } from './scenes/facts/home/home';
+import { FactsAll } from './scenes/facts/all/all';
+import FactDetails from './scenes/facts/details/details';
+import { RecipeHome } from './scenes/recipes/home/home';
+import { RecipesAll } from './scenes/recipes/all/all';
+import RecipeDetails from './scenes/recipes/details/details';
 
 const router = createBrowserRouter([
   {
@@ -54,7 +63,37 @@ const router = createBrowserRouter([
       { path: 'home', element: <ChecklistHome /> },
       { path: 'all', element: <ChecklistsAll /> },
       { path: 'details/:id', element: <ChecklistDetails /> },
-    ]
+    ],
+  },
+  {
+    path: '/devices',
+    element: <ProtectedRoute><AppLayout><Outlet /></AppLayout></ProtectedRoute>,
+    children: [
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <DeviceHome /> },
+      { path: 'all', element: <DevicesAll /> },
+      { path: 'details/:id', element: <DeviceDetails /> },
+    ],
+  },
+  {
+    path: '/facts',
+    element: <ProtectedRoute><AppLayout><Outlet /></AppLayout></ProtectedRoute>,
+    children: [
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <FactHome /> },
+      { path: 'all', element: <FactsAll /> },
+      { path: 'details/:id', element: <FactDetails /> },
+    ],
+  },
+  {
+    path: '/recipes',
+    element: <ProtectedRoute><AppLayout><Outlet /></AppLayout></ProtectedRoute>,
+    children: [
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <RecipeHome /> },
+      { path: 'all', element: <RecipesAll /> },
+      { path: 'details/:id', element: <RecipeDetails /> },
+    ],
   },
   // Catch-all → dashboard (ProtectedRoute will redirect to /login if unauthenticated)
   {

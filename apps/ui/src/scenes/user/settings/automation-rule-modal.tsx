@@ -14,11 +14,12 @@ import {
   DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { CronScheduleField } from '@/components/form/fields/general/cron-schedule-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { MOCK_DEVICES } from '@/mock/entity-data';
+import { useDeviceSearch } from '@/api/devices/devices.hooks';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,26 +185,6 @@ function formToRule(values: FormValues): Partial<AutomationRule> {
   };
 }
 
-/** Simple CRON human description for common patterns */
-function describeCron(cron: string): string | null {
-  if (!cron.trim()) return null;
-  const p = cron.trim().split(/\s+/);
-  if (p.length !== 5) return null;
-  const [min, hour, , , dow] = p;
-  const h = parseInt(hour);
-  const m = parseInt(min);
-  if (isNaN(h) || isNaN(m)) return null;
-  const period = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const dm = m.toString().padStart(2, '0');
-  const time = `${dh}:${dm} ${period}`;
-  const days: Record<string, string> = {
-    '*': 'every day', '1-5': 'Mon–Fri', '0-4': 'Sun–Thu', '1-7': 'every day',
-    '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat',
-  };
-  return `${days[dow] ?? dow} at ${time}`;
-}
-
 // ---------------------------------------------------------------------------
 // Pill selectors
 // ---------------------------------------------------------------------------
@@ -232,11 +213,15 @@ const ACTION_TYPE_COLORS: Record<ActionType, string> = {
 // Modal
 // ---------------------------------------------------------------------------
 
+const DEVICE_SEARCH_CRITERIA = { page: 1, pageSize: 100 };
+
 export function AutomationRuleModal({
   open, onClose, mode, rule, onSave, onDelete, onRestore,
 }: AutomationRuleModalProps) {
   const isActive = rule != null ? Boolean(rule['active'] ?? true) : true;
   const isReadOnly = mode === 'edit' && !isActive;
+  const devicesQuery = useDeviceSearch(DEVICE_SEARCH_CRITERIA, { enabled: open });
+  const devices = devicesQuery.data?.items.filter((device) => device.active) ?? [];
 
   const defaultValues = rule ? ruleToFormValues(rule) : blankFormValues();
 
@@ -408,20 +393,19 @@ export function AutomationRuleModal({
             {/* TIME sub-fields */}
             {triggerType === TriggerType.TIME && (
               <>
-                <Field label="CRON Expression" required error={form.formState.errors.cron?.message}>
-                  <Input
-                    placeholder="0 21 * * 0-4"
-                    disabled={isReadOnly}
-                    {...form.register('cron')}
-                    className="font-mono"
-                  />
-                  {(() => {
-                    const desc = describeCron(form.watch('cron'));
-                    return desc
-                      ? <FieldHint className="text-primary/70">↳ {desc}</FieldHint>
-                      : <FieldHint>Format: minute hour day month weekday · e.g. <code>0 21 * * 0-4</code> = 9 PM Sun–Thu</FieldHint>;
-                  })()}
-                </Field>
+                <Controller
+                  name="cron"
+                  control={form.control}
+                  render={({ field }) => (
+                    <CronScheduleField
+                      label="Schedule"
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isReadOnly}
+                      error={form.formState.errors.cron?.message}
+                    />
+                  )}
+                />
 
                 <Field label="Timezone" required error={form.formState.errors.timezone?.message}>
                   <Input
@@ -437,22 +421,56 @@ export function AutomationRuleModal({
             {triggerType === TriggerType.DEVICE && (
               <>
                 <Field label="Device" required error={form.formState.errors.deviceId?.message}>
-                  <select
-                    disabled={isReadOnly}
-                    {...form.register('deviceId')}
-                    className={cn(
-                      'flex h-9 w-full rounded-md border border-border bg-background px-3 py-1',
-                      'text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring',
-                      'disabled:cursor-not-allowed disabled:opacity-50',
-                    )}
-                  >
-                    <option value="">Select a device…</option>
-                    {MOCK_DEVICES.filter((d) => d.active).map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.friendlyName} ({d.room ?? d.category})
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    name="deviceId"
+                    control={form.control}
+                    render={({ field }) => {
+                      // The device options load asynchronously, so bind value
+                      // explicitly (controlled) rather than relying on register's
+                      // ref assignment, which runs before the options exist.
+                      const selectedInList = devices.some((d) => d.id === field.value);
+                      const selectedFallback =
+                        field.value && !selectedInList
+                          ? devicesQuery.data?.items.find((d) => d.id === field.value)
+                          : undefined;
+
+                      return (
+                        <select
+                          disabled={isReadOnly || devicesQuery.isLoading}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          className={cn(
+                            'flex h-9 w-full rounded-md border border-border bg-background px-3 py-1',
+                            'text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring',
+                            'disabled:cursor-not-allowed disabled:opacity-50',
+                          )}
+                        >
+                          <option value="">
+                            {devicesQuery.isLoading
+                              ? 'Loading devices…'
+                              : devicesQuery.isError
+                                ? 'Unable to load devices'
+                                : devices.length === 0
+                                  ? 'No devices available'
+                                  : 'Select a device…'}
+                          </option>
+                          {selectedFallback && (
+                            <option value={selectedFallback.id}>
+                              {selectedFallback.friendlyName} ({selectedFallback.room ?? selectedFallback.category ?? selectedFallback.slug})
+                              {!selectedFallback.active ? ' — inactive' : ''}
+                            </option>
+                          )}
+                          {devices.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.friendlyName} ({d.room ?? d.category ?? d.slug})
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    }}
+                  />
                 </Field>
 
                 <Field label="Intent" required error={form.formState.errors.deviceIntent?.message}>

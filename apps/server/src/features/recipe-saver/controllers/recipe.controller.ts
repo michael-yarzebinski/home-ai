@@ -11,6 +11,7 @@ import {
   Put,
 } from "@nestjs/common";
 import { RecipeStore } from "../stores/recipe.store";
+import { IngredientStore } from "../stores/ingredients.store";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { ZodValidationPipe } from "../../../common/pipes/zod-validation.pipe";
 import {
@@ -25,7 +26,10 @@ import type { AuthUser } from "../../../core/auth/jwt.strategy";
 
 @Controller("v1/recipes")
 export class RecipeController {
-  constructor(private readonly recipeStore: RecipeStore) {}
+  constructor(
+    private readonly recipeStore: RecipeStore,
+    private readonly ingredientStore: IngredientStore,
+  ) {}
 
   @Post("search")
   @HttpCode(HttpStatus.OK)
@@ -44,6 +48,13 @@ export class RecipeController {
     const item = await this.recipeStore.getById(id, authUser, false);
     if (!item) throw new NotFoundException(`Recipe ${id} not found`);
     return item;
+  }
+
+  @Get(":id/ingredients")
+  async getIngredients(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
+    const recipe = await this.recipeStore.getById(id, authUser, false);
+    if (!recipe) throw new NotFoundException(`Recipe ${id} not found`);
+    return this.ingredientStore.getByRecipeId(id);
   }
 
   @Put(":id")

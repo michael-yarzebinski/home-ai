@@ -26,6 +26,7 @@ import { AppConfigController } from "./controllers/app-config/app-config.control
 import { AutomationRulesController } from "./controllers/automation-rules/automation-rules.controller";
 import { ChatSessionsController } from "./controllers/chat-sessions/chat-sessions.controller";
 import { DevicesController } from "./controllers/devices/devices.controller";
+import { DeviceEventsController } from "./controllers/devices/device-events.controller";
 import { PendingActionsController } from "./controllers/pending-actions/pending-actions.controller";
 import { ToolsController } from "./controllers/tools/tools.controller";
 import { UsersController } from "./controllers/users/users.controller";
@@ -54,6 +55,7 @@ import { BullModule } from "@nestjs/bullmq";
     AutomationRulesController,
     ChatSessionsController,
     DevicesController,
+    DeviceEventsController,
     PendingActionsController,
     ToolsController,
     UsersController,

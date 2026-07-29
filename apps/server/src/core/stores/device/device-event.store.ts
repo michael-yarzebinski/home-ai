@@ -4,6 +4,8 @@ import type {
   DeviceEvent,
   InsertableDeviceEvent,
 } from "@home-ai/shared/domain/device/device-event";
+import type { SearchCriteriaBase } from "@home-ai/shared/search/search";
+import { Paginated } from "@home-ai/shared/search/pagination";
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { AuthUser } from "../../auth/jwt.strategy";
@@ -35,9 +37,15 @@ export class DeviceEventStore extends AbstractEntityStore<
 
   protected validateUserForRead(
     query: Knex.QueryBuilder,
-    _user: AuthUser,
+    user: AuthUser,
   ): Knex.QueryBuilder {
-    return query;
+    return query.whereIn("device_id", (sub) => {
+      sub
+        .select("id")
+        .from("devices")
+        .where({ active: true })
+        .whereRaw("read_roles @> jsonb_build_array(?::text)", [user.role]);
+    });
   }
 
   protected validateUserForWrite(
@@ -100,5 +108,46 @@ export class DeviceEventStore extends AbstractEntityStore<
     });
 
     return domain;
+  }
+
+  async getByDeviceId(
+    deviceId: string,
+    criteria: SearchCriteriaBase,
+    user: AuthUser,
+  ): Promise<Paginated<DeviceEvent>> {
+    let query = this.table;
+
+    query = this.validateForRead(query, user);
+
+    if (!criteria.includeInactive) {
+      query = query.where({ active: true });
+    }
+
+    query = query.where({ device_id: deviceId });
+
+    if (criteria.query?.trim()) {
+      query = this.applyTextSearch(query, criteria.query.trim());
+    }
+
+    const countRow = (await query.clone().count("* as count").first()) as
+      | { count: string }
+      | undefined;
+    const total = parseInt(countRow?.count ?? "0", 10);
+
+    const offset = (criteria.page - 1) * criteria.pageSize;
+    const records = (await query
+      .orderBy(this.defaultOrder.column, this.defaultOrder.direction)
+      .offset(offset)
+      .limit(criteria.pageSize)) as DeviceEventRecord[];
+    const items = records.map((r) => this.recordToDomain(r));
+
+    return {
+      items,
+      total,
+      page: criteria.page,
+      pageSize: criteria.pageSize,
+      hasNext: offset + items.length < total,
+      hasPrevious: criteria.page > 1,
+    };
   }
 }

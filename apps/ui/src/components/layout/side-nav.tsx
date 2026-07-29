@@ -25,6 +25,8 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   href: string;
+  /** When set, item stays active for paths under this prefix (e.g. /checklists/home, /checklists/all) */
+  activePathPrefix?: string;
   /** If set, item is only rendered when the current user's role is included */
   requiredRoles?: Role[];
 }
@@ -60,16 +62,26 @@ const NAV_SECTIONS: NavSection[] = [
         requiredRoles: [Role.ADMIN, Role.PARENT],
       },
       { icon: MessageSquare, label: 'Chat', href: '/chat' },
-      { icon: ListChecks, label: 'Checklists', href: '/checklists/all' },
+      {
+        icon: ListChecks,
+        label: 'Checklists',
+        href: '/checklists/home',
+        activePathPrefix: '/checklists',
+      },
     ],
   },
   {
     label: 'Library',
     dividerBefore: true,
     items: [
-      { icon: Plug, label: 'Devices', href: '/devices' },
-      { icon: BookOpen, label: 'Facts', href: '/facts' },
-      { icon: ChefHat, label: 'Recipes', href: '/recipes' },
+      {
+        icon: Plug,
+        label: 'Devices',
+        href: '/devices/home',
+        activePathPrefix: '/devices',
+      },
+      { icon: BookOpen, label: 'Facts', href: '/facts/home', activePathPrefix: '/facts' },
+      { icon: ChefHat, label: 'Recipes', href: '/recipes/home', activePathPrefix: '/recipes' },
     ],
   },
 ];
@@ -89,6 +101,15 @@ function canAccess(userRole: Role, requiredRoles?: Role[]): boolean {
   return requiredRoles.includes(userRole);
 }
 
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  if (pathname === item.href) return true;
+  const prefix = item.activePathPrefix;
+  if (prefix) {
+    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Components
 // ---------------------------------------------------------------------------
@@ -101,6 +122,13 @@ interface SideNavProps {
 
 export function SideNav({ expanded, onClose, user }: SideNavProps) {
   const { pathname } = useLocation();
+
+  const handleNavigate = () => {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      onClose();
+    }
+  };
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -156,7 +184,8 @@ export function SideNav({ expanded, onClose, user }: SideNavProps) {
                       key={item.href}
                       item={item}
                       expanded={expanded}
-                      active={pathname === item.href}
+                      active={isNavItemActive(pathname, item)}
+                      onNavigate={handleNavigate}
                     />
                   ))}
                 </div>
@@ -174,6 +203,7 @@ export function SideNav({ expanded, onClose, user }: SideNavProps) {
               expanded={expanded}
               active={pathname === HUB_MODE_ITEM.href}
               variant="subtle"
+              onNavigate={handleNavigate}
             />
           </div>
         </nav>
@@ -187,14 +217,16 @@ interface SideNavItemProps {
   expanded: boolean;
   active: boolean;
   variant?: 'default' | 'subtle';
+  onNavigate: () => void;
 }
 
-function SideNavItem({ item, expanded, active, variant = 'default' }: SideNavItemProps) {
+function SideNavItem({ item, expanded, active, variant = 'default', onNavigate }: SideNavItemProps) {
   const Icon = item.icon;
 
   return (
     <Link
       to={item.href}
+      onClick={onNavigate}
       title={!expanded ? item.label : undefined}
       aria-current={active ? 'page' : undefined}
       className={cn(

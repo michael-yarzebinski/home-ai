@@ -35,9 +35,9 @@ export class AutomationRulesController {
     @Body(new ZodValidationPipe(SearchCriteriaSchema)) dto: SearchCriteriaBase,
     @CurrentUser() authUser: AuthUser,
   ) {
-    return this.automationRuleStore.search(
+    return this.automationRuleStore.searchByUserId(
       { ...dto, includeInactive: false },
-      authUser,
+      authUser.id,
     );
   }
 
@@ -62,15 +62,22 @@ export class AutomationRulesController {
   }
 
   @Put(":id")
-  update(
+  async update(
     @Param("id") id: string,
     @Body(new ZodValidationPipe(UpdatableAutomationRuleSchema))
     dto: UpdatableAutomationRule,
     @CurrentUser() authUser: AuthUser,
   ) {
+    const existing = await this.automationRuleStore.getByIdForUser(
+      id,
+      authUser.id,
+      true,
+    );
+    if (!existing) throw new NotFoundException(`Automation rule ${id} not found`);
+
     return this.automationRuleStore.update(
       id,
-      { ...dto, userId: authUser.id },
+      dto,
       authUser,
     );
   }

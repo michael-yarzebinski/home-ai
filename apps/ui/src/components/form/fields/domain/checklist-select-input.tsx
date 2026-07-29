@@ -21,7 +21,7 @@ export function ChecklistSelectInput<T extends FieldValues>({
   // Define search criteria - consistent across both hooks
   const criteria = useMemo(() => ({
     page: 1,
-    pageSize: 1000, 
+    pageSize: 100,
     includeInactive: isAdmin ? includeInactive : false,
   }), [isAdmin, includeInactive]);
 

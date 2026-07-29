@@ -24,12 +24,26 @@ import { UserSelectInput } from '@/components/form/fields/domain/user-select-inp
 import { ChecklistSelectInput } from '@/components/form/fields/domain/checklist-select-input';
 import { ChecklistItemMultiSelectInput } from '@/components/form/fields/domain/checklist-item-multi-select-input';
 
+const sectionHeadingClass =
+  'text-[10px] font-bold uppercase tracking-widest text-muted-foreground';
+
+const submitButtonClassName =
+  'px-6 py-2 h-9 bg-primary text-primary-foreground rounded-md text-xs font-bold uppercase tracking-widest shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors';
+
+type RecurringChecklistItemFormProps = EntityFormProps<
+  InsertableRecurringChecklistItem,
+  RecurringChecklistItem
+> & {
+  lockChecklistId?: boolean;
+};
+
 export function RecurringChecklistItemForm({ 
   initialData, 
   viewMode, 
   onSubmit, 
-  isLoading 
-}: EntityFormProps<InsertableRecurringChecklistItem, RecurringChecklistItem>) {
+  isLoading,
+  lockChecklistId = false,
+}: RecurringChecklistItemFormProps) {
   
   const form = useForm<InsertableRecurringChecklistItem>({
     resolver: zodResolver(InsertableRecurringChecklistItemSchema),
@@ -57,27 +71,27 @@ export function RecurringChecklistItemForm({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <EntityIdField value={initialData?.id} />
 
-        {/* --- Header Details --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <TextInput name="title" label="Blueprint Title" placeholder="Monthly HVAC Check" viewMode={viewMode} />
-            <ChecklistSelectInput name="checklistId" label="Parent Checklist" viewMode={viewMode} />
-          </div>
-          <TextInput 
-            name="description" 
-            label="Default Description" 
-            viewMode={viewMode} 
+        <div className="space-y-4">
+          <TextInput name="title" label="Blueprint Title" placeholder="Monthly HVAC Check" viewMode={viewMode} />
+          <TextInput
+            name="description"
+            label="Default Description"
+            viewMode={viewMode}
+          />
+          <ChecklistSelectInput
+            name="checklistId"
+            label="Parent Checklist"
+            viewMode={lockChecklistId ? 'READ' : viewMode}
           />
         </div>
 
-        {/* --- Scheduling & Assignment --- */}
-        <div className="p-6 border rounded-lg bg-slate-50/50 space-y-6">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Recurrence & Logic</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="rounded-lg border border-border/50 bg-muted/30 p-5 space-y-5">
+          <h3 className={sectionHeadingClass}>Recurrence & logic</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <SelectInput 
               name="triggerType" 
               label="Trigger Logic" 
@@ -93,9 +107,9 @@ export function RecurringChecklistItemForm({
             <UserSelectInput name="defaultAssigneeId" label="Default Assignee" viewMode={viewMode} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-5 border-t border-border/50">
             {selectedTriggerType === RecurringChecklistItemTriggerType.CRON ? (
-              <CronInput name="triggerConfig.cron" label="Schedule (CRON)" viewMode={viewMode} />
+              <CronInput name="triggerConfig.cron" label="Schedule" viewMode={viewMode} />
             ) : (
               <TextInput name="triggerConfig.eventTag" label="Event Tag" placeholder="system.startup" viewMode={viewMode} />
             )}
@@ -103,22 +117,21 @@ export function RecurringChecklistItemForm({
           </div>
         </div>
 
-        {/* --- Dependencies & Categorization --- */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-4 border-t border-border/50 pt-6">
+          <h3 className={sectionHeadingClass}>Dependencies & tags</h3>
           <ChecklistItemMultiSelectInput
             name="dependsOnRecurringIds"
             label="Depends On (Recurring Blueprints Only)"
             checklistId={selectedChecklistId}
-            itemType="RECURRING" // Specifically filter for recurring items as per schema
+            itemType="RECURRING"
             viewMode={viewMode}
           />
           <ArrayInput name="tags" label="Default Tags" viewMode={viewMode} />
         </div>
 
-        {/* --- Reference Metadata --- */}
-        <div className="space-y-4 border-t pt-6">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Resource Template</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4 border-t border-border/50 pt-6">
+          <h3 className={sectionHeadingClass}>Resource template</h3>
+          <div className="grid grid-cols-1 gap-5">
             <ArrayInput 
               name="metadata.requiredItems" 
               label="Required Tools/Supplies" 
@@ -137,13 +150,9 @@ export function RecurringChecklistItemForm({
         )}
 
         {viewMode !== 'READ' && (
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium disabled:opacity-50"
-            >
-              {isLoading ? 'Saving Blueprint...' : viewMode === 'CREATE' ? 'Create Recurring Item' : 'Save Changes'}
+          <div className="flex justify-end border-t border-border/50 pt-4">
+            <button type="submit" disabled={isLoading} className={submitButtonClassName}>
+              {isLoading ? 'Saving...' : viewMode === 'CREATE' ? 'Add recurring item' : 'Save changes'}
             </button>
           </div>
         )}

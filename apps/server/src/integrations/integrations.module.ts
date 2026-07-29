@@ -9,6 +9,7 @@ import { HomeAssistantService } from "./home-assistant/services/home-assistant.s
 
 // Controllers
 import { BlueBubblesController } from "./blue-bubbles/blue-bubbles.controller";
+import { HomeAssistantController } from "./home-assistant/controller/home-assistant.controller";
 import { WeatherService } from "./weather/service/weather.service";
 import { RelayService } from "./relay/relay.service";
 import { HttpModule } from "@nestjs/axios";
@@ -16,7 +17,7 @@ import { HomeAssistantProcessor } from "./home-assistant/services/home-assistant
 
 @Module({
   imports: [CoreModule, AIModule, HttpModule],
-  controllers: [BlueBubblesController],
+  controllers: [BlueBubblesController, HomeAssistantController],
   providers: [
     BlueBubblesService,
     HomeAssistantService,

@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SearchCriteriaBase } from '@home-ai/shared/search/search';
-import type { UpdatableRecipe } from '@home-ai/shared/domain/recipe/recipe';
+import type { Recipe, UpdatableRecipe } from '@home-ai/shared/domain/recipe/recipe';
 import { recipesApi } from '@/api/recipes/recipes.api';
 import { recipeKeys } from '@/api/recipes/recipes.keys';
 import { adminRecipeKeys } from '@/api/recipes/admin/recipes.admin.keys';
+import { useApiInfinite } from '../use-api-infinite';
+
+export const useRecipeInfinite = (criteria: Omit<SearchCriteriaBase, 'page'>) =>
+  useApiInfinite<Recipe>(
+    recipeKeys.list({ ...criteria, page: 1 }),
+    recipesApi.search,
+    criteria,
+  );
 
 export function useRecipeSearch(criteria: SearchCriteriaBase) {
   return useQuery({

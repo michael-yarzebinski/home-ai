@@ -54,7 +54,7 @@ export class AddToNoteTool extends ToolHandler<
 
     let script = "";
 
-    if (!isList) {
+    if (!isList && !params.name.toLowerCase().includes("list")) {
       script = `
       tell application "Notes"
         set targetNote to first note whose name is "${params.name}"
@@ -64,32 +64,64 @@ export class AddToNoteTool extends ToolHandler<
       end tell
     `;
     } else {
+      const escape = (value: string) =>
+        value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+      // Type each item on its own line. We only emit `return` *between* items
+      // so we don't leave a trailing empty checklist item at the end.
       const keystrokeCommands = lines
-        .map(
-          (line) =>
-            `keystroke "${line.replace(/"/g, '\\"')}"\n          keystroke return`,
-        )
-        .join("\n          ");
+        .map((line) => `keystroke "${escape(line)}"`)
+        .join("\n          keystroke return\n          ");
+
+      const noteName = escape(params.name);
 
       script = `
+      tell application "System Events"
+        set previousApp to name of first application process whose frontmost is true
+      end tell
+
       tell application "Notes"
         activate
-        show note "${params.name}"
+        show note "${noteName}"
       end tell
+
       tell application "System Events"
+        -- Force Notes frontmost and wait until it actually is, so keystrokes
+        -- don't leak into whatever app was focused before (UI scripting only
+        -- works against the frontmost process).
         tell process "Notes"
+          set frontmost to true
+          repeat 50 times
+            if frontmost then exit repeat
+            delay 0.1
+          end repeat
+        end tell
+        delay 0.4
+
+        tell process "Notes"
+          -- Place the insertion point inside the note's text area.
           try
             click text area 1 of scroll area 3 of splitter group 1 of window 1
           end try
-          
-          key code 125 using {command down} 
+
+          -- Jump to the end of the note and start a fresh line.
+          key code 125 using {command down}
           keystroke return
-          
-          click UI Element 6 of tool bar 1 of window 1
-          
+
+          -- "Make Checklist" shortcut: guarantees Apple checklist items
+          -- (with checkboxes) rather than bulleted/dashed list items.
+          keystroke "l" using {command down, shift down}
+
           ${keystrokeCommands}
         end tell
       end tell
+
+      -- Restore focus to whatever app was active before we ran.
+      try
+        tell application "System Events"
+          tell application process previousApp to set frontmost to true
+        end tell
+      end try
     `;
     }
 

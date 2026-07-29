@@ -14,6 +14,8 @@ export interface EntityFormProps<TFieldValues extends FieldValues, TEntity = any
   onSubmit: (data: TFieldValues) => void;
   /** Global loading state (e.g. while the mutation is pending) */
   isLoading?: boolean;
+  /** When set, the submit button is rendered outside the form (e.g. in a modal footer). */
+  formId?: string;
   /** * Optional: Allows the parent (like a Modal) to access the RHF instance 
    * for external triggering of submit/reset.
    */

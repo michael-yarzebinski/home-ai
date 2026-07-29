@@ -5,6 +5,7 @@ import { deviceKeys } from '@/api/devices/devices.keys';
 import { adminDeviceKeys } from '@/api/devices/admin/devices.admin.keys';
 import type { SearchCriteriaBase } from '@home-ai/shared/search/search';
 import type { Paginated } from '@home-ai/shared/search/pagination';
+import { useApiInfinite } from '../use-api-infinite';
 
 export function useDeviceSearch<TData = Paginated<Device>>(
   criteria: SearchCriteriaBase,
@@ -16,6 +17,13 @@ export function useDeviceSearch<TData = Paginated<Device>>(
     queryFn: () => devicesApi.search(criteria),
   });
 }
+
+export const useDeviceInfinite = (criteria: Omit<SearchCriteriaBase, 'page'>) =>
+  useApiInfinite<Device>(
+    deviceKeys.list({ ...criteria, page: 1 }),
+    devicesApi.search,
+    criteria,
+  );
 
 export function useDeviceById(id: string | undefined, enabled = true) {
   return useQuery({

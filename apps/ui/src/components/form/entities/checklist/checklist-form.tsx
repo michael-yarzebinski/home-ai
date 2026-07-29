@@ -20,7 +20,8 @@ export function ChecklistForm({
   initialData, 
   viewMode, 
   onSubmit, 
-  isLoading 
+  isLoading,
+  formId,
 }: EntityFormProps<InsertableChecklist, Checklist>) {
   
   const form = useForm<InsertableChecklist>({
@@ -35,7 +36,7 @@ export function ChecklistForm({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <EntityIdField value={initialData?.id} />
 
         {/* --- Primary Details --- */}
@@ -86,7 +87,7 @@ export function ChecklistForm({
         )}
 
         {/* --- Form Actions --- */}
-        {viewMode !== 'READ' && (
+        {viewMode !== 'READ' && !formId && (
           <div className="flex justify-end pt-2">
             <button
               type="submit"

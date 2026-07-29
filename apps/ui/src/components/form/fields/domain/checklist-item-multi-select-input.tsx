@@ -20,8 +20,13 @@ export function ChecklistItemMultiSelectInput<T extends FieldValues>({
   // 1. Fetch the details for the specific checklist
   const { data: details, isLoading } = useChecklistDetail(checklistId);
   
-  const selectedItems = watch(name) || [];
+  const selectedItems: unknown[] = watch(name) || [];
   const error = errors[name]?.message as string | undefined;
+
+  const isItemSelected = (itemId: string) =>
+    selectedItems.some((selected) =>
+      typeof selected === 'string' ? selected === itemId : (selected as { id: string }).id === itemId,
+    );
 
   // 2. Combine and filter items based on the provided type
   const availableOptions = useMemo(() => {
@@ -33,28 +38,44 @@ export function ChecklistItemMultiSelectInput<T extends FieldValues>({
     return [...standard, ...recurring];
   }, [details, itemType]);
 
-  const toggleItem = (item: any) => {
-    const isSelected = selectedItems.some((selected: any) => selected.id === item.id);
+  const toggleItem = (item: { id: string }) => {
+    const isSelected = isItemSelected(item.id);
     if (isSelected) {
-      setValue(name, selectedItems.filter((selected: any) => selected.id !== item.id) as any);
+      setValue(
+        name,
+        selectedItems.filter((selected) =>
+          typeof selected === 'string' ? selected !== item.id : (selected as { id: string }).id !== item.id,
+        ) as never,
+      );
     } else {
-      setValue(name, [...selectedItems, item] as any);
+      setValue(name, [...selectedItems, item.id] as never);
     }
   };
 
+  const isEmptyState =
+    !checklistId || isLoading || availableOptions.length === 0;
+
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium">{label}</label>
-      <div className="flex flex-wrap gap-2 p-3 border rounded-md min-h-[42px] bg-background">
+      <label className="text-sm font-medium leading-none">{label}</label>
+      <div
+        className={`flex flex-wrap gap-2 rounded-md border border-border/50 bg-muted/20 p-3 min-h-[3.5rem] ${
+          isEmptyState ? 'items-center justify-center' : ''
+        }`}
+      >
         {!checklistId ? (
-          <span className="text-sm text-muted-foreground italic">Please select a checklist first...</span>
+          <span className="text-sm text-muted-foreground italic text-center">
+            Select a parent checklist first.
+          </span>
         ) : isLoading ? (
-          <span className="text-sm text-muted-foreground">Loading items...</span>
+          <span className="text-sm text-muted-foreground">Loading items…</span>
         ) : availableOptions.length === 0 ? (
-          <span className="text-sm text-muted-foreground italic">No items found in this checklist.</span>
+          <span className="text-sm text-muted-foreground italic text-center">
+            No other items in this checklist yet.
+          </span>
         ) : (
           availableOptions.map((item) => {
-            const isSelected = selectedItems.some((selected: any) => selected.id === item.id);
+            const isSelected = isItemSelected(item.id);
             return (
               <button
                 key={item.id}

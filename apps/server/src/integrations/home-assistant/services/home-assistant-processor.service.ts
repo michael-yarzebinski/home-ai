@@ -48,6 +48,35 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // Best-effort warm-up. If this races ahead of the DB being ready, process()
+    // will lazily resolve the automation user before it is needed, so we don't
+    // rethrow here — but we do log so a genuine misconfiguration is visible.
+    try {
+      await this.ensureAutomationUser();
+    } catch (error: any) {
+      await this.logStore.create({
+        severity: "warn",
+        message:
+          "HomeAssistantProcessor: automation user warm-up failed; will retry lazily per job",
+        metadata: {
+          error: error?.message ?? String(error),
+          automationUserId: this.automationUserId,
+        },
+      });
+    }
+  }
+
+  /**
+   * Resolves and caches the automation user. Guards against the startup race
+   * where the BullMQ worker picks up an already-due job before onModuleInit has
+   * populated `this.automationUser`. Throws a descriptive error if the
+   * configured AUTOMATION_USER_ID genuinely matches no user.
+   */
+  private async ensureAutomationUser(): Promise<User> {
+    if (this.automationUser) {
+      return this.automationUser;
+    }
+
     const automationUser = await this.userStore.getById(
       this.automationUserId,
       undefined,
@@ -58,10 +87,14 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
         `HomeAssistantProcessor: AUTOMATION_USER_ID "${this.automationUserId}" does not match any user`,
       );
     }
+
     this.automationUser = automationUser;
+    return this.automationUser;
   }
 
   async process(job: Job<{ deviceId: string }>): Promise<void> {
+    await this.ensureAutomationUser();
+
     const redisKey = `ha_event:${job.data.deviceId}`;
     const rawBuffer = await this.redis.get(redisKey);
     const device = await this.deviceStore.getById(
@@ -83,9 +116,8 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
       return;
     }
     const buffer = JSON.parse(rawBuffer) as EventQueueBuffer;
-    const automationRules = await this.automationRuleStore.getByIds(
+    const automationRules = await this.automationRuleStore.getByIdsForAutomation(
       buffer.ruleIds,
-      this.automationUser,
       false,
     );
     const deviceState =

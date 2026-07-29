@@ -11,6 +11,8 @@ import type {
 } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { TriggerType } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { AuthUser } from "../../auth/jwt.strategy";
+import type { SearchCriteriaBase } from "@home-ai/shared/search/search";
+import type { Paginated } from "@home-ai/shared/search/pagination";
 
 export interface AutomationRuleRecord {
   id: string;
@@ -108,6 +110,32 @@ export class AutomationRuleStore extends AbstractEntityStore<
     return records.map((r) => this.recordToDomain(r));
   }
 
+  /**
+   * Paginated search hard-scoped to a single owner, regardless of role.
+   * Used by the personal `/v1/automation-rules` endpoint so that even admins
+   * only see their own rules there (unlike the admin endpoint / base search).
+   */
+  async searchByUserId(
+    criteria: SearchCriteriaBase,
+    userId: string,
+  ): Promise<Paginated<AutomationRule>> {
+    const query = this.table.where("user_id", userId);
+    return this.paginateScopedSearch(query, criteria);
+  }
+
+  /** Fetch a single rule only if it belongs to the given owner. */
+  async getByIdForUser(
+    id: string,
+    userId: string,
+    includeInactive = false,
+  ): Promise<AutomationRule | null> {
+    const record = (await this.activeOrInactive(includeInactive)
+      .where({ id, user_id: userId })
+      .first()) as AutomationRuleRecord | undefined;
+
+    return record ? this.recordToDomain(record) : null;
+  }
+
   async getByTriggerType(
     triggerType: TriggerType,
     deviceId?: string,
@@ -138,5 +166,11 @@ export class AutomationRuleStore extends AbstractEntityStore<
     for (const ruleId of ruleIds) {
       await this.table.where("id", ruleId).update({ last_run: now });
     }
+  }
+
+  async getByIdsForAutomation(
+    ids: string[], includeInactive = false): Promise<AutomationRule[]> {
+    const records = await this.activeOrInactive(includeInactive).whereIn("id", ids);
+    return records.map((r) => this.recordToDomain(r));
   }
 }

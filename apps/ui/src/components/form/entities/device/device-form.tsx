@@ -22,7 +22,7 @@ export type DeviceFormProps = Omit<EntityFormProps<InsertableDevice, Device>, 'v
     viewMode: 'EDIT' | 'READ'; // Remove CREATE from allowed modes
 };
 
-export function DeviceForm({ initialData, viewMode, onSubmit, isLoading }: DeviceFormProps) {
+export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId }: DeviceFormProps) {
   const form = useForm<InsertableDevice>({
     resolver: zodResolver(InsertableDeviceSchema), 
     defaultValues: {
@@ -40,7 +40,7 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading }: Devic
 
   return (
     <FormProvider {...form}>
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+    <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
       <EntityIdField value={initialData?.id} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -98,7 +98,7 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading }: Devic
         <EntityTimestampField createdAt={initialData?.createdAt} updatedAt={initialData?.updatedAt} />
       </div>
 
-      {viewMode === 'EDIT' && (
+      {viewMode === 'EDIT' && !formId && (
         <div className="flex justify-end pt-6 border-t">
           <button
             type="submit"

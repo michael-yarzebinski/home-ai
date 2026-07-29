@@ -117,7 +117,7 @@ export class ConversationStore extends AbstractEntityStore<
     search: string,
   ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
-    return query.where((b) =>
+    return query.where((b: any) =>
       b.whereILike("external_id", like).orWhereILike("summary", like),
     );
   }
@@ -125,6 +125,20 @@ export class ConversationStore extends AbstractEntityStore<
   /** Show most recently active conversations first. */
   protected override get defaultOrder() {
     return { column: "last_activity", direction: "desc" as const };
+  }
+
+  /**
+   * Conversations with `last_activity` at or after `since` (inclusive).
+   * Not scoped to a single user — intended for system jobs (e.g. memory consolidation).
+   */
+  async findInTimeFrame(
+    since: Date,
+  ): Promise<Conversation[]> {
+    const records = (await this.active
+      .where("last_activity", ">=", since)
+      .orderBy(this.defaultOrder.column, this.defaultOrder.direction)) as ConversationRecord[];
+
+    return records.map((record) => this.recordToDomain(record));
   }
 
   /**
