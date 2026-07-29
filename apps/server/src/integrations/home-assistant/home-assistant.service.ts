@@ -1,6 +1,5 @@
 // src/integrations/home-assistant/home-assistant.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/log/log.store";
 import { DeviceStore } from "src/core/stores/device/device.store";
@@ -27,18 +26,10 @@ import { TriggerConfigDevice } from '@home-ai/shared/domain/automation-rule/auto
 import { HomeAssistantUtils } from "./utils/home-assistant.utils";
 import { AutomationRule } from '@home-ai/shared/domain/automation-rule/automation-rule';
 
-
-interface EventQueueItem {
-  entityId: string;
-  oldState: string;
-  newState: string;
-  ruleIds: string[];
-}
-
 type StateChangeContextResult = {
   shouldContinue: true;
   device: Device;
-  ruleIds: string[];
+  rules: AutomationRule[];
 } | {
   shouldContinue: false;
   severity: "info" | "error" | "debug";
@@ -54,22 +45,16 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   private automationUserId: string;
   private automationUser: User | null = null;
 
-  private eventQueue = new Map<string, EventQueueItem[]>();
-
-  private deviceCooldownMinutes: number;
-
   constructor(
     private readonly deviceStore: DeviceStore,
     private readonly appConfigService: AppConfigService,
     private readonly userStore: UserStore,
     private readonly orchestratorService: OrchestratorService,
     private readonly logStore: LogStore,
-    private schedulerRegistry: SchedulerRegistry,
     private readonly automationRuleStore: AutomationRuleStore,
   ) {
     this.automationUserId =
       this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
-    this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>("HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES");
   }
 
   async onModuleInit() {
@@ -101,86 +86,30 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const matchingDevice = context.device;
-    this.addItemToQueue(
-      matchingDevice.id,
-      {
-        ruleIds: context.ruleIds,
-        entityId,
-        oldState: oldState?.state || "unknown",
-        newState: newState?.state || "unknown",
-      },
-    );
+    await this.evaluateAutomationRules(context.device, context.rules, {
+      entityId,
+      oldState: oldState?.state || "unknown",
+      newState: newState?.state || "unknown",
+    });
   }
 
-
-
-  private doesTimeoutExist(id: string): boolean {
-    try {
-      this.schedulerRegistry.getTimeout(id);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async handleEventQueue(id: string): Promise<void> {
-    const events = this.eventQueue.get(id);
-    if (!events) {
-      await this.logStore.create({
-        severity: "error",
-        message: "Events not found",
-        metadata: { id },
-      });
-      return;
-    }
-    this.removeItemFromQueue(id);
-
-    const device = (await this.deviceStore.getById(id))!;
-
-    const automationRuleIds = Array.from(
-      new Set(events.flatMap((event) => event.ruleIds)),
-    );
-    const loadedRules = await this.automationRuleStore.getByIds(automationRuleIds);
-    // Re-check cooldown at flush time so concurrent events cannot re-run the same rules.
-    const automationRules = HomeAssistantUtils.filterAutomationRules(
-      loadedRules,
-      device,
-      this.deviceCooldownMinutes,
-    );
-
-    if (automationRules.length === 0) {
-      await this.logStore.create({
-        severity: "info",
-        message: `Skipping automation flush — all rules for device ${device.slug} are on cooldown`,
-        metadata: { deviceId: device.id, ruleIds: automationRuleIds },
-      });
-      return;
-    }
-
+  private async evaluateAutomationRules(
+    device: Device,
+    automationRules: AutomationRule[],
+    transition: { entityId: string; oldState: string; newState: string },
+  ): Promise<void> {
     // Stamp lastRun before the LLM call so subsequent HA events are filtered immediately.
     await this.automationRuleStore.markRulesRan(automationRules.map((rule) => rule.id));
 
     const deviceState = await this.getDeviceStateAndServices(device.slug);
-
-    const entitiesCurrentState = events.reduce((acc, e) => {
-      const entity = deviceState.entities.find(es => es.entityId === e.entityId);
-      if (!entity) {
-        return acc;
-      }
-
-      acc.set(entity.entityId, {
-        entityId: entity.entityId,
-        state: entity.state,
-        attributes: entity.attributes,
-      });
-
-      return acc;
-    }, new Map<string, {
-      entityId: string,
-      state: string,
-      attributes: Record<string, any>,
-    }>());
+    const entity = deviceState.entities.find((es) => es.entityId === transition.entityId);
+    const currentState = entity
+      ? [{
+          entityId: entity.entityId,
+          state: entity.state,
+          attributes: entity.attributes,
+        }]
+      : [];
 
     const automationRulesPrompt = automationRules.map(ar => `Name: ${ar.name}User ID: ${ar.userId}\nDescription: ${ar.description}\nTrigger: ${(ar.trigger as TriggerConfigDevice).intent}\nActions: ${ar.actions.map(a => `Instruction: ${a.instruction}\n Metadata: ${JSON.stringify(a.metadata)}`).join("\n")}`).join("\n");
 
@@ -192,10 +121,10 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     The device "${device.friendlyName}" (${device.slug}) has changed state.  Current time is ${new Date().toISOString()}.
 
     ## Changes
-    ${events.map((e) => `- Old State: ${e.oldState} - New State: ${e.newState}`).join("\n")}
+    - Old State: ${transition.oldState} - New State: ${transition.newState}
 
     ## Current State
-    ${JSON.stringify(Array.from(entitiesCurrentState.values()))}
+    ${JSON.stringify(currentState)}
 
     ## Automation Rules
     ${automationRulesPrompt}
@@ -317,7 +246,6 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // #region State Change Utils
   private async getStateChangeContext(
     entityId: string,
     oldState?: string,
@@ -341,7 +269,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     }
 
     const automationRules = await this.automationRuleStore.getForDevice(matchingDevice.id);
-    const filteredAutomationRules = HomeAssistantUtils.filterAutomationRules(automationRules, matchingDevice, this.deviceCooldownMinutes);
+    const filteredAutomationRules = HomeAssistantUtils.filterAutomationRules(automationRules);
     if (filteredAutomationRules.length === 0) {
       return { shouldContinue: false, severity: "info", reason: `No valid automation rules found for device ${matchingDevice.id}` };
     }
@@ -353,34 +281,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     return {
       shouldContinue: true,
       device: matchingDevice,
-      ruleIds: filteredAutomationRules.map((rule) => rule.id),
+      rules: filteredAutomationRules,
     };
   }
-
-  private addItemToQueue(
-    deviceId: string,
-    context: EventQueueItem,
-  ): void {
-    const waitingEvents: EventQueueItem[] = this.eventQueue.get(deviceId) || [];
-
-    waitingEvents.push(context);
-
-    this.eventQueue.set(deviceId, waitingEvents);
-
-    // No debounce delay: coalesce only events already in this tick (setTimeout 0),
-    // then flush. Rule cooldown (lastRun) owns LLM throttling.
-    const timeoutName = `buffer_${deviceId}`;
-    if (!this.doesTimeoutExist(timeoutName)) {
-      const timeout = setTimeout(() => {
-        this.handleEventQueue(deviceId);
-      }, 0);
-      this.schedulerRegistry.addTimeout(timeoutName, timeout);
-    }
-  }
-
-  private removeItemFromQueue(deviceId: string): void {
-    this.eventQueue.delete(deviceId);
-    this.schedulerRegistry.deleteTimeout(`buffer_${deviceId}`);
-  }
-  // #endregion State Change Utils
 }
