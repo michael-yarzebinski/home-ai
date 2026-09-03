@@ -34,9 +34,6 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   private automationUserId: string;
   private automationUser: User;
 
-  /** Suppresses automations after a recent execute-device-service call (not a queue delay). */
-  private deviceCooldownMinutes: number;
-
   constructor(
     private readonly deviceStore: DeviceStore,
     private readonly appConfigService: AppConfigService,
@@ -46,9 +43,6 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     private readonly userStore: UserStore,
     private readonly homeAssistantProcessor: HomeAssistantProcessor,
   ) {
-    this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>(
-      "HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES",
-    );
     this.automationUserId =
       this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
   }
@@ -248,11 +242,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     const automationRules = await this.automationRuleStore.getForDevice(
       device.id,
     );
-    return HomeAssistantUtils.filterAutomationRules(
-      automationRules,
-      device,
-      this.deviceCooldownMinutes,
-    );
+    return HomeAssistantUtils.filterAutomationRules(automationRules);
   }
   // #endregion State Change Utils
 }
