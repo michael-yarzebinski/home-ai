@@ -68,13 +68,13 @@ export function DeviceHomeCard({
                 {device.friendlyName}
               </CardTitle>
             </div>
-            {device.isTimeSensitive && (
+            {device.llmModelType === 'immediate' && (
               <Badge
                 variant="outline"
                 className="shrink-0 gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-normal"
               >
                 <Zap className="size-3" />
-                Priority
+                Immediate
               </Badge>
             )}
           </div>

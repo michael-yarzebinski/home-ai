@@ -322,7 +322,7 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       { header: 'Name', key: 'friendlyName' },
       { header: 'Room', key: 'room', render: (v) => <>{v ?? '—'}</> },
       { header: 'Category', key: 'category', render: (v) => v ? <Badge variant="outline">{String(v)}</Badge> : <span>—</span> },
-      { header: 'Time Sensitive', key: 'isTimeSensitive', render: (v) => <BoolBadge value={v as boolean} /> },
+      { header: 'LLM', key: 'llmModelType', render: (v) => <Badge variant="outline">{String(v ?? 'soon')}</Badge> },
       { header: 'Status', key: 'active', render: (v) => <StatusBadge active={v as boolean} /> },
     ],
     formFields: [
@@ -333,7 +333,17 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       { name: 'category', label: 'Category', type: 'text', placeholder: 'lights' },
       { name: 'readRoles', label: 'Read Access', type: 'multi-role-select', required: true },
       { name: 'writeRoles', label: 'Write Access', type: 'multi-role-select', required: true },
-      { name: 'isTimeSensitive', label: 'Time Sensitive', type: 'switch', description: 'Requires approval for scheduled actions' },
+      {
+        name: 'llmModelType',
+        label: 'Automation LLM',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Soon (default)', value: 'soon' },
+          { label: 'Immediate (fast path)', value: 'immediate' },
+        ],
+        description: 'Model tier for device-triggered automations',
+      },
     ],
     formSchema: z.object({
       friendlyName: z.string().min(1, 'Display name is required'),
@@ -343,9 +353,13 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       category: z.string().optional(),
       readRoles: z.array(z.nativeEnum(Role)).min(1, 'At least one read role required'),
       writeRoles: z.array(z.nativeEnum(Role)).min(1, 'At least one write role required'),
-      isTimeSensitive: z.boolean().optional(),
+      llmModelType: z.enum(['soon', 'immediate']).default('soon'),
     }),
-    defaultFormValues: () => ({ readRoles: [Role.ADMIN], writeRoles: [Role.ADMIN], isTimeSensitive: false }),
+    defaultFormValues: () => ({
+      readRoles: [Role.ADMIN],
+      writeRoles: [Role.ADMIN],
+      llmModelType: 'soon',
+    }),
   },
 
   {

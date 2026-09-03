@@ -1,5 +1,6 @@
 // src/tools/default/register-device.tool.ts
 import { Role } from "@home-ai/shared/domain/role/role";
+import { LLMModelType } from "@home-ai/shared/domain/llm/llm-model-type";
 import { Injectable } from "@nestjs/common";
 import { DeviceStore } from "src/core/stores/device/device.store";
 import { ToolHandler } from "src/tools/abstract/tool-handler";
@@ -58,11 +59,16 @@ const RegisterDeviceToolSchema = z.object({
       "Roles that can control this device. If omitted, defaults to current user's role.",
     ),
 
-  isTimeSensitive: z
-    .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
-    .default(false)
+  llmModelType: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.stripQuotes(v),
+      z.nativeEnum(LLMModelType).optional(),
+    )
     .describe(
-      "Whether this device is time-sensitive. Optional; defaults to false.",
+      'LLM latency tier for device automations: "soon" (default) or "immediate" (fast path). If omitted, time-sensitive devices use immediate.',
     ),
 });
 
@@ -111,7 +117,7 @@ export class RegisterDeviceTool extends ToolHandler<
         aliases: params.aliases || [],
         readRoles,
         writeRoles,
-        isTimeSensitive: params.isTimeSensitive,
+        llmModelType: params.llmModelType ?? LLMModelType.SOON,
         extraMetadata: {},
       },
       context.authUser,

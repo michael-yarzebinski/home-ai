@@ -15,33 +15,8 @@ export class HomeAssistantUtils {
 
   static filterAutomationRules(
     automationRules: AutomationRule[],
-    device: Device,
-    deviceCooldownMinutes: number,
   ) {
-    return automationRules.filter(
-      (ar) =>
-        AutomationRuleUtils.isOffCooldown(ar) &&
-        !HomeAssistantUtils.isDeviceTriggeredByServiceCall(
-          device,
-          deviceCooldownMinutes,
-        ),
-    );
-  }
-
-  // NOTE:
-  // This method prevents ALL users from running Automation Rules if ANY user triggered the device manually.
-  // This is easy to fix if needed.
-  static isDeviceTriggeredByServiceCall(
-    device: Device,
-    cooldownMinutes: number,
-  ) {
-    if (!device.lastTriggeredService) {
-      return false;
-    }
-
-    const nextAllowedAt =
-      new Date(device.lastTriggeredService.timestamp).getTime() +
-      cooldownMinutes * 60000;
-    return Date.now() < nextAllowedAt;
+    // Rule cooldown is the only remaining rate-limit gate for DEVICE triggers.
+    return automationRules.filter((ar) => AutomationRuleUtils.isOffCooldown(ar));
   }
 }

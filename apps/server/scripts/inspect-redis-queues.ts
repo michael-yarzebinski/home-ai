@@ -1,11 +1,13 @@
 /**
- * Inspect Redis queues and Home Assistant event buffers used by home-ai.
+ * Inspect Redis for leftover Home Assistant event buffers / BullMQ keys.
+ *
+ * The ha-events BullMQ queue was removed; device automations now run immediately.
+ * This script remains useful to find stale `ha_event:*` keys from older deploys.
  *
  * Usage:
  *   npm run redis:inspect -w @home-ai/server
- *   npm run redis:inspect -w @home-ai/server -- --queue ha-events
- *   npm run redis:inspect -w @home-ai/server -- --jobs 20
  *   npm run redis:inspect -w @home-ai/server -- --device-id <uuid>
+ *   npm run redis:inspect -w @home-ai/server -- --keys
  *   npm run redis:inspect -w @home-ai/server -- --json
  */
 
@@ -16,7 +18,8 @@ import { Job, Queue } from "bullmq";
 
 config({ path: resolve(__dirname, "../../../.env") });
 
-const KNOWN_QUEUES = ["ha-events"] as const;
+/** Optional legacy queue names to probe (empty after ha-events removal). */
+const KNOWN_QUEUES = [] as const;
 const HA_EVENT_PREFIX = "ha_event:";
 const JOB_STATES = [
   "waiting",

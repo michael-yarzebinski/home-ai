@@ -5,7 +5,6 @@ import { HomeAssistantService } from "../../../integrations/home-assistant/servi
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
-import { DeviceStore } from "../../../core/stores/device/device.store";
 
 const ExecuteDeviceServiceToolSchema = z.object({
   deviceId: z
@@ -57,7 +56,6 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
   readonly parameters = ExecuteDeviceServiceToolSchema;
 
   constructor(
-    private readonly deviceStore: DeviceStore,
     private readonly haService: HomeAssistantService,
   ) {
     super();
@@ -65,25 +63,12 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof ExecuteDeviceServiceToolSchema>,
-    context: ToolContext,
+    _context: ToolContext,
   ): Promise<CallHaServiceResult> {
     const result = await this.haService.callService(
       params.domain,
       params.service,
       params.data || {},
-    );
-    await this.deviceStore.update(
-      params.deviceId,
-      {
-        lastTriggeredService: {
-          entityId: params.data?.entity_id ?? "",
-          service: params.service,
-          triggeredBy: context.authUser.id,
-          timestamp: new Date(),
-          metadata: params.data,
-        },
-      },
-      context.authUser,
     );
 
     return {

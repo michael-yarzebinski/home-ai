@@ -5,22 +5,27 @@ import {
   type Device, 
   InsertableDeviceSchema
 } from '@home-ai/shared/domain/device/device';
+import { LLMModelType } from '@home-ai/shared/domain/llm/llm-model-type';
 
 import { EntityFormProps } from '../types';
 
 import { TextInput } from '@/components/form/fields/general/text-input';
 import { ArrayInput } from '@/components/form/fields/general/array-input';
-import { CheckboxInput } from '@/components/form/fields/general/checkbox-input';
 import { JsonInput } from '@/components/form/fields/general/json-input';
 import { EntityIdField } from '@/components/form/fields/domain/entity-id-field';
 import { EntityTimestampField } from '@/components/form/fields/domain/entity-timestamp-field';
 import { MultiRoleSelectInput } from '@/components/form/fields/domain/multi-role-select-input';
-import { SwitchInput } from '../../fields/general/switch-input';
+import { SelectInput } from '@/components/form/fields/general/select-input';
 
 // We type against InsertableDevice for the form state, but we know initialData is a full Device
 export type DeviceFormProps = Omit<EntityFormProps<InsertableDevice, Device>, 'viewMode'> & {
     viewMode: 'EDIT' | 'READ'; // Remove CREATE from allowed modes
 };
+
+const LLM_MODEL_OPTIONS = [
+  { label: 'Soon (default)', value: LLMModelType.SOON },
+  { label: 'Immediate (fast path)', value: LLMModelType.IMMEDIATE },
+];
 
 export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId }: DeviceFormProps) {
   const form = useForm<InsertableDevice>({
@@ -33,7 +38,7 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
       category: initialData?.category || '',
       readRoles: initialData?.readRoles || [],
       writeRoles: initialData?.writeRoles || [],
-      isTimeSensitive: initialData?.isTimeSensitive ?? false,
+      llmModelType: initialData?.llmModelType ?? LLMModelType.SOON,
       extraMetadata: initialData?.extraMetadata || {},
     },
   });
@@ -80,11 +85,12 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
       </div>
 
       <div className="pt-4 border-t space-y-6">
-        <SwitchInput
-          name="isTimeSensitive"
-          label="High Priority"
-          description="Treat this device as latency-critical (e.g. Motion sensors)."
+        <SelectInput
+          name="llmModelType"
+          label="Automation LLM"
+          description="Which model tier to use when this device triggers automations."
           viewMode={viewMode}
+          options={LLM_MODEL_OPTIONS}
         />
         
         <JsonInput

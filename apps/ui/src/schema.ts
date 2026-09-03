@@ -35,7 +35,7 @@ export const DeviceSchema = z.object({
     readRoles: z.array(RoleSchema),
     writeRoles: z.array(RoleSchema),
     extraMetadata: z.unknown(),
-    isTimeSensitive: z.boolean(),
+    llmModelType: z.enum(['soon', 'immediate']).default('soon'),
     lastTriggeredService: DeviceLastTriggeredServiceSchema.optional(),
     active: z.boolean(),
     createdAt: z.date(),

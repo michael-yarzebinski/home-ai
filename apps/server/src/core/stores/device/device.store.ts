@@ -5,6 +5,7 @@ import type {
   InsertableDevice,
   UpdatableDevice,
 } from "@home-ai/shared/domain/device/device";
+import { LLMModelType } from "@home-ai/shared/domain/llm/llm-model-type";
 
 import { AuditStore } from "../monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
@@ -21,7 +22,7 @@ export interface DeviceRecord {
   read_roles: string[];
   write_roles: string[];
   extra_metadata: any;
-  is_time_sensitive: boolean;
+  llm_model_type: string;
   last_triggered_service: any | null;
   active: boolean;
   created_at: Date;
@@ -102,7 +103,7 @@ export class DeviceStore extends AbstractEntityStore<
       readRoles: record.read_roles as Role[],
       writeRoles: record.write_roles as Role[],
       extraMetadata: record.extra_metadata,
-      isTimeSensitive: record.is_time_sensitive,
+      llmModelType: (record.llm_model_type as LLMModelType) || LLMModelType.SOON,
       lastTriggeredService: record.last_triggered_service ?? undefined,
       active: record.active,
       createdAt: record.created_at,
@@ -121,7 +122,7 @@ export class DeviceStore extends AbstractEntityStore<
       read_roles: domain.readRoles,
       write_roles: domain.writeRoles,
       extra_metadata: domain.extraMetadata,
-      is_time_sensitive: domain.isTimeSensitive,
+      llm_model_type: domain.llmModelType ?? LLMModelType.SOON,
       last_triggered_service: domain.lastTriggeredService ?? null,
       active: domain.active,
       created_at: domain.createdAt,

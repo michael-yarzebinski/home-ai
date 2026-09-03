@@ -1,4 +1,5 @@
 import { RoleSchema } from '../role/role';
+import { LLMModelType, LLMModelTypeSchema } from '../llm/llm-model-type';
 import { z } from 'zod';
 
 export const DeviceLastTriggeredServiceSchema = z.object({
@@ -23,7 +24,7 @@ export const DeviceSchema = z.object({
   readRoles: z.array(RoleSchema),
   writeRoles: z.array(RoleSchema),
   extraMetadata: z.unknown(),
-  isTimeSensitive: z.boolean(),
+  llmModelType: LLMModelTypeSchema.default(LLMModelType.SOON),
   lastTriggeredService: DeviceLastTriggeredServiceSchema.optional(),
   active: z.boolean(),
   createdAt: z.date(),

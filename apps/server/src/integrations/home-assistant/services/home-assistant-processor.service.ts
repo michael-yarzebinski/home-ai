@@ -1,63 +1,59 @@
-import { InjectRedis } from "@nestjs-modules/ioredis";
-import { Processor, WorkerHost } from "@nestjs/bullmq";
-import Redis from "ioredis";
-import { DeviceStore } from "../../../core/stores/device/device.store";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { OrchestratorService } from "../../../ai/orchestrator/orchestrator.service";
-import { Job } from "bullmq";
 import {
   AutomationRule,
   TriggerConfigDevice,
   TriggerType,
 } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import type { Device } from "@home-ai/shared/domain/device/device";
+import { LLMModelType } from "@home-ai/shared/domain/llm/llm-model-type";
 import { LLMModelTypes } from "../../../ai/llm/llm.provider.sevice";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 import { UserStore } from "../../../core/stores/user/user.store";
-import { OnModuleInit } from "@nestjs/common";
 import { AppConfigService } from "../../../core/services/app-config.service";
 import { User } from "@home-ai/shared/domain/user/user";
 import { AutomationRuleStore } from "../../../core/stores/automation-rule/automation-rule.store";
-import { HomeAssistantService } from "./home-assistant.service";
-import { EventQueueBuffer, EventQueueItem } from "../types/event-queue";
 
-type HaEntitySnapshot = {
+export type DeviceStateChange = {
+  entityId: string;
+  oldState: string;
+  newState: string;
+};
+
+export type HaEntitySnapshot = {
   entityId: string;
   state: string;
   attributes: Record<string, any>;
 };
 
-@Processor("ha-events")
-export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
+/**
+ * Runs DEVICE automation rules immediately for a Home Assistant state change.
+ * No queue, buffer, or coalesce window — rule cooldown remains the only rate limit.
+ */
+@Injectable()
+export class HomeAssistantProcessor implements OnModuleInit {
   private automationUserId: string;
   private automationUser: User;
 
   constructor(
-    @InjectRedis() private readonly redis: Redis,
     private readonly orchestratorService: OrchestratorService,
-    private readonly deviceStore: DeviceStore,
     private readonly userStore: UserStore,
     private readonly logStore: LogStore,
     private readonly appConfigService: AppConfigService,
     private readonly automationRuleStore: AutomationRuleStore,
-    private readonly homeAssistantService: HomeAssistantService,
   ) {
-    super();
-
     this.automationUserId =
       this.appConfigService.getFromEnv("AUTOMATION_USER_ID");
   }
 
   async onModuleInit() {
-    // Best-effort warm-up. If this races ahead of the DB being ready, process()
-    // will lazily resolve the automation user before it is needed, so we don't
-    // rethrow here — but we do log so a genuine misconfiguration is visible.
     try {
       await this.ensureAutomationUser();
     } catch (error: any) {
       await this.logStore.create({
         severity: "warn",
         message:
-          "HomeAssistantProcessor: automation user warm-up failed; will retry lazily per job",
+          "HomeAssistantProcessor: automation user warm-up failed; will retry lazily",
         metadata: {
           error: error?.message ?? String(error),
           automationUserId: this.automationUserId,
@@ -66,12 +62,6 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
     }
   }
 
-  /**
-   * Resolves and caches the automation user. Guards against the startup race
-   * where the BullMQ worker picks up an already-due job before onModuleInit has
-   * populated `this.automationUser`. Throws a descriptive error if the
-   * configured AUTOMATION_USER_ID genuinely matches no user.
-   */
   private async ensureAutomationUser(): Promise<User> {
     if (this.automationUser) {
       return this.automationUser;
@@ -92,51 +82,30 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
     return this.automationUser;
   }
 
-  async process(job: Job<{ deviceId: string }>): Promise<void> {
-    await this.ensureAutomationUser();
-
-    const redisKey = `ha_event:${job.data.deviceId}`;
-    const rawBuffer = await this.redis.get(redisKey);
-    const device = await this.deviceStore.getById(
-      job.data.deviceId,
-      this.automationUser,
-      false,
-    );
-    if (!device || !rawBuffer) {
-      await this.logStore.create({
-        severity: "error",
-        message:
-          "Could not process device event: Device, Buffer, or Automation User not found",
-        metadata: {
-          deviceId: device?.id,
-          buffer: rawBuffer,
-          automationUserId: this.automationUser.id,
-        },
-      });
+  /**
+   * Process a single device state change immediately for the given rules.
+   * Fire-and-forget safe: callers may void the returned promise.
+   */
+  async processDeviceEvent(
+    device: Device,
+    rules: AutomationRule[],
+    stateChange: DeviceStateChange,
+    entitySnapshots: HaEntitySnapshot[],
+  ): Promise<void> {
+    if (rules.length === 0) {
       return;
     }
-    const buffer = JSON.parse(rawBuffer) as EventQueueBuffer;
-    const automationRules = await this.automationRuleStore.getByIdsForAutomation(
-      buffer.ruleIds,
-      false,
-    );
-    const deviceState =
-      await this.homeAssistantService.getDeviceStateAndServices(device.slug);
 
-    await this.redis.del(redisKey);
-
-    const fullDeviceState = deviceState.entities.map((entity) => ({
-      entityId: entity.entityId,
-      state: entity.state,
-      attributes: entity.attributes,
-    }));
+    await this.ensureAutomationUser();
 
     const byRuleOwnerId = new Map<string, AutomationRule[]>();
-    for (const rule of automationRules) {
+    for (const rule of rules) {
       const list = byRuleOwnerId.get(rule.userId) ?? [];
       list.push(rule);
       byRuleOwnerId.set(rule.userId, list);
     }
+
+    const modelType = this.resolveModelType(device);
 
     for (const [ruleOwnerUserId, ownerRules] of byRuleOwnerId.entries()) {
       const ruleOwner = await this.userStore.getById(ruleOwnerUserId);
@@ -157,8 +126,8 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
         device,
         ruleOwnerUserId,
         ownerRules,
-        buffer.events,
-        fullDeviceState,
+        stateChange,
+        entitySnapshots,
       );
 
       await this.runOrchestrationForRuleOwner(
@@ -166,16 +135,27 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
         ruleOwnerUserId,
         ownerRules,
         prompt,
+        modelType,
       );
     }
   }
 
-  /** Runs as `this.automationUser`. Caller validates rule owner. */
+  private resolveModelType(device: Device): LLMModelTypes {
+    if (device.llmModelType === LLMModelType.IMMEDIATE) {
+      return LLMModelTypes.IMMEDIATE;
+    }
+    if (device.llmModelType === LLMModelType.SOON) {
+      return LLMModelTypes.SOON;
+    }
+    return LLMModelTypes.SOON;
+  }
+
   private async runOrchestrationForRuleOwner(
     device: Device,
     ruleOwnerUserId: string,
     rules: AutomationRule[],
     prompt: string,
+    modelType: LLMModelTypes,
   ): Promise<void> {
     const automationUser = this.automationUser;
     if (!automationUser) {
@@ -187,7 +167,7 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
         automationUser,
         prompt,
         `automation:${device.slug}:${ruleOwnerUserId}`,
-        LLMModelTypes.SOON,
+        modelType,
         { suppressToolEvents: false },
       );
 
@@ -202,6 +182,7 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
           deviceId: device.id,
           ruleOwnerUserId,
           ruleIds: rules.map((r) => r.id),
+          llmModelType: modelType,
         },
       });
     }
@@ -211,19 +192,10 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
     device: Device,
     ruleOwnerUserId: string,
     rules: AutomationRule[],
-    stateChanges: EventQueueItem[],
+    stateChange: DeviceStateChange,
     entitySnapshots: HaEntitySnapshot[],
   ): string {
-    const dedupedStateChanges = new Map<string, EventQueueItem>();
-    for (const change of stateChanges) {
-      dedupedStateChanges.set(change.entityId, change);
-    }
-    const haTransitionChanges = Array.from(dedupedStateChanges.values())
-      .map(
-        (e) =>
-          `- Entity: ${e.entityId}, Old state: ${e.oldState} → New state: ${e.newState}`,
-      )
-      .join("\n");
+    const haTransitionChanges = `- Entity: ${stateChange.entityId}, Old state: ${stateChange.oldState} → New state: ${stateChange.newState}`;
 
     const rulesPayload = rules.map((r) => ({
       ruleId: r.id,
@@ -246,7 +218,7 @@ export class HomeAssistantProcessor extends WorkerHost implements OnModuleInit {
       "## System role",
       "You are the orchestration engine for Home AI. Evaluate this Home Assistant state transition and execute only valid rule-based actions for the listed automation rules.",
       "",
-      "## End-user for this batch",
+      "## End-user",
       `Rule owner user id: ${ruleOwnerUserId}. Notifications, tasks, and other actions must target this user unless tools encode scope explicitly.`,
       "",
       "## Context: Home Assistant state transition",

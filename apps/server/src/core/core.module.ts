@@ -31,7 +31,6 @@ import { PendingActionsController } from "./controllers/pending-actions/pending-
 import { ToolsController } from "./controllers/tools/tools.controller";
 import { UsersController } from "./controllers/users/users.controller";
 import { DeviceEventStore } from "./stores/device/device-event.store";
-import { BullModule } from "@nestjs/bullmq";
 
 @Module({
   imports: [
@@ -44,9 +43,6 @@ import { BullModule } from "@nestjs/bullmq";
         signOptions: { expiresIn: "12h" },
       }),
       inject: [ConfigService],
-    }),
-    BullModule.registerQueue({
-      name: "ha-events",
     }),
   ],
   controllers: [
@@ -132,7 +128,6 @@ import { BullModule } from "@nestjs/bullmq";
   ],
   exports: [
     "KNEX_CONNECTION",
-    BullModule,
     AppConfigStore,
     AuditStore,
     AIAuditStore,

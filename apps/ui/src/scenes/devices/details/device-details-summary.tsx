@@ -99,19 +99,17 @@ export function DeviceDetailsSummary({
 
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
-              Priority
+              Automation LLM
             </p>
-            {device.isTimeSensitive ? (
-              <Badge
-                variant="outline"
-                className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-normal"
-              >
-                <Zap className="size-3" />
-                Time sensitive
-              </Badge>
-            ) : (
-              <p className="text-sm text-muted-foreground">Standard</p>
-            )}
+            <Badge
+              variant="outline"
+              className={device.llmModelType === 'immediate'
+                ? "gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-normal"
+                : "font-normal"}
+            >
+              {device.llmModelType === 'immediate' && <Zap className="size-3" />}
+              {device.llmModelType === 'immediate' ? 'Immediate' : 'Soon'}
+            </Badge>
           </div>
 
           <div className="flex gap-6 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">
