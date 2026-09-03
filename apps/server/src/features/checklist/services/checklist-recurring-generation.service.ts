@@ -9,6 +9,7 @@ import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { ChecklistItemStore } from "../stores/checklist-item.store";
 import { RecurringChecklistItemStore } from "../stores/recurring-checklist-item.store";
 import { ChecklistManagerService } from "./checklist-manager.service";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 export interface RecurringGenerationSummary {
   evaluated: number;
@@ -43,6 +44,7 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
+  @Trace()
   async processRecurringChecklistItems() {
     const start = Date.now();
     const summary = await this.generateDueRecurringItems();
@@ -61,6 +63,7 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
     });
   }
 
+  @Trace()
   async generateDueRecurringItems(): Promise<RecurringGenerationSummary> {
     const recurringItems = await this.recurringItemStore.getByTriggerType(
       RecurringChecklistItemTriggerType.CRON,

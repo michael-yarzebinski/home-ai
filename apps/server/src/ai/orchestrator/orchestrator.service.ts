@@ -19,6 +19,7 @@ import {
   type ToolExecutionEvent,
 } from "../../events/contracts/tool-execution.event";
 import { ChromaService } from "../memory/chroma.service";
+import { Trace } from "../../common/decorators/trace.decorator";
 
 export type OrchestratorHandleEventOptions = {
   /** When true, do not emit tool-execution pub/sub messages (e.g. orchestrator requery). */
@@ -39,6 +40,7 @@ export class OrchestratorService {
     @InjectRedis() private readonly redis: Redis,
   ) { }
 
+  @Trace()
   async handleEvent(
     user: User,
     input: string,

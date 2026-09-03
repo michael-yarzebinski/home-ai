@@ -2,6 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../common/decorators/trace.decorator";
 import axios from "axios";
 import { v4 } from "uuid";
 
@@ -24,6 +25,7 @@ export class BlueBubblesService {
     return `${this.baseUrl}${path}?password=${encodeURIComponent(this.password)}`;
   }
 
+  @Trace()
   async sendMessage(to: string, message: string): Promise<void> {
     const payload = {
       chatGuid: to.includes(";") ? to : `any;-;+${to.replace("+", "")}`,
@@ -45,6 +47,7 @@ export class BlueBubblesService {
   /**
    * Start showing typing indicator to the user.
    */
+  @Trace()
   async startTyping(chatId: string): Promise<void> {
     try {
       await axios.post(
@@ -66,6 +69,7 @@ export class BlueBubblesService {
   /**
    * Stop showing typing indicator.
    */
+  @Trace()
   async stopTyping(chatId: string): Promise<void> {
     try {
       await axios.delete(
@@ -86,6 +90,7 @@ export class BlueBubblesService {
   /**
    * Mark a chat or specific message as read.
    */
+  @Trace()
   async markAsRead(chatId: string): Promise<void> {
     try {
       await axios.post(

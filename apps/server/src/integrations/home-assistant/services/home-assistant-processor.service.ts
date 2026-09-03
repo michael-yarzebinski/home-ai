@@ -13,6 +13,7 @@ import { UserStore } from "../../../core/stores/user/user.store";
 import { AppConfigService } from "../../../core/services/app-config.service";
 import { User } from "@home-ai/shared/domain/user/user";
 import { AutomationRuleStore } from "../../../core/stores/automation-rule/automation-rule.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 
 export type DeviceStateChange = {
   entityId: string;
@@ -86,6 +87,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
    * Process a single device state change immediately for the given rules.
    * Fire-and-forget safe: callers may void the returned promise.
    */
+  @Trace()
   async processDeviceEvent(
     device: Device,
     rules: AutomationRule[],

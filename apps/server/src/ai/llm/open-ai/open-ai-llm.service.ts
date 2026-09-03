@@ -9,6 +9,7 @@ import {
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 
 @Injectable()
 export class OpenAILLMService extends LLMServiceBase {
@@ -37,6 +38,7 @@ export class OpenAILLMService extends LLMServiceBase {
     });
   }
 
+  @Trace()
   async query(params: LLMQueryParams): Promise<LLMResponse> {
     const startTime = Date.now();
 

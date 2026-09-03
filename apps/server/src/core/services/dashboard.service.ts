@@ -5,6 +5,8 @@ import {
   type DashboardResult,
   type TimeBucket,
 } from "@home-ai/shared/admin/dashboard/dashboard";
+import { LogStore } from "../stores/monitoring/log/log.store";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 // Truncation unit drives how many data points appear in the chart.
 const PERIOD_CONFIG: Record<
@@ -40,8 +42,12 @@ const PERIOD_CONFIG: Record<
 
 @Injectable()
 export class DashboardService {
-  constructor(@Inject("KNEX_CONNECTION") private readonly knex: Knex) {}
+  constructor(
+    @Inject("KNEX_CONNECTION") private readonly knex: Knex,
+    private readonly logStore: LogStore,
+  ) {}
 
+  @Trace()
   async get(period: DashboardPeriod): Promise<DashboardResult> {
     const { intervalSql, truncUnit, periodMs } = PERIOD_CONFIG[period];
     const to = new Date();

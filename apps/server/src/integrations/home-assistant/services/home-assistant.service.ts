@@ -25,6 +25,7 @@ import { DeviceStatus } from "@home-ai/shared/domain/device/device-status";
 import { User } from "../../../../../shared/dist/domain/user/user";
 import { UserStore } from "../../../core/stores/user/user.store";
 import { HomeAssistantProcessor } from "./home-assistant-processor.service";
+import { Trace } from "../../../common/decorators/trace.decorator";
 
 @Injectable()
 export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
@@ -137,10 +138,12 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       });
   }
 
+  @Trace()
   async getAllEntities(): Promise<HassEntity[]> {
     return Object.values(this.entities);
   }
 
+  @Trace()
   async getDeviceStateAndServices(slug: string): Promise<DeviceStatus> {
     if (!this.connection) throw new Error("Not connected to Home Assistant");
 
@@ -168,6 +171,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  @Trace()
   async callService(domain: string, service: string, serviceData: any = {}) {
     if (!this.connection) throw new Error("Not connected to Home Assistant");
 

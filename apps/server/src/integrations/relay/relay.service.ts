@@ -3,6 +3,7 @@ import { HttpService } from "@nestjs/axios";
 import { lastValueFrom } from "rxjs";
 import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../common/decorators/trace.decorator";
 
 @Injectable()
 export class RelayService {
@@ -21,6 +22,7 @@ export class RelayService {
   /**
    * Sends an AppleScript to the native Mac relay
    */
+  @Trace()
   async runAppleScript(script: string): Promise<string> {
     const executeUrl = `${this.relayUrl.replace(/\/+$/, "")}/execute`;
 

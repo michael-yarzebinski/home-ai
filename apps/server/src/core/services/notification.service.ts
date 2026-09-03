@@ -5,6 +5,7 @@ import { UserStore } from "../stores/user/user.store";
 import { NotificationQueueStore } from "../stores/notification-queue/notification-queue.store";
 import { AppConfigService } from "./app-config.service";
 import { LogStore } from "../stores/monitoring/log/log.store";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 export type NotifyUsersByToolContext =
   | { isRequesting: true; isNotifying: false }
@@ -25,6 +26,7 @@ export class NotificationService {
    * using the same role resolution as {@link notifyUsersByTool} and the same recipient
    * skips as {@link notifyUser} (requester and automation user excluded).
    */
+  @Trace()
   async hasUsersToNotifyByTool(
     toolName: string,
     requestingUserId: string,
@@ -52,6 +54,7 @@ export class NotificationService {
    * @param toolName The name of the tool associated with the notification
    * @param requesterId The ID of the user who initiated the action
    */
+  @Trace()
   async notifyUsersByTool(
     message: string,
     toolName: string,
@@ -123,6 +126,7 @@ export class NotificationService {
     return usersToNotify;
   }
 
+  @Trace()
   async notifyUser(
     message: string,
     toNotifyUserId: string,

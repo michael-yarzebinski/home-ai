@@ -4,6 +4,7 @@ import { LLMQueryParams, UnifiedToolCall } from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 import OpenAI from "openai";
 
 @Injectable()
@@ -32,6 +33,7 @@ export class LocalLLMService extends LLMServiceBase {
     });
   }
 
+  @Trace()
   async query(params: LLMQueryParams): Promise<LLMResponse> {
     const startTime = Date.now();
 
