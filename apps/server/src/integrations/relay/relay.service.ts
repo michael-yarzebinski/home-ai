@@ -35,7 +35,7 @@ export class RelayService {
 
       return response.data.output;
     } catch (error) {
-      this.logStore.create({
+      await this.logStore.create({
         severity: "error",
         message: `Relay Error: ${error instanceof Error ? error.message : "Unknown error"}`,
         metadata: { error: error },

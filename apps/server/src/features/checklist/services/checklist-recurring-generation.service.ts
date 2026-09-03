@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { parseExpression } from "cron-parser";
 import { RecurringChecklistItemTriggerType } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
 import type { AuthUser } from "src/core/auth/jwt.strategy";
 import { AppConfigService } from "src/core/services/app-config.service";
 import { UserStore } from "src/core/stores/user/user.store";
+import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { ChecklistItemStore } from "../stores/checklist-item.store";
 import { RecurringChecklistItemStore } from "../stores/recurring-checklist-item.store";
 import { ChecklistManagerService } from "./checklist-manager.service";
@@ -18,9 +19,6 @@ export interface RecurringGenerationSummary {
 
 @Injectable()
 export class ChecklistRecurringGenerationService implements OnModuleInit {
-  private readonly logger = new Logger(
-    ChecklistRecurringGenerationService.name,
-  );
   private automationActor!: AuthUser;
 
   constructor(
@@ -29,6 +27,7 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
     private readonly checklistManagerService: ChecklistManagerService,
     private readonly appConfigService: AppConfigService,
     private readonly userStore: UserStore,
+    private readonly logStore: LogStore,
   ) {}
 
   async onModuleInit() {
@@ -49,9 +48,17 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
     const summary = await this.generateDueRecurringItems();
     const durationMs = Date.now() - start;
 
-    this.logger.debug(
-      `Recurring checklist generation completed in ${durationMs}ms (evaluated=${summary.evaluated}, due=${summary.due}, created=${summary.created}, skippedInvalidCron=${summary.skippedInvalidCron})`,
-    );
+    await this.logStore.create({
+      severity: "debug",
+      message: `Recurring checklist generation completed in ${durationMs}ms`,
+      metadata: {
+        durationMs,
+        evaluated: summary.evaluated,
+        due: summary.due,
+        created: summary.created,
+        skippedInvalidCron: summary.skippedInvalidCron,
+      },
+    });
   }
 
   async generateDueRecurringItems(): Promise<RecurringGenerationSummary> {

@@ -8,20 +8,26 @@ import {
 } from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 
 @Injectable()
 export class GeminiLLMService extends LLMServiceBase {
   private genAI: GoogleGenerativeAI;
   private model: string;
 
+  get modelName(): string {
+    return this.model;
+  }
+
   constructor(
     protected readonly aiAuditStore: AIAuditStore,
+    protected readonly logStore: LogStore,
     private readonly modelConfig: {
       model: string;
       apiKey: string;
     },
   ) {
-    super(aiAuditStore);
+    super(aiAuditStore, logStore);
     this.model = modelConfig.model;
     this.genAI = new GoogleGenerativeAI(modelConfig.apiKey);
   }
@@ -29,6 +35,15 @@ export class GeminiLLMService extends LLMServiceBase {
   async query(params: LLMQueryParams): Promise<LLMResponse> {
     const startTime = Date.now();
 
+    try {
+    return await this._query(params, startTime);
+    } catch (error: any) {
+      await this.logFailedInteraction(params, error, Date.now() - startTime);
+      throw error;
+    }
+  }
+
+  private async _query(params: LLMQueryParams, startTime: number): Promise<LLMResponse> {
     // 1. Initialize the Model with Tools
     const model = this.genAI.getGenerativeModel({
       model: this.model,
@@ -130,9 +145,11 @@ export class GeminiLLMService extends LLMServiceBase {
 
         // Safety check: ensure _def exists
         if (!zodValue._def) {
-          console.warn(
-            `Tool ${tool.name} parameter ${key} is missing Zod definition.`,
-          );
+          this.logStore?.create({
+            severity: "warn",
+            message: `Tool ${tool.name} parameter ${key} is missing Zod definition`,
+            metadata: { toolName: tool.name, parameter: key },
+          });
           continue;
         }
 
