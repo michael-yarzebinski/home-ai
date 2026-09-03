@@ -147,9 +147,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
     if (device.llmModelType === LLMModelType.SOON) {
       return LLMModelTypes.SOON;
     }
-    return device.isTimeSensitive
-      ? LLMModelTypes.IMMEDIATE
-      : LLMModelTypes.SOON;
+    return LLMModelTypes.SOON;
   }
 
   private async runOrchestrationForRuleOwner(

@@ -59,13 +59,6 @@ const RegisterDeviceToolSchema = z.object({
       "Roles that can control this device. If omitted, defaults to current user's role.",
     ),
 
-  isTimeSensitive: z
-    .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
-    .default(false)
-    .describe(
-      "Whether this device is time-sensitive / high priority. Optional; defaults to false.",
-    ),
-
   llmModelType: z
     .preprocess(
       (v) =>
@@ -124,12 +117,7 @@ export class RegisterDeviceTool extends ToolHandler<
         aliases: params.aliases || [],
         readRoles,
         writeRoles,
-        isTimeSensitive: params.isTimeSensitive,
-        llmModelType:
-          params.llmModelType ??
-          (params.isTimeSensitive
-            ? LLMModelType.IMMEDIATE
-            : LLMModelType.SOON),
+        llmModelType: params.llmModelType ?? LLMModelType.SOON,
         extraMetadata: {},
       },
       context.authUser,

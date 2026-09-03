@@ -61,19 +61,19 @@ export const deviceColumns: ColumnDef<Device>[] = [
     ),
   },
   {
-    accessorKey: 'isTimeSensitive',
-    header: 'Priority',
+    accessorKey: 'llmModelType',
+    header: 'LLM',
     cell: ({ row }) =>
-      row.original.isTimeSensitive ? (
+      row.original.llmModelType === 'immediate' ? (
         <Badge
           variant="outline"
           className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-normal"
         >
           <Zap className="size-3" />
-          Time sensitive
+          Immediate
         </Badge>
       ) : (
-        <span className="text-sm text-muted-foreground">—</span>
+        <span className="text-sm text-muted-foreground">Soon</span>
       ),
   },
 ];

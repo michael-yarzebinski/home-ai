@@ -15,7 +15,6 @@ import { JsonInput } from '@/components/form/fields/general/json-input';
 import { EntityIdField } from '@/components/form/fields/domain/entity-id-field';
 import { EntityTimestampField } from '@/components/form/fields/domain/entity-timestamp-field';
 import { MultiRoleSelectInput } from '@/components/form/fields/domain/multi-role-select-input';
-import { SwitchInput } from '../../fields/general/switch-input';
 import { SelectInput } from '@/components/form/fields/general/select-input';
 
 // We type against InsertableDevice for the form state, but we know initialData is a full Device
@@ -39,7 +38,6 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
       category: initialData?.category || '',
       readRoles: initialData?.readRoles || [],
       writeRoles: initialData?.writeRoles || [],
-      isTimeSensitive: initialData?.isTimeSensitive ?? false,
       llmModelType: initialData?.llmModelType ?? LLMModelType.SOON,
       extraMetadata: initialData?.extraMetadata || {},
     },
@@ -87,13 +85,6 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
       </div>
 
       <div className="pt-4 border-t space-y-6">
-        <SwitchInput
-          name="isTimeSensitive"
-          label="High Priority"
-          description="Treat this device as latency-critical (e.g. Motion sensors)."
-          viewMode={viewMode}
-        />
-
         <SelectInput
           name="llmModelType"
           label="Automation LLM"
