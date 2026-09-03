@@ -28,14 +28,12 @@ export type HaEntitySnapshot = {
 
 /**
  * Runs DEVICE automation rules immediately for a Home Assistant state change.
- * No Redis/BullMQ batching — rule cooldown remains the only rate limit.
+ * No queue, buffer, or coalesce window — rule cooldown remains the only rate limit.
  */
 @Injectable()
 export class HomeAssistantProcessor implements OnModuleInit {
   private automationUserId: string;
   private automationUser: User;
-  /** Prevents concurrent orchestration for the same device (not a delayed queue). */
-  private readonly processingDeviceIds = new Set<string>();
 
   constructor(
     private readonly orchestratorService: OrchestratorService,
@@ -98,65 +96,47 @@ export class HomeAssistantProcessor implements OnModuleInit {
       return;
     }
 
-    if (this.processingDeviceIds.has(device.id)) {
-      await this.logStore.create({
-        severity: "info",
-        message: `HomeAssistantProcessor: skip concurrent automation for device ${device.id}`,
-        metadata: {
-          deviceId: device.id,
-          entityId: stateChange.entityId,
-          ruleIds: rules.map((r) => r.id),
-        },
-      });
-      return;
+    await this.ensureAutomationUser();
+
+    const byRuleOwnerId = new Map<string, AutomationRule[]>();
+    for (const rule of rules) {
+      const list = byRuleOwnerId.get(rule.userId) ?? [];
+      list.push(rule);
+      byRuleOwnerId.set(rule.userId, list);
     }
 
-    this.processingDeviceIds.add(device.id);
-    try {
-      await this.ensureAutomationUser();
+    const modelType = this.resolveModelType(device);
 
-      const byRuleOwnerId = new Map<string, AutomationRule[]>();
-      for (const rule of rules) {
-        const list = byRuleOwnerId.get(rule.userId) ?? [];
-        list.push(rule);
-        byRuleOwnerId.set(rule.userId, list);
+    for (const [ruleOwnerUserId, ownerRules] of byRuleOwnerId.entries()) {
+      const ruleOwner = await this.userStore.getById(ruleOwnerUserId);
+      if (!ruleOwner?.active) {
+        await this.logStore.create({
+          severity: "warn",
+          message: `HomeAssistantProcessor: skip automation — rule owner missing or inactive`,
+          metadata: {
+            ruleOwnerUserId,
+            deviceId: device.id,
+            ruleIds: ownerRules.map((r) => r.id),
+          },
+        });
+        continue;
       }
 
-      const modelType = this.resolveModelType(device);
+      const prompt = this.buildPrompt(
+        device,
+        ruleOwnerUserId,
+        ownerRules,
+        stateChange,
+        entitySnapshots,
+      );
 
-      for (const [ruleOwnerUserId, ownerRules] of byRuleOwnerId.entries()) {
-        const ruleOwner = await this.userStore.getById(ruleOwnerUserId);
-        if (!ruleOwner?.active) {
-          await this.logStore.create({
-            severity: "warn",
-            message: `HomeAssistantProcessor: skip automation — rule owner missing or inactive`,
-            metadata: {
-              ruleOwnerUserId,
-              deviceId: device.id,
-              ruleIds: ownerRules.map((r) => r.id),
-            },
-          });
-          continue;
-        }
-
-        const prompt = this.buildPrompt(
-          device,
-          ruleOwnerUserId,
-          ownerRules,
-          stateChange,
-          entitySnapshots,
-        );
-
-        await this.runOrchestrationForRuleOwner(
-          device,
-          ruleOwnerUserId,
-          ownerRules,
-          prompt,
-          modelType,
-        );
-      }
-    } finally {
-      this.processingDeviceIds.delete(device.id);
+      await this.runOrchestrationForRuleOwner(
+        device,
+        ruleOwnerUserId,
+        ownerRules,
+        prompt,
+        modelType,
+      );
     }
   }
 
@@ -240,7 +220,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
       "## System role",
       "You are the orchestration engine for Home AI. Evaluate this Home Assistant state transition and execute only valid rule-based actions for the listed automation rules.",
       "",
-      "## End-user for this batch",
+      "## End-user",
       `Rule owner user id: ${ruleOwnerUserId}. Notifications, tasks, and other actions must target this user unless tools encode scope explicitly.`,
       "",
       "## Context: Home Assistant state transition",
