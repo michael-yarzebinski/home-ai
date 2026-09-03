@@ -1,9 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import type { User } from "@home-ai/shared/domain/user/user";
 import { ToolStore } from "../stores/tool/tool.store";
 import { UserStore } from "../stores/user/user.store";
 import { NotificationQueueStore } from "../stores/notification-queue/notification-queue.store";
 import { AppConfigService } from "./app-config.service";
+import { LogStore } from "../stores/monitoring/log/log.store";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 export type NotifyUsersByToolContext =
   | { isRequesting: true; isNotifying: false }
@@ -11,13 +13,12 @@ export type NotifyUsersByToolContext =
 
 @Injectable()
 export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
-
   constructor(
     private readonly toolStore: ToolStore,
     private readonly userStore: UserStore,
     private readonly notificationQueueStore: NotificationQueueStore,
     private readonly appConfigService: AppConfigService,
+    private readonly logStore: LogStore,
   ) {}
 
   /**
@@ -25,6 +26,7 @@ export class NotificationService {
    * using the same role resolution as {@link notifyUsersByTool} and the same recipient
    * skips as {@link notifyUser} (requester and automation user excluded).
    */
+  @Trace()
   async hasUsersToNotifyByTool(
     toolName: string,
     requestingUserId: string,
@@ -52,6 +54,7 @@ export class NotificationService {
    * @param toolName The name of the tool associated with the notification
    * @param requesterId The ID of the user who initiated the action
    */
+  @Trace()
   async notifyUsersByTool(
     message: string,
     toolName: string,
@@ -78,14 +81,17 @@ export class NotificationService {
         );
       }
 
-      this.logger.log(
-        `Queued ${usersToNotify.length} notifications for tool: ${toolName}`,
-      );
+      await this.logStore.create({
+        severity: "info",
+        message: `Queued ${usersToNotify.length} notifications for tool: ${toolName}`,
+        metadata: { toolName, recipientCount: usersToNotify.length },
+      });
     } catch (error: any) {
-      this.logger.error(
-        `Failed to dispatch notifications: ${error.message}`,
-        error.stack,
-      );
+      await this.logStore.create({
+        severity: "error",
+        message: `Failed to dispatch notifications: ${error.message}`,
+        metadata: { toolName, error: error.message },
+      });
     }
   }
 
@@ -95,9 +101,11 @@ export class NotificationService {
   ): Promise<User[]> {
     const tool = await this.toolStore.getByName(toolName);
     if (!tool || !tool.notifyRoles || tool.notifyRoles.length === 0) {
-      this.logger.debug(
-        `No notification roles configured for tool: ${toolName}`,
-      );
+      await this.logStore.create({
+        severity: "debug",
+        message: `No notification roles configured for tool: ${toolName}`,
+        metadata: { toolName },
+      });
       return [];
     }
 
@@ -108,14 +116,17 @@ export class NotificationService {
     const usersToNotify = await this.userStore.getUsersByRoles(rolesToNotify);
 
     if (usersToNotify.length === 0) {
-      this.logger.debug(
-        `No target users found for roles: ${rolesToNotify.join(", ")}`,
-      );
+      await this.logStore.create({
+        severity: "debug",
+        message: `No target users found for roles: ${rolesToNotify.join(", ")}`,
+        metadata: { toolName, roles: rolesToNotify },
+      });
     }
 
     return usersToNotify;
   }
 
+  @Trace()
   async notifyUser(
     message: string,
     toNotifyUserId: string,

@@ -9,6 +9,7 @@ import { v4 as uuidv4, v4 } from 'uuid';
 import { z } from 'zod';
 import { ConversationStore } from '../../core/stores/conversation/conversation.store';
 import { ChatMessage, Conversation } from '@home-ai/shared/domain/conversation/conversation';
+import { Trace } from '../../common/decorators/trace.decorator';
 
 const AbstractionResponseSchema = z.object({
     newAbstractions: z.array(
@@ -36,6 +37,7 @@ export class MemoryService {
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    @Trace()
     async handleMemoryConsolidation() {
         await this.logStore.create({
             severity: "info",

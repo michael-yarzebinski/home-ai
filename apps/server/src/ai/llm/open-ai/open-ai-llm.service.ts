@@ -8,21 +8,28 @@ import {
 } from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "../../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 
 @Injectable()
 export class OpenAILLMService extends LLMServiceBase {
   private client: OpenAI;
   private model: string;
 
+  get modelName(): string {
+    return this.model;
+  }
+
   constructor(
     protected readonly aiAuditStore: AIAuditStore,
+    protected readonly logStore: LogStore,
     private readonly modelConfig: {
       model: string;
       baseURL: string;
       apiKey: string;
     },
   ) {
-    super(aiAuditStore);
+    super(aiAuditStore, logStore);
 
     this.model = modelConfig.model;
     this.client = new OpenAI({
@@ -31,9 +38,19 @@ export class OpenAILLMService extends LLMServiceBase {
     });
   }
 
+  @Trace()
   async query(params: LLMQueryParams): Promise<LLMResponse> {
     const startTime = Date.now();
 
+    try {
+    return await this._query(params, startTime);
+    } catch (error: any) {
+      await this.logFailedInteraction(params, error, Date.now() - startTime);
+      throw error;
+    }
+  }
+
+  private async _query(params: LLMQueryParams, startTime: number): Promise<LLMResponse> {
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages: params.messages.map((msg) => this.mapMessageToOpenAI(msg)),

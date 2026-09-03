@@ -12,6 +12,10 @@ export interface AIAuditRecord {
   tool_calls?: any;
   final_response?: string;
   duration_ms?: number;
+  model?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
   success: boolean;
   created_at: Date;
 }
@@ -44,6 +48,10 @@ export class AIAuditStore extends AbstractMonitoringStore<
       toolCalls: record.tool_calls,
       finalResponse: record.final_response,
       durationMs: record.duration_ms,
+      model: record.model,
+      promptTokens: record.prompt_tokens,
+      completionTokens: record.completion_tokens,
+      totalTokens: record.total_tokens,
       success: record.success,
       createdAt: record.created_at,
     };
@@ -58,6 +66,10 @@ export class AIAuditStore extends AbstractMonitoringStore<
       tool_calls: domain.toolCalls ?? null,
       final_response: domain.finalResponse,
       duration_ms: domain.durationMs,
+      model: domain.model,
+      prompt_tokens: domain.promptTokens,
+      completion_tokens: domain.completionTokens,
+      total_tokens: domain.totalTokens,
       success: domain.success,
       created_at: domain.createdAt,
     };
