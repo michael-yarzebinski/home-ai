@@ -16,7 +16,6 @@ import { RolesGuard } from "./common/guards/roles.guard";
 import { HttpModule } from "@nestjs/axios";
 import { AppConfigService } from "./core/services/app-config.service";
 import { RedisModule } from "@nestjs-modules/ioredis";
-import { BullModule } from "@nestjs/bullmq";
 import { EventsModule } from "./events/events.module";
 
 @Module({
@@ -48,17 +47,6 @@ import { EventsModule } from "./events/events.module";
           },
         };
       },
-      inject: [AppConfigService],
-    }),
-
-    BullModule.forRootAsync({
-      imports: [CoreModule],
-      useFactory: (configService: AppConfigService) => ({
-        connection: {
-          host: configService.getFromEnv("REDIS_HOST"),
-          port: configService.getFromEnv("REDIS_PORT"),
-        },
-      }),
       inject: [AppConfigService],
     }),
     HttpModule,

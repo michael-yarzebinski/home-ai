@@ -73,6 +73,7 @@ export default function DeviceDetails() {
       readRoles: formData.readRoles,
       writeRoles: formData.writeRoles,
       isTimeSensitive: formData.isTimeSensitive,
+      llmModelType: formData.llmModelType,
       extraMetadata: formData.extraMetadata,
     };
     updateDevice(

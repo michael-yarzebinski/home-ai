@@ -20,15 +20,11 @@ import { AutomationRuleStore } from "../../../core/stores/automation-rule/automa
 import { Device } from "@home-ai/shared/domain/device/device";
 import { AutomationRule } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import { HomeAssistantUtils } from "../utils/home-assistant.utils";
-import Redis from "ioredis";
-import { InjectRedis } from "@nestjs-modules/ioredis";
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
-import { EventQueueBuffer, EventQueueItem } from "../types/event-queue";
 import { DeviceEventStore } from "../../../core/stores/device/device-event.store";
 import { DeviceStatus } from "@home-ai/shared/domain/device/device-status";
 import { User } from "../../../../../shared/dist/domain/user/user";
 import { UserStore } from "../../../core/stores/user/user.store";
+import { HomeAssistantProcessor } from "./home-assistant-processor.service";
 
 @Injectable()
 export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
@@ -38,17 +34,17 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   private automationUserId: string;
   private automationUser: User;
 
+  /** Suppresses automations after a recent execute-device-service call (not a queue delay). */
   private deviceCooldownMinutes: number;
 
   constructor(
-    @InjectRedis() private readonly redis: Redis,
-    @InjectQueue("ha-events") private readonly queue: Queue,
     private readonly deviceStore: DeviceStore,
     private readonly appConfigService: AppConfigService,
     private readonly logStore: LogStore,
     private readonly automationRuleStore: AutomationRuleStore,
     private readonly deviceEventStore: DeviceEventStore,
     private readonly userStore: UserStore,
+    private readonly homeAssistantProcessor: HomeAssistantProcessor,
   ) {
     this.deviceCooldownMinutes = this.appConfigService.getFromEnv<number>(
       "HOME_ASSISTANT_DEVICE_COOLDOWN_MINUTES",
@@ -66,7 +62,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     );
     if (!automationUser) {
       throw new Error(
-        `HomeAssistantProcessor: AUTOMATION_USER_ID "${this.automationUserId}" does not match any user`,
+        `HomeAssistantService: AUTOMATION_USER_ID "${this.automationUserId}" does not match any user`,
       );
     }
     this.automationUser = automationUser;
@@ -113,12 +109,38 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.addItemToQueue(matchingDevice.id, {
-      ruleIds: automationRules.map((rule) => rule.id),
-      entityId,
-      oldState: oldState?.state || "unknown",
-      newState: newState?.state || "unknown",
-    });
+    const deviceState = await this.getDeviceStateAndServices(
+      matchingDevice.slug,
+    );
+    const entitySnapshots = deviceState.entities.map((entity) => ({
+      entityId: entity.entityId,
+      state: entity.state,
+      attributes: entity.attributes,
+    }));
+
+    // Process immediately (no BullMQ delay). Do not block the HA event loop.
+    void this.homeAssistantProcessor
+      .processDeviceEvent(
+        matchingDevice,
+        automationRules,
+        {
+          entityId,
+          oldState: oldState?.state || "unknown",
+          newState: newState?.state || "unknown",
+        },
+        entitySnapshots,
+      )
+      .catch(async (error: any) => {
+        await this.logStore.create({
+          severity: "error",
+          message: `Failed to process device automation for ${matchingDevice.id}`,
+          metadata: {
+            deviceId: matchingDevice.id,
+            entityId,
+            error: error?.message ?? String(error),
+          },
+        });
+      });
   }
 
   async getAllEntities(): Promise<HassEntity[]> {
@@ -230,39 +252,6 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       automationRules,
       device,
       this.deviceCooldownMinutes,
-    );
-  }
-
-  private async addItemToQueue(
-    deviceId: string,
-    context: EventQueueItem,
-  ): Promise<void> {
-    const redisKey = `ha_event:${deviceId}`;
-
-    const existing = await this.redis.get(redisKey);
-    let buffer = existing
-      ? (JSON.parse(existing) as EventQueueBuffer)
-      : { events: [], ruleIds: [] };
-    buffer.events.push(context);
-    buffer.ruleIds = Array.from(
-      new Set([...buffer.ruleIds, ...context.ruleIds]),
-    );
-    await this.redis.set(redisKey, JSON.stringify(buffer));
-
-    const existingJob = await this.queue.getJob(deviceId);
-
-    if (existingJob) {
-      return;
-    }
-
-    await this.queue.add(
-      "process-batch",
-      { deviceId },
-      {
-        jobId: deviceId,
-        delay: this.deviceCooldownMinutes * 60 * 1000,
-        removeOnComplete: true,
-      },
     );
   }
   // #endregion State Change Utils
