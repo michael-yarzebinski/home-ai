@@ -14,6 +14,7 @@ import { EntityFormProps } from '../types';
 import { TextInput } from '@/components/form/fields/general/text-input';
 import { SelectInput } from '@/components/form/fields/general/select-input';
 import { DateInput } from '@/components/form/fields/general/date-input';
+import { DurationInput } from '@/components/form/fields/general/duration-input';
 import { ArrayInput } from '@/components/form/fields/general/array-input';
 
 // Domain Fields
@@ -98,6 +99,12 @@ export function ChecklistItemForm({
             />
             <UserSelectInput name="assigneeId" label="Assignee" viewMode={viewMode} />
             <DateInput name="dueDate" label="Due Date" viewMode={viewMode} />
+            <DurationInput
+              name="notifyBefore"
+              label="Notify before due"
+              description="Optional reminder sent to the assignee before the due date"
+              viewMode={viewMode}
+            />
             <div className="sm:col-span-2 pb-1">
               <ArrayInput name="tags" label="Tags" viewMode={viewMode} />
             </div>

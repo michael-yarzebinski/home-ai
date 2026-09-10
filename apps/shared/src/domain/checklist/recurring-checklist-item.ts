@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DurationSchema } from '../../common/duration';
 import { ChecklistItemPriority } from './checklist-item';
 
 export enum RecurringChecklistItemTriggerType {
@@ -24,6 +25,7 @@ export const RecurringChecklistItemSchema = z.object({
     title: z.string(),
     description: z.string().optional(),
     defaultAssigneeId: z.string().optional(),
+    notifyBefore: DurationSchema.nullish(),
     priority: z.enum(ChecklistItemPriority),
     tags: z.array(z.string()),
     triggerType: z.enum(RecurringChecklistItemTriggerType),

@@ -10,7 +10,6 @@ import { EntityFormProps } from '../types';
 
 // Field Components
 import { TextInput } from '@/components/form/fields/general/text-input';
-import { SelectInput } from '@/components/form/fields/general/select-input';
 import { EntityIdField } from '@/components/form/fields/domain/entity-id-field';
 import { EntityTimestampField } from '@/components/form/fields/domain/entity-timestamp-field';
 import { UserSelectInput } from '@/components/form/fields/domain/user-select-input';
@@ -23,17 +22,8 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
     defaultValues: {
       userId: initialData?.userId || '',
       message: initialData?.message || '',
-      importance: initialData?.importance || 'normal',
-      // Ensure we have a valid ISO string or Date for the input
-      scheduledFor: initialData?.scheduledFor ? new Date(initialData.scheduledFor) : new Date(),
     },
   });
-
-  const importanceOptions = [
-    { label: 'Low', value: 'low' },
-    { label: 'Normal', value: 'normal' },
-    { label: 'High', value: 'high' },
-  ];
 
   return (
     <FormProvider {...form}>
@@ -41,21 +31,12 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
         {/* Record ID only shows in Edit/Read modes */}
         <EntityIdField value={initialData?.id} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <UserSelectInput
-            name="userId"
-            label="Recipient"
-            viewMode={viewMode}
-            description="The user who will receive this notification."
-          />
-          
-          <SelectInput
-            name="importance"
-            label="Importance"
-            options={importanceOptions}
-            viewMode={viewMode}
-          />
-        </div>
+        <UserSelectInput
+          name="userId"
+          label="Recipient"
+          viewMode={viewMode}
+          description="The user who will receive this notification."
+        />
 
         <TextInput
           name="message"
@@ -63,15 +44,6 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
           placeholder="Enter the notification text..."
           viewMode={viewMode}
         />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TextInput
-            name="scheduledFor"
-            label="Schedule Delivery"
-            viewMode={viewMode}
-            description="When the system should send this alert."
-          />
-        </div>
 
         {viewMode !== 'CREATE' && (
           <div className="pt-4 space-y-1 border-t">
@@ -89,7 +61,7 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
               disabled={isLoading}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium disabled:opacity-50"
             >
-              {isLoading ? 'Processing...' : viewMode === 'CREATE' ? 'Schedule Notification' : 'Update Notification'}
+              {isLoading ? 'Processing...' : viewMode === 'CREATE' ? 'Queue Notification' : 'Update Notification'}
             </button>
           </div>
         )}

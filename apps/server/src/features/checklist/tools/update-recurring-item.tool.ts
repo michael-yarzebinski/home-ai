@@ -7,6 +7,7 @@ import { ChecklistItemPriority } from "@home-ai/shared/domain/checklist/checklis
 import { RecurringChecklistItem } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { DurationSchema } from "@home-ai/shared/common/duration";
 import { ChecklistStore } from "src/features/checklist/stores/checklist.store";
 
 const UpdateRecurringItemToolSchema = z.object({
@@ -80,6 +81,17 @@ const UpdateRecurringItemToolSchema = z.object({
       z.array(z.string()).optional(),
     )
     .describe("Optional replacement list of recurring-item dependencies"),
+  notifyBefore: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.toObject(v, undefined as unknown as object),
+      DurationSchema.optional(),
+    )
+    .describe(
+      'Optional reminder lead time copied onto generated items, e.g. { "value": 1, "unit": "days" }',
+    ),
   active: z
     .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
     .describe("Optional active status"),

@@ -9,6 +9,7 @@ import {
   ChecklistItemPriority,
   ChecklistItemStatus,
 } from "@home-ai/shared/domain/checklist/checklist-item";
+import { parseDuration, type Duration } from "@home-ai/shared/common/duration";
 import { AuditStore } from "src/core/stores/monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 
@@ -21,6 +22,8 @@ export interface ChecklistItemRecord {
   assignee_id?: string | null;
   priority: ChecklistItemPriority;
   due_date?: Date | null;
+  notify_before?: Duration | null;
+  reminder_sent_at?: Date | null;
   status: ChecklistItemStatus;
   depends_on: string[];
   tags: string[];
@@ -83,6 +86,8 @@ export class ChecklistItemStore extends AbstractEntityStore<
       assigneeId: record.assignee_id ?? undefined,
       priority: record.priority,
       dueDate: record.due_date ?? undefined,
+      notifyBefore: parseDuration(record.notify_before),
+      reminderSentAt: record.reminder_sent_at ?? undefined,
       status: record.status,
       dependsOn: record.depends_on?.length ? record.depends_on : undefined,
       tags: record.tags ?? [],
@@ -96,25 +101,39 @@ export class ChecklistItemStore extends AbstractEntityStore<
   }
 
   protected domainToRecord(domain: ChecklistItem): ChecklistItemRecord {
+    // Omitted keys stay undefined so partial updates do not null sibling columns.
     return {
       id: domain.id,
       checklist_id: domain.checklistId,
-      recurring_item_id: domain.recurringItemId ?? null,
+      recurring_item_id: this.present(domain, "recurringItemId", (v) => v ?? null),
       title: domain.title,
-      description: domain.description ?? null,
-      assignee_id: domain.assigneeId ?? null,
+      description: this.present(domain, "description", (v) => v ?? null),
+      assignee_id: this.present(domain, "assigneeId", (v) => v ?? null),
       priority: domain.priority,
-      due_date: domain.dueDate ?? null,
+      due_date: this.present(domain, "dueDate", (v) => v ?? null),
+      notify_before: this.present(domain, "notifyBefore", (v) => v ?? null),
+      reminder_sent_at: this.present(domain, "reminderSentAt", (v) => v ?? null),
       status: domain.status,
-      depends_on: domain.dependsOn ?? [],
-      tags: domain.tags ?? [],
-      completed_at: domain.completedAt ?? null,
-      completed_by: domain.completedBy ?? null,
-      metadata: domain.metadata ?? {},
+      depends_on: this.present(domain, "dependsOn", (v) => v ?? []),
+      tags: this.present(domain, "tags", (v) => v ?? []),
+      completed_at: this.present(domain, "completedAt", (v) => v ?? null),
+      completed_by: this.present(domain, "completedBy", (v) => v ?? null),
+      metadata: this.present(domain, "metadata", (v) => v ?? {}),
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
-    };
+    } as ChecklistItemRecord;
+  }
+
+  private present<K extends keyof ChecklistItem, T>(
+    domain: ChecklistItem,
+    key: K,
+    map: (value: ChecklistItem[K]) => T,
+  ): T | undefined {
+    if (!Object.prototype.hasOwnProperty.call(domain, key)) {
+      return undefined;
+    }
+    return map(domain[key]);
   }
 
   async getByChecklistId(
@@ -210,6 +229,23 @@ export class ChecklistItemStore extends AbstractEntityStore<
       this.defaultOrder.direction,
     )) as ChecklistItemRecord[];
     return records.map((r) => this.recordToDomain(r));
+  }
+
+  async findDueReminderCandidates(): Promise<ChecklistItem[]> {
+    const records = (await this.active
+      .whereNotNull("due_date")
+      .whereNotNull("notify_before")
+      .whereNotNull("assignee_id")
+      .whereNull("reminder_sent_at")
+      .whereNot("status", ChecklistItemStatus.COMPLETED)) as ChecklistItemRecord[];
+    return records.map((record) => this.recordToDomain(record));
+  }
+
+  async markReminderSent(id: string, sentAt: Date = new Date()): Promise<void> {
+    await this.table.where({ id }).update({
+      reminder_sent_at: sentAt,
+      updated_at: sentAt,
+    });
   }
 
   async getByAssigneeId(

@@ -11,6 +11,7 @@ import type {
 import { AuditStore } from "src/core/stores/monitoring/audit/audit.store";
 import { Inject, Injectable } from "@nestjs/common";
 import { ChecklistItemPriority } from "@home-ai/shared/domain/checklist/checklist-item";
+import { parseDuration, type Duration } from "@home-ai/shared/common/duration";
 
 export interface RecurringChecklistItemRecord {
   id: string;
@@ -18,6 +19,7 @@ export interface RecurringChecklistItemRecord {
   title: string;
   description?: string | null;
   default_assignee_id?: string | null;
+  notify_before?: Duration | null;
   priority: ChecklistItemPriority;
   tags: string[];
   trigger_type: RecurringChecklistItemTriggerType;
@@ -76,6 +78,7 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
       title: record.title,
       description: record.description ?? undefined,
       defaultAssigneeId: record.default_assignee_id ?? undefined,
+      notifyBefore: parseDuration(record.notify_before),
       priority: record.priority,
       tags: record.tags ?? [],
       triggerType: record.trigger_type as RecurringChecklistItemTriggerType,
@@ -100,6 +103,7 @@ export class RecurringChecklistItemStore extends AbstractEntityStore<
       title: domain.title,
       description: domain.description ?? null,
       default_assignee_id: domain.defaultAssigneeId ?? null,
+      notify_before: domain.notifyBefore ?? null,
       priority: domain.priority,
       tags: domain.tags ?? [],
       trigger_type: domain.triggerType,

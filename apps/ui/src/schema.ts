@@ -173,8 +173,6 @@ export const NotificationQueueSchema = z.object({
     id: z.string(),
     userId: z.string(),
     message: z.string(),
-    importance: z.string(),
-    scheduledFor: z.date(),
     active: z.boolean(),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -217,6 +215,14 @@ export const ChatMessageSchema = z.object({
     timestamp: z.date(),
     toolCallId: z.string().optional(),
     thoughtSignature: z.string().optional(),
+    toolSummaries: z
+        .array(
+            z.object({
+                name: z.string(),
+                summary: z.string(),
+            }),
+        )
+        .optional(),
 });
 export const ConversationSchema = z.object({
     id: z.string(),

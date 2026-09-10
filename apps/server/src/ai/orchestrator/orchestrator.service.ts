@@ -20,6 +20,9 @@ import {
 } from "../../events/contracts/tool-execution.event";
 import { ChromaService } from "../memory/chroma.service";
 import { Trace } from "../../common/decorators/trace.decorator";
+import { formatInTimezone } from "@home-ai/shared/common/timezone";
+
+type ToolSummary = NonNullable<ChatMessage["toolSummaries"]>[number];
 
 export type OrchestratorHandleEventOptions = {
   /** When true, do not emit tool-execution pub/sub messages (e.g. orchestrator requery). */
@@ -56,8 +59,9 @@ export class OrchestratorService {
         user,
       );
       const chatSessionId = session.id;
+      const timeZone = await this.appConfigService.getTimezone();
 
-      this.initializeClsContext(user, input, chatSessionId);
+      this.initializeClsContext(user, input, chatSessionId, timeZone);
 
       const userMessage: ChatMessage = {
         role: LLMRole.USER,
@@ -66,6 +70,15 @@ export class OrchestratorService {
       };
       await this.conversationStore.addMessage(chatSessionId, userMessage, user);
 
+      const sessionWithUser = await this.conversationStore.getById(
+        chatSessionId,
+        user,
+      );
+      const history = sessionWithUser?.messages ?? [
+        ...session.messages,
+        userMessage,
+      ];
+
       await this.logStore.create({
         userId: user.id,
         severity: "info",
@@ -73,12 +86,13 @@ export class OrchestratorService {
         metadata: { input, chatSessionId, externalId },
       });
 
-      const systemPrompt = await this.generateSystemPrompt(user, input);
-      const messages = this.assembleMessageContext(
-        systemPrompt,
-        session.messages,
+      const systemPrompt = await this.generateSystemPrompt(
+        user,
         input,
+        timeZone,
       );
+      const messages = this.assembleMessageContext(systemPrompt, history);
+      const toolSummaries: ToolSummary[] = [];
 
       let loopCount = 0;
       const MAX_STEPS =
@@ -131,6 +145,7 @@ export class OrchestratorService {
               role: LLMRole.ASSISTANT,
               content: finalContent,
               timestamp: new Date(),
+              ...(toolSummaries.length > 0 ? { toolSummaries } : {}),
             },
             user,
           );
@@ -159,11 +174,13 @@ export class OrchestratorService {
               metadata: { toolCall, userRole: user.role },
             });
 
+            const notFound = `Error: Tool ${toolCall.name} not found.`;
+            this.recordToolSummary(toolSummaries, toolCall.name, notFound);
             messages.push({
               role: "tool",
               name: toolCall.name,
               toolCallId: toolCall.id,
-              content: `Error: Tool ${toolCall.name} not found.`,
+              content: notFound,
               isError: true,
             });
             continue;
@@ -178,11 +195,13 @@ export class OrchestratorService {
               metadata: { toolCall, userRole: user.role },
             });
 
+            const denied = `Error: Access denied for ${toolCall.name}.`;
+            this.recordToolSummary(toolSummaries, toolCall.name, denied);
             messages.push({
               role: "tool",
               name: toolCall.name,
               toolCallId: toolCall.id,
-              content: `Error: Access denied for ${toolCall.name}.`,
+              content: denied,
               isError: true,
             });
             continue;
@@ -219,6 +238,7 @@ export class OrchestratorService {
               }
             }
 
+            this.recordToolSummary(toolSummaries, toolCall.name, toolResult);
             messages.push({
               role: "tool",
               name: toolCall.name,
@@ -255,6 +275,7 @@ export class OrchestratorService {
               });
             }
 
+            this.recordToolSummary(toolSummaries, toolCall.name, contentString);
             messages.push({
               role: "tool",
               name: toolCall.name,
@@ -269,11 +290,15 @@ export class OrchestratorService {
               metadata: { error: error.message, toolCall },
             });
 
+            const errorMessage = JSON.stringify({
+              errorMessage: error.message,
+            });
+            this.recordToolSummary(toolSummaries, toolCall.name, errorMessage);
             messages.push({
               role: "tool",
               name: toolCall.name,
               toolCallId: toolCall.id,
-              content: JSON.stringify({ errorMessage: error.message }),
+              content: errorMessage,
               isError: true,
             });
           }
@@ -281,7 +306,7 @@ export class OrchestratorService {
         loopCount++;
       }
 
-      return this.handleTimeout(user, chatSessionId, loopCount);
+      return this.handleTimeout(user, chatSessionId, loopCount, toolSummaries);
     });
   }
 
@@ -340,41 +365,73 @@ export class OrchestratorService {
     user: User,
     input: string,
     chatSessionId: string,
+    timeZone: string,
   ) {
     this.cls.set("userName", user.name);
     this.cls.set("authUser", { id: user.id, role: user.role });
     this.cls.set("originalPrompt", input);
     this.cls.set("chatSessionId", chatSessionId);
     this.cls.set("currentISO", new Date().toISOString());
-    this.cls.set("timezone", user.timezone || "UTC");
+    this.cls.set("timezone", timeZone);
   }
 
   private assembleMessageContext(
     systemPrompt: string,
     history: ChatMessage[],
-    currentInput: string,
   ): UnifiedMessage[] {
     const formattedHistory: UnifiedMessage[] = history.map((m) => ({
       role: m.role as any,
-      content: m.content,
+      content: this.contentForLlm(m),
       ...(m.toolCallId ? { toolCallId: m.toolCallId } : {}),
     }));
     return [
       { role: "system", content: systemPrompt },
       ...formattedHistory,
-      { role: "user", content: currentInput },
     ];
   }
 
-  private async generateSystemPrompt(user: User, input: string): Promise<string> {
+  private contentForLlm(message: ChatMessage): string {
+    if (message.role !== LLMRole.ASSISTANT || !message.toolSummaries?.length) {
+      return message.content;
+    }
+    const recap = message.toolSummaries
+      .map((s) => `${s.name} — ${s.summary}`)
+      .join(". ");
+    return `${message.content}\n\nTools already used: ${recap}. Do not repeat these tools unless the user asks for a refresh.`;
+  }
+
+  private recordToolSummary(
+    summaries: ToolSummary[],
+    name: string,
+    content: string,
+  ): void {
+    summaries.push({ name, summary: this.summarizeToolResult(content) });
+    if (summaries.length > 8) {
+      summaries.splice(0, summaries.length - 8);
+    }
+  }
+
+  private summarizeToolResult(content: string): string {
+    const collapsed = content.trim().replace(/\s+/g, " ");
+    if (collapsed.length <= 200) {
+      return collapsed;
+    }
+    return `${collapsed.slice(0, 197)}...`;
+  }
+
+  private async generateSystemPrompt(
+    user: User,
+    input: string,
+    timeZone: string,
+  ): Promise<string> {
     const aiName = await this.appConfigService.getFromDb("AI_NAME");
-    const date = new Date().toLocaleDateString();
+    const nowLocal = formatInTimezone(new Date(), timeZone);
 
     const memory = await this.getMemoryForUser(user, input);
 
     return `
 ## Identity
-You are ${aiName}. User: ${user.name} (${user.role}). Current Date: ${date}.
+You are ${aiName}. User: ${user.name} (${user.role}). Current time: ${nowLocal} (${timeZone}).
 Style: Professional, helpful, and extremely concise.
 
 ## Long-Term Profile & Behavioral Context
@@ -404,6 +461,7 @@ If an action is queued for approval, inform the user and provide the Request ID 
     user: User,
     chatSessionId: string,
     loopCount: number,
+    toolSummaries: ToolSummary[],
   ) {
     const timeoutError =
       "I've tried too many steps and had to stop. Could you try being more specific?";
@@ -419,6 +477,7 @@ If an action is queued for approval, inform the user and provide the Request ID 
         role: LLMRole.ASSISTANT,
         content: timeoutError,
         timestamp: new Date(),
+        ...(toolSummaries.length > 0 ? { toolSummaries } : {}),
       },
       user,
     );

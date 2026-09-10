@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ToolHandler } from "../../abstract/tool-handler";
 import { PendingActionStore } from "../../../core/stores/pending-action/pending-action.store";
 import { ToolRegistry } from "../../registry/tool.registry";
-import { NotificationService } from "../../../core/services/notification.service";
+import { NotificationService } from "../../../integrations/notification/notification.service";
 import { LLMServiceBase } from "../../../ai/abstract/llm.service.base";
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";

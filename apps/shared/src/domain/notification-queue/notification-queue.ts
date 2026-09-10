@@ -4,8 +4,6 @@ export const NotificationQueueSchema = z.object({
   id: z.string(),
   userId: z.string(),
   message: z.string(),
-  importance: z.string(),
-  scheduledFor: z.date(),
   active: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),

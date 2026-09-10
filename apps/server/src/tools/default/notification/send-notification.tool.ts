@@ -4,7 +4,7 @@ import { ToolHandler } from "../../abstract/tool-handler";
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "../../decorators/tool.decorator";
-import { NotificationService } from "../../../core/services/notification.service";
+import { NotificationService } from "../../../integrations/notification/notification.service";
 import { ToolParameterUtils } from "../../utils/tool-parameter-utils";
 
 /** Trims and removes only a matching pair of surrounding quotes (preserves apostrophes inside the body). */
@@ -29,37 +29,11 @@ const SendNotificationToolSchema = z.object({
   message: z
     .preprocess(preprocessNotificationMessage, z.string().min(1))
     .describe("The message content to send"),
-
-  importance: z
-    .preprocess(
-      (v) => {
-        if (ToolParameterUtils.isEmptyOptionalInput(v)) {
-          return "normal";
-        }
-        const s = String(ToolParameterUtils.stripQuotes(v)).toLowerCase();
-        if (s === "low" || s === "normal" || s === "high") {
-          return s;
-        }
-        return "normal";
-      },
-      z.enum(["low", "normal", "high"]),
-    )
-    .default("normal")
-    .describe("Optional importance level"),
-
-  skipQuietHours: z
-    .preprocess((v) => {
-      const b = ToolParameterUtils.toBooleanValue(v);
-      return b === undefined ? false : b;
-    }, z.boolean())
-    .default(false)
-    .describe("If true, send immediately even if the user is in quiet hours"),
 });
 
 export interface SendNotificationResult {
   success: boolean;
   message: string;
-  queued?: boolean;
 }
 
 @Tool()
@@ -73,7 +47,7 @@ export class SendNotificationTool extends ToolHandler<
 
   readonly description =
     "Send a notification to a user via iMessage (BlueBubbles). " +
-    "Automatically respects the user's quiet hours unless skipQuietHours is set to true.";
+    "Respects the user's quiet hours.";
 
   readonly parameters = SendNotificationToolSchema;
 
@@ -83,18 +57,13 @@ export class SendNotificationTool extends ToolHandler<
 
   async execute(
     params: z.infer<typeof SendNotificationToolSchema>,
-    context: ToolContext,
+    _context: ToolContext,
   ): Promise<SendNotificationResult> {
-    await this.notificationService.notifyUser(
-      params.message,
-      params.userId,
-      context.authUser.id,
-      params.importance,
-    );
+    await this.notificationService.notifyUser(params.message, params.userId);
 
     return {
       success: true,
-      message: "Notification successfully sent to the user",
+      message: "Notification sent",
     };
   }
 }

@@ -199,6 +199,7 @@ export class ChecklistManagerService {
           assigneeId: recurringItem.defaultAssigneeId,
           priority: recurringItem.priority,
           dueDate: this.calculateDueDate(recurringItem.triggerConfig),
+          notifyBefore: recurringItem.notifyBefore,
           status: ChecklistItemStatus.PENDING,
           tags: recurringItem.tags,
           metadata: recurringItem.metadata,

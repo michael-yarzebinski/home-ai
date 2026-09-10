@@ -10,6 +10,7 @@ import { ToolContext } from "src/tools/types/tool-context";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { DurationSchema } from "@home-ai/shared/common/duration";
 
 const AddRecurringItemToolSchema = z.object({
   checklistId: z
@@ -98,6 +99,17 @@ const AddRecurringItemToolSchema = z.object({
       z.string().optional(),
     )
     .describe("Optional default assignee user ID"),
+  notifyBefore: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.toObject(v, undefined as unknown as object),
+      DurationSchema.optional(),
+    )
+    .describe(
+      'Optional reminder lead time copied onto generated items, e.g. { "value": 1, "unit": "days" }',
+    ),
 });
 
 export interface AddRecurringItemResult {

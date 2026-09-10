@@ -193,6 +193,7 @@ export default function ChecklistDetails() {
       status: formData.status,
       assigneeId: formData.assigneeId,
       dueDate: formData.dueDate,
+      notifyBefore: formData.notifyBefore ?? null,
       dependsOn: formData.dependsOn,
       tags: formData.tags,
       metadata: formData.metadata,
@@ -221,6 +222,7 @@ export default function ChecklistDetails() {
       triggerType: formData.triggerType,
       triggerConfig: formData.triggerConfig,
       dependsOnRecurringIds: formData.dependsOnRecurringIds,
+      notifyBefore: formData.notifyBefore ?? null,
       metadata: formData.metadata,
     };
     updateRecurringItem(

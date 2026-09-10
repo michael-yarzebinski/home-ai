@@ -11,6 +11,7 @@ import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ChecklistStore } from "src/features/checklist/stores/checklist.store";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { DurationSchema } from "@home-ai/shared/common/duration";
 
 const UpdateChecklistItemToolSchema = z.object({
   id: z
@@ -70,6 +71,17 @@ const UpdateChecklistItemToolSchema = z.object({
       z.coerce.date().optional(),
     )
     .describe("The updated due date for the task"),
+  notifyBefore: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.toObject(v, undefined as unknown as object),
+      DurationSchema.optional(),
+    )
+    .describe(
+      'Optional reminder lead time before dueDate, e.g. { "value": 30, "unit": "minutes" }',
+    ),
   tags: z
     .preprocess(
       ToolParameterUtils.toStringArray,

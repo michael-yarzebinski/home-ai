@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
 import { CoreModule } from "src/core/core.module";
+import { IntegrationsModule } from "src/integrations/integrations.module";
 import { ChecklistStore } from "./stores/checklist.store";
 import { ChecklistItemStore } from "./stores/checklist-item.store";
 import { RecurringChecklistItemStore } from "./stores/recurring-checklist-item.store";
 import { ChecklistManagerService } from "./services/checklist-manager.service";
 import { ChecklistRecurringGenerationService } from "./services/checklist-recurring-generation.service";
+import { ChecklistDueReminderService } from "./services/checklist-due-reminder.service";
 import { AddChecklistTool } from "./tools/add-checklist.tool";
 import { UpdateChecklistTool } from "./tools/update-checklist.tool";
 import { ListChecklistsTool } from "./tools/list-checklists.tool";
@@ -27,7 +29,7 @@ import { ChecklistItemsAdminController } from "./controllers/admin/checklist-ite
 import { RecurringChecklistItemsAdminController } from "./controllers/admin/recurring-checklist-items.admin.controller";
 
 @Module({
-  imports: [CoreModule],
+  imports: [CoreModule, IntegrationsModule],
   controllers: [
     ChecklistsController,
     ChecklistItemsController,
@@ -42,6 +44,7 @@ import { RecurringChecklistItemsAdminController } from "./controllers/admin/recu
     RecurringChecklistItemStore,
     ChecklistManagerService,
     ChecklistRecurringGenerationService,
+    ChecklistDueReminderService,
     AddChecklistTool,
     UpdateChecklistTool,
     ListChecklistsTool,
@@ -63,6 +66,7 @@ import { RecurringChecklistItemsAdminController } from "./controllers/admin/recu
     RecurringChecklistItemStore,
     ChecklistManagerService,
     ChecklistRecurringGenerationService,
+    ChecklistDueReminderService,
     AddChecklistTool,
     UpdateChecklistTool,
     ListChecklistsTool,

@@ -179,10 +179,10 @@ export const MOCK_NOTIFICATION_LOGS: NotificationLog[] = [
 // ---------------------------------------------------------------------------
 
 export const MOCK_NOTIFICATION_QUEUE: NotificationQueue[] = [
-  { id: 'nq_001', userId: 'usr_002', message: 'Soccer practice reminder: tomorrow at 4 PM', importance: 'normal', scheduledFor: new Date(now.getTime() + 3600_000), active: true, createdAt: minsAgo(5), updatedAt: minsAgo(5) },
-  { id: 'nq_002', userId: 'usr_003', message: 'Weekly meal plan suggestions ready', importance: 'low', scheduledFor: new Date(now.getTime() + 7200_000), active: true, createdAt: minsAgo(10), updatedAt: minsAgo(10) },
-  { id: 'nq_003', userId: 'usr_001', message: 'System backup completed successfully', importance: 'high', scheduledFor: new Date(now.getTime() + 900_000), active: true, createdAt: minsAgo(2), updatedAt: minsAgo(2) },
-  { id: 'nq_004', userId: 'usr_004', message: 'Bedtime reminder: lights out in 15 minutes', importance: 'normal', scheduledFor: new Date(now.getTime() - 600_000), active: false, createdAt: minsAgo(60), updatedAt: minsAgo(15) },
+  { id: 'nq_001', userId: 'usr_002', message: 'Soccer practice reminder: tomorrow at 4 PM', active: true, createdAt: minsAgo(5), updatedAt: minsAgo(5) },
+  { id: 'nq_002', userId: 'usr_003', message: 'Weekly meal plan suggestions ready', active: true, createdAt: minsAgo(10), updatedAt: minsAgo(10) },
+  { id: 'nq_003', userId: 'usr_001', message: 'System backup completed successfully', active: true, createdAt: minsAgo(2), updatedAt: minsAgo(2) },
+  { id: 'nq_004', userId: 'usr_004', message: 'Bedtime reminder: lights out in 15 minutes', active: false, createdAt: minsAgo(60), updatedAt: minsAgo(15) },
 ];
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,6 @@ import { AppConfigStore } from "./stores/app-config/app-config.store";
 import knex, { Knex } from "knex";
 import * as pg from "pg";
 import { ConversationStore } from "./stores/conversation/conversation.store";
-import { NotificationService } from "./services/notification.service";
 import { DashboardService } from "./services/dashboard.service";
 import { AuthService } from "./services/auth.service";
 import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.store";
@@ -123,7 +122,6 @@ import { DeviceEventStore } from "./stores/device/device-event.store";
     AuthService,
     DashboardService,
     JwtStrategy,
-    NotificationService,
     DeviceEventStore,
   ],
   exports: [
@@ -145,7 +143,6 @@ import { DeviceEventStore } from "./stores/device/device-event.store";
     AuthService,
     DashboardService,
     JwtModule,
-    NotificationService,
     DeviceEventStore,
   ],
 })

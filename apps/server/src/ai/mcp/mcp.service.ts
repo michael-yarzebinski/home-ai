@@ -6,6 +6,7 @@ import { ToolContext } from "../../tools/types/tool-context";
 import { AuthUser } from "../../core/auth/jwt.strategy";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { Trace } from "src/common/decorators/trace.decorator";
+import { DEFAULT_TIMEZONE } from "@home-ai/shared/common/timezone";
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -73,7 +74,7 @@ export class McpService implements OnModuleInit {
       },
       // Spread preferences so tools (like recipe standardizers) can see them
       preferences: this.cls.get("preferences"),
-      timezone: "Americas/Eastern",
+      timezone: this.cls.get("timezone") || DEFAULT_TIMEZONE,
     };
   }
 }

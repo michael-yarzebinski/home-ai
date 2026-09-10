@@ -5,6 +5,10 @@ import { AppConfigStore } from "../stores/app-config/app-config.store";
 import { LogStore } from "../stores/monitoring/log/log.store";
 import { ConfigNotFoundError } from "src/common/errors/config-not-found.error";
 import { Trace } from "src/common/decorators/trace.decorator";
+import {
+  TIMEZONE_CONFIG_KEY,
+  resolveTimezone,
+} from "@home-ai/shared/common/timezone";
 
 @Injectable()
 export class AppConfigService {
@@ -38,5 +42,15 @@ export class AppConfigService {
     }
 
     return envConfigValue;
+  }
+
+  /** Server/household IANA timezone from `app_config`. Falls back to America/New_York. */
+  @Trace()
+  async getTimezone(): Promise<string> {
+    const row = await this.appConfigStore.getByKey(TIMEZONE_CONFIG_KEY);
+    const raw = row?.value;
+    const value =
+      typeof raw === "string" ? raw : raw != null ? String(raw) : undefined;
+    return resolveTimezone(value);
   }
 }

@@ -104,7 +104,7 @@ export class DashboardService {
         .select(
           this.knex.raw("COUNT(*)::int AS total"),
           this.knex.raw(
-            `COUNT(*) FILTER (WHERE active = true AND scheduled_for > NOW())::int AS pending`,
+            `COUNT(*) FILTER (WHERE active = true)::int AS pending`,
           ),
         )
         .first() as Promise<{ total: number; pending: number }>,

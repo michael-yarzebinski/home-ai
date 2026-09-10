@@ -7,6 +7,7 @@ import { FeaturesModule } from "src/features/features.module";
 import { DiscoverDevicesTool } from "./default/device/discover-device.tool";
 import { ExecuteDeviceServiceTool } from "./default/device/execute-device-service.tool";
 import { GetDeviceStateTool } from "./default/device/get-device-state.tool";
+import { GetDeviceEventHistoryTool } from "./default/device/get-device-event-history.tool";
 import { ListDevicesTool } from "./default/device/list-devices.tool";
 import { RegisterDeviceTool } from "./default/device/register-device.tool";
 import { UpdateDeviceTool } from "./default/device/update-device.tool";
@@ -36,6 +37,7 @@ import { AIModule } from "../ai/ai.module";
     DiscoverDevicesTool,
     ExecuteDeviceServiceTool,
     GetDeviceStateTool,
+    GetDeviceEventHistoryTool,
     ListDevicesTool,
     RegisterDeviceTool,
     UpdateDeviceTool,

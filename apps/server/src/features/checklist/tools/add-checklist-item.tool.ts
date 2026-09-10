@@ -11,6 +11,7 @@ import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ChecklistStore } from "src/features/checklist/stores/checklist.store";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { DurationSchema } from "@home-ai/shared/common/duration";
 
 const AddChecklistItemToolSchema = z.object({
   checklistId: z
@@ -48,6 +49,26 @@ const AddChecklistItemToolSchema = z.object({
     )
     .describe(
       "Optional user ID to assign this task to. Defaults to the current user if not provided.",
+    ),
+  dueDate: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.stripQuotes(v),
+      z.coerce.date().optional(),
+    )
+    .describe("Optional due date for the task"),
+  notifyBefore: z
+    .preprocess(
+      (v) =>
+        ToolParameterUtils.isEmptyOptionalInput(v)
+          ? undefined
+          : ToolParameterUtils.toObject(v, undefined as unknown as object),
+      DurationSchema.optional(),
+    )
+    .describe(
+      'Optional reminder lead time before dueDate, e.g. { "value": 30, "unit": "minutes" }',
     ),
   tags: z
     .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
@@ -98,6 +119,8 @@ export class AddChecklistItemTool extends ToolHandler<
         description: params.description,
         priority: params.priority,
         assigneeId: params.assigneeId,
+        dueDate: params.dueDate,
+        notifyBefore: params.notifyBefore,
         tags: params.tags,
         status: ChecklistItemStatus.PENDING,
         metadata: {},

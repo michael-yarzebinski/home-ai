@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DurationSchema } from '../../common/duration';
 
 export enum ChecklistItemPriority {
     LOW = 'low',
@@ -28,6 +29,8 @@ export const ChecklistItemSchema = z.object({
     assigneeId: z.string().optional(),
     priority: z.enum(ChecklistItemPriority),
     dueDate: z.date().optional(),
+    notifyBefore: DurationSchema.nullish(),
+    reminderSentAt: z.date().optional(),
     status: z.enum(ChecklistItemStatus),
     dependsOn: z.array(z.string()).optional(),
     tags: z.array(z.string()),
@@ -46,6 +49,7 @@ export const InsertableChecklistItemSchema = ChecklistItemSchema.omit({
     active: true,
     createdAt: true,
     updatedAt: true,
+    reminderSentAt: true,
 });
 export const UpdatableChecklistItemSchema = InsertableChecklistItemSchema.partial();
 

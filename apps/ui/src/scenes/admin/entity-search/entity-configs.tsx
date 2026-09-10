@@ -69,9 +69,6 @@ type BadgeVariant = NonNullable<ComponentProps<typeof Badge>['variant']>;
 const fmtDate = (v: unknown) =>
   v ? new Date(v as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const fmtDateTime = (v: unknown) =>
-  v ? new Date(v as string).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
-
 const fmtRelative = (v: unknown) => {
   if (!v) return '—';
   const secs = Math.floor((Date.now() - new Date(v as string).getTime()) / 1000);
@@ -433,35 +430,13 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     columns: [
       { header: 'User', key: 'userId', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Message', key: 'message', render: (v) => truncate(v, 52) },
-      { header: 'Priority', key: 'importance', render: (v) => {
-        const map: Record<string, BadgeVariant> = { high: 'default', normal: 'secondary', low: 'outline' };
-        return <Badge variant={map[String(v).toLowerCase()] ?? 'secondary'}>{String(v)}</Badge>;
-      }},
-      { header: 'Scheduled', key: 'scheduledFor', render: fmtDateTime },
       { header: 'Status', key: 'active', render: (v) => <StatusBadge active={v as boolean} /> },
     ],
     formFields: [
       { name: 'message', label: 'Message', type: 'textarea', required: true, placeholder: 'Notification message…' },
-      {
-        name: 'importance',
-        label: 'Priority',
-        type: 'text',
-        required: true,
-        placeholder: 'high | normal | low',
-        description: 'One of: high, normal, low',
-      },
-      {
-        name: 'scheduledFor',
-        label: 'Scheduled For',
-        type: 'text',
-        placeholder: '2026-05-01T14:00',
-        description: 'ISO date-time (YYYY-MM-DDTHH:mm)',
-      },
     ],
     formSchema: z.object({
       message: z.string().min(1, 'Message is required'),
-      importance: z.string().min(1, 'Priority is required'),
-      scheduledFor: z.string().optional(),
     }),
   },
 

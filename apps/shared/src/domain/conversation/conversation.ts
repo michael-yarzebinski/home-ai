@@ -13,6 +13,14 @@ export const ChatMessageSchema = z.object({
   timestamp: z.date(),
   toolCallId: z.string().optional(),
   thoughtSignature: z.string().optional(),
+  toolSummaries: z
+    .array(
+      z.object({
+        name: z.string(),
+        summary: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;

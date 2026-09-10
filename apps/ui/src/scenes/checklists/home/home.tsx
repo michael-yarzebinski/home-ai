@@ -119,6 +119,7 @@ export function ChecklistHome() {
       status: formData.status,
       assigneeId: formData.assigneeId,
       dueDate: formData.dueDate,
+      notifyBefore: formData.notifyBefore ?? null,
       dependsOn: formData.dependsOn,
       tags: formData.tags,
       metadata: formData.metadata,

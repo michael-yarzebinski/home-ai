@@ -15,8 +15,6 @@ export interface NotificationQueueRecord {
   id: string;
   user_id: string;
   message: string;
-  importance: string;
-  scheduled_for: Date;
   active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -55,9 +53,7 @@ export class NotificationQueueStore extends AbstractEntityStore<
     search: string,
   ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
-    return query.where((b) =>
-      b.whereILike("message", like).orWhereILike("importance", like),
-    );
+    return query.whereILike("message", like);
   }
 
   protected recordToDomain(record: NotificationQueueRecord): NotificationQueue {
@@ -65,8 +61,6 @@ export class NotificationQueueStore extends AbstractEntityStore<
       id: record.id,
       userId: record.user_id,
       message: record.message,
-      importance: record.importance,
-      scheduledFor: record.scheduled_for,
       active: record.active,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -78,21 +72,14 @@ export class NotificationQueueStore extends AbstractEntityStore<
       id: domain.id,
       user_id: domain.userId,
       message: domain.message,
-      importance: domain.importance,
-      scheduled_for: domain.scheduledFor,
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,
     };
   }
 
-  async getDueNotifications(): Promise<NotificationQueue[]> {
-    const now = new Date();
-
-    const records = await this.active
-      .where("scheduled_for", "<=", now) // due now or in the past
-      .orderBy("scheduled_for", "asc") // oldest first
-      .select("*");
+  async getPendingNotifications(): Promise<NotificationQueue[]> {
+    const records = await this.active.orderBy("created_at", "asc").select("*");
 
     return records.map((record) =>
       this.recordToDomain(record as NotificationQueueRecord),

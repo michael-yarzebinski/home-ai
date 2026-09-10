@@ -14,6 +14,7 @@ import { EntityFormProps } from '../types';
 import { TextInput } from '@/components/form/fields/general/text-input';
 import { SelectInput } from '@/components/form/fields/general/select-input';
 import { NumberInput } from '@/components/form/fields/general/number-input';
+import { DurationInput } from '@/components/form/fields/general/duration-input';
 import { ArrayInput } from '@/components/form/fields/general/array-input';
 import { CronInput } from '@/components/form/fields/general/cron-input';
 
@@ -114,6 +115,12 @@ export function RecurringChecklistItemForm({
               <TextInput name="triggerConfig.eventTag" label="Event Tag" placeholder="system.startup" viewMode={viewMode} />
             )}
             <NumberInput name="triggerConfig.dueInDays" label="Days to Complete" description="How many days until the generated item is due" viewMode={viewMode} />
+            <DurationInput
+              name="notifyBefore"
+              label="Notify before due"
+              description="Copied onto each generated item as the assignee reminder"
+              viewMode={viewMode}
+            />
           </div>
         </div>
 

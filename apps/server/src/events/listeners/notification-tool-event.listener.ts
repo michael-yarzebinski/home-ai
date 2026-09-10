@@ -5,7 +5,7 @@ import {
   LLMModelTypes,
   LLMProviderService,
 } from "../../ai/llm/llm.provider.sevice";
-import { NotificationService } from "../../core/services/notification.service";
+import { NotificationService } from "../../integrations/notification/notification.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { PendingActionStore } from "../../core/stores/pending-action/pending-action.store";
 import { ToolStore } from "../../core/stores/tool/tool.store";
@@ -97,29 +97,17 @@ export class NotificationToolEventListener
     await this.processDefaultToolExecuted(event);
   }
 
-  /** Approval was requested for a deferred tool: notify users who can approve (write on target tool). */
+  /** Approval was requested for a deferred tool: notify users with notifyRoles on the target tool. */
   private async processOnRequested(event: ToolExecutionEvent): Promise<void> {
-    const context = {
-      isNotifying: false,
-      isRequesting: true,
-    } as const;
     const shouldNotify = await this.notificationService.hasUsersToNotifyByTool(
       event.toolName,
-      event.userId,
-      context,
     );
     if (!shouldNotify) {
       return;
     }
 
     const message = await this.generateApprovalRequestedMessage(event);
-    await this.notificationService.notifyUsersByTool(
-      message,
-      event.toolName,
-      event.userId,
-      context,
-      "medium",
-    );
+    await this.notificationService.notifyUsersByTool(message, event.toolName);
   }
 
   private async generateApprovalRequestedMessage(
@@ -214,21 +202,11 @@ Requirements:
 
     if (isApprove) {
       const message = `Your request #${readableId} was approved and completed.`;
-      await this.notificationService.notifyUser(
-        message,
-        pending.requesterId,
-        event.userId,
-        "medium",
-      );
+      await this.notificationService.notifyUser(message, pending.requesterId);
     } else if (isReject) {
       const reason = pending.reason?.trim() || "No reason was provided.";
       const message = `Your request #${readableId} was declined: ${reason}`;
-      await this.notificationService.notifyUser(
-        message,
-        pending.requesterId,
-        event.userId,
-        "medium",
-      );
+      await this.notificationService.notifyUser(message, pending.requesterId);
     }
 
     const tool = await this.toolStore.getById(pending.toolId, undefined);
@@ -254,27 +232,15 @@ Requirements:
   private async processDefaultToolExecuted(
     event: ToolExecutionEvent,
   ): Promise<void> {
-    const context = {
-      isNotifying: true,
-      isRequesting: false,
-    } as const;
     const shouldNotify = await this.notificationService.hasUsersToNotifyByTool(
       event.toolName,
-      event.userId,
-      context,
     );
     if (!shouldNotify) {
       return;
     }
 
     const message = await this.generateDefaultToolExecutedMessage(event);
-    await this.notificationService.notifyUsersByTool(
-      message,
-      event.toolName,
-      event.userId,
-      context,
-      "low",
-    );
+    await this.notificationService.notifyUsersByTool(message, event.toolName);
   }
 
   private async generateDefaultToolExecutedMessage(

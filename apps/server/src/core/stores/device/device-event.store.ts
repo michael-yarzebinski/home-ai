@@ -150,4 +150,31 @@ export class DeviceEventStore extends AbstractEntityStore<
       hasPrevious: criteria.page > 1,
     };
   }
+
+  async getHistoryByDeviceId(
+    deviceId: string,
+    since: Date,
+    user: AuthUser,
+    limit: number,
+  ): Promise<{ items: DeviceEvent[]; total: number }> {
+    let query = this.active
+      .where({ device_id: deviceId })
+      .andWhere("created_at", ">=", since);
+
+    query = this.validateForRead(query, user);
+
+    const countRow = (await query.clone().count("* as count").first()) as
+      | { count: string }
+      | undefined;
+    const total = parseInt(countRow?.count ?? "0", 10);
+
+    const records = (await query
+      .orderBy("created_at", "desc")
+      .limit(limit)) as DeviceEventRecord[];
+
+    return {
+      items: records.map((r) => this.recordToDomain(r)),
+      total,
+    };
+  }
 }
