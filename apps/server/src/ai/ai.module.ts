@@ -4,7 +4,6 @@ import { AppConfigService } from "../core/services/app-config.service";
 import { GeminiLLMService } from "./llm/gemini/gemini-llm.service";
 import { AIAuditStore } from "../core/stores/monitoring/ai-audit/ai-audit.store";
 import { LogStore } from "../core/stores/monitoring/log/log.store";
-import { McpService } from "./mcp/mcp.service";
 import { OrchestratorService } from "./orchestrator/orchestrator.service";
 import { ClsModule } from "nestjs-cls";
 import { ToolsModule } from "../tools/tool.module";
@@ -90,12 +89,11 @@ import { MemoryService } from "./memory/memory.service";
     },
     LLMProviderService,
     OrchestratorService,
-    McpService,
 
     ChromaService,
     MemoryService,
   ],
-  exports: [OrchestratorService, McpService, LLMProviderService],
+  exports: [OrchestratorService, LLMProviderService],
   controllers: [ChatController, MemoryAdminController],
 })
 export class AIModule { }

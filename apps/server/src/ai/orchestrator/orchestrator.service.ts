@@ -4,7 +4,6 @@ import { InjectRedis } from "@nestjs-modules/ioredis";
 import Redis from "ioredis";
 import { ClsService } from "nestjs-cls";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
-import { McpService } from "../mcp/mcp.service";
 import { ToolRegistry } from "../../tools/registry/tool.registry";
 import { UnifiedMessage } from "../types/llm-query-params";
 import { AppConfigService } from "../../core/services/app-config.service";
@@ -20,7 +19,13 @@ import {
 } from "../../events/contracts/tool-execution.event";
 import { ChromaService } from "../memory/chroma.service";
 import { Trace } from "../../common/decorators/trace.decorator";
-import { formatInTimezone } from "@home-ai/shared/common/timezone";
+import {
+  DEFAULT_TIMEZONE,
+  formatInTimezone,
+} from "@home-ai/shared/common/timezone";
+import { AuthUser } from "../../core/auth/jwt.strategy";
+import { ToolContext } from "../../tools/types/tool-context";
+import { ToolHandler } from "../../tools/abstract/tool-handler";
 
 type ToolSummary = NonNullable<ChatMessage["toolSummaries"]>[number];
 
@@ -33,7 +38,6 @@ export type OrchestratorHandleEventOptions = {
 export class OrchestratorService {
   constructor(
     private readonly cls: ClsService,
-    private readonly mcp: McpService,
     private readonly llmProviderService: LLMProviderService,
     private readonly logStore: LogStore,
     private readonly toolRegistry: ToolRegistry,
@@ -258,12 +262,10 @@ export class OrchestratorService {
             });
 
             const validatedArgs = tool.handler.parameters.parse(toolCall.args);
-            const toolResult = await this.mcp.execute(
-              toolCall.name,
+            const { result, contentString } = await this.runTool(
+              tool.handler,
               validatedArgs,
             );
-            const contentString =
-              toolResult?.content?.[0]?.text || JSON.stringify(toolResult);
 
             if (!config.suppressToolEvents) {
               await this.publishToolExecutionEvent({
@@ -271,7 +273,7 @@ export class OrchestratorService {
                 userId: user.id,
                 toolName: toolCall.name,
                 argsSummary: validatedArgs,
-                resultSummary: toolResult,
+                resultSummary: result,
               });
             }
 
@@ -311,7 +313,7 @@ export class OrchestratorService {
   }
 
   /**
-   * Queues a deferred tool via propose-action MCP. Returns assistant-facing text and raw MCP payload for auditing / pub-sub.
+   * Queues a deferred tool via propose-action. Returns assistant-facing text.
    */
   private async escalateToPendingAction(
     user: User,
@@ -325,19 +327,50 @@ export class OrchestratorService {
         metadata: { originalTool: toolCall.name, userId: user.id },
       });
 
-      // Aligning with ProposeActionToolSchema: toolName, description, proposedArgs, reason
-      const result = await this.mcp.execute("propose-action", {
+      const propose = await this.toolRegistry.getRegisteredTool(
+        "propose-action",
+        user,
+      );
+      if (!propose) {
+        throw new Error("Unauthorized or unknown tool: propose-action");
+      }
+
+      const { contentString } = await this.runTool(propose.handler, {
         toolName: toolCall.name,
         description: `Execute ${toolCall.name} with requested parameters`,
         proposedArgs: toolCall.args || {},
         reason: `User ${user.name} (${user.role}) is not authorized to execute this directly.`,
       });
 
-      // Return the stringified result so the LLM can explain it to the user
-      return result?.content?.[0]?.text || JSON.stringify(result);
+      return contentString;
     } catch (error: any) {
       return `Failed to queue action for approval: ${error.message}`;
     }
+  }
+
+  private async runTool(
+    handler: ToolHandler,
+    args: Record<string, unknown>,
+  ): Promise<{ result: unknown; contentString: string }> {
+    const result = await handler.execute(args, this.getToolContext());
+    return {
+      result,
+      contentString: JSON.stringify(result, null, 2),
+    };
+  }
+
+  private getToolContext(): ToolContext {
+    return {
+      authUser: this.cls.get<AuthUser>("authUser"),
+      userName: this.cls.get("userName"),
+      chatSessionId: this.cls.get("chatSessionId"),
+      currentISO: this.cls.get("currentISO"),
+      llmContext: {
+        originalPrompt: this.cls.get("originalPrompt"),
+      },
+      preferences: this.cls.get("preferences"),
+      timezone: this.cls.get("timezone") || DEFAULT_TIMEZONE,
+    };
   }
 
   /**

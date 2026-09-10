@@ -10,8 +10,7 @@
   },
   "search.exclude": {
     "**/node_modules": true,
-    "**/dist": true,
-    "**/node_modules/@modelcontextprotocol/**": true
+    "**/dist": true
   },
   "editor.formatOnSave": true,
   "[typescript]": {

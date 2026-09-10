@@ -11,7 +11,7 @@ export interface ToolExecutionEvent {
   toolName: string;
   /** Parsed tool arguments (after schema validation). */
   argsSummary: unknown;
-  /** Full tool handler / MCP result payload. */
+  /** Full tool handler result payload. */
   resultSummary?: unknown;
   approval?: {
     pendingActionReadableId: number;
