@@ -6,6 +6,7 @@ import { ToolContext } from "src/tools/types/tool-context";
 import { IngredientStore } from "../stores/ingredients.store";
 import { RecipeStore } from "../stores/recipe.store";
 import { AppConfigService } from "src/core/services/app-config.service";
+import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { Injectable } from "@nestjs/common";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
@@ -83,6 +84,7 @@ export class AddRecipeTool extends ToolHandler<
     private readonly recipeStore: RecipeStore,
     private readonly ingredientStore: IngredientStore,
     private readonly appConfigService: AppConfigService,
+    private readonly logStore: LogStore,
   ) {
     super();
   }
@@ -121,9 +123,11 @@ export class AddRecipeTool extends ToolHandler<
         await fs.access(params.temporaryPdfPath);
         await fs.rename(params.temporaryPdfPath, finalPdfPath);
       } catch {
-        console.warn(
-          `[AddRecipeTool] PDF file not found at ${params.temporaryPdfPath}. Skipping rename.`,
-        );
+        await this.logStore.create({
+          severity: "warn",
+          message: `PDF file not found at ${params.temporaryPdfPath}, skipping rename`,
+          metadata: { temporaryPdfPath: params.temporaryPdfPath, recipeReadableId: readableId },
+        });
       }
 
       // Save standardized ingredients

@@ -3,6 +3,7 @@ import { CoreModule } from "../core/core.module";
 import { AppConfigService } from "../core/services/app-config.service";
 import { GeminiLLMService } from "./llm/gemini/gemini-llm.service";
 import { AIAuditStore } from "../core/stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "../core/stores/monitoring/log/log.store";
 import { McpService } from "./mcp/mcp.service";
 import { OrchestratorService } from "./orchestrator/orchestrator.service";
 import { ClsModule } from "nestjs-cls";
@@ -29,6 +30,7 @@ import { MemoryService } from "./memory/memory.service";
       useFactory(
         appConfigService: AppConfigService,
         aiAuditStore: AIAuditStore,
+        logStore: LogStore,
       ): Map<LLMModelTypes, LLMServiceBase> {
         const registry = new Map<LLMModelTypes, LLMServiceBase>();
 
@@ -53,7 +55,7 @@ import { MemoryService } from "./memory/memory.service";
           if (config.clientType === ProviderClientType.OPENAI) {
             registry.set(
               type,
-              new OpenAILLMService(aiAuditStore, {
+              new OpenAILLMService(aiAuditStore, logStore, {
                 apiKey: config.apiKey,
                 baseURL: config.baseUrl,
                 model: config.model,
@@ -62,7 +64,7 @@ import { MemoryService } from "./memory/memory.service";
           } else if (config.clientType === ProviderClientType.GEMINI) {
             registry.set(
               type,
-              new GeminiLLMService(aiAuditStore, {
+              new GeminiLLMService(aiAuditStore, logStore, {
                 apiKey: config.apiKey,
                 model: config.model,
               }),
@@ -70,7 +72,7 @@ import { MemoryService } from "./memory/memory.service";
           } else if (config.clientType === ProviderClientType.OLLAMA) {
             registry.set(
               type,
-              new LocalLLMService(aiAuditStore, {
+              new LocalLLMService(aiAuditStore, logStore, {
                 model: config.model,
                 baseURL: config.baseUrl,
               }),
@@ -84,7 +86,7 @@ import { MemoryService } from "./memory/memory.service";
 
         return registry;
       },
-      inject: [AppConfigService, AIAuditStore],
+      inject: [AppConfigService, AIAuditStore, LogStore],
     },
     LLMProviderService,
     OrchestratorService,

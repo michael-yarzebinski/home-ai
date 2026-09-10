@@ -4,6 +4,8 @@ import { ToolRegistry } from "src/tools/registry/tool.registry";
 import { ClsService } from "nestjs-cls";
 import { ToolContext } from "../../tools/types/tool-context";
 import { AuthUser } from "../../core/auth/jwt.strategy";
+import { LogStore } from "../../core/stores/monitoring/log/log.store";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -12,6 +14,7 @@ export class McpService implements OnModuleInit {
   constructor(
     private readonly toolRegistry: ToolRegistry,
     private readonly cls: ClsService,
+    private readonly logStore: LogStore,
   ) {
     this.mcpServer = new McpServer({
       name: "Home-AI-Manager",
@@ -35,6 +38,7 @@ export class McpService implements OnModuleInit {
     }
   }
 
+  @Trace()
   async execute(name: string, args: any) {
     // Pull user info from CLS (set by the Orchestrator)
     const authUser = this.cls.get<AuthUser>("authUser");

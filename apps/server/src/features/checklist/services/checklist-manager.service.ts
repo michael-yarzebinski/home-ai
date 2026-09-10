@@ -3,12 +3,14 @@ import type { ChecklistDetails } from "@home-ai/shared/domain/checklist/checklis
 import { ChecklistStore } from "src/features/checklist/stores/checklist.store";
 import { RecurringChecklistItemStore } from "src/features/checklist/stores/recurring-checklist-item.store";
 import { ChecklistItemStore } from "src/features/checklist/stores/checklist-item.store";
+import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import type { AuthUser } from "src/core/auth/jwt.strategy";
 import {
   ChecklistItem,
   ChecklistItemStatus,
 } from "@home-ai/shared/domain/checklist/checklist-item";
 import type { RecurringChecklistItem } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
+import { Trace } from "src/common/decorators/trace.decorator";
 
 @Injectable()
 export class ChecklistManagerService {
@@ -16,6 +18,7 @@ export class ChecklistManagerService {
     private readonly checklistStore: ChecklistStore,
     private readonly recurringChecklistItemStore: RecurringChecklistItemStore,
     private readonly checklistItemStore: ChecklistItemStore,
+    private readonly logStore: LogStore,
   ) {}
 
   checklistReader(): Pick<
@@ -50,6 +53,7 @@ export class ChecklistManagerService {
     return this.checklistItemStore;
   }
 
+  @Trace()
   async getChecklistDetail(
     checklistId: string,
     user: AuthUser,
@@ -70,6 +74,7 @@ export class ChecklistManagerService {
     return { checklist, checklistItems, recurringChecklistItems };
   }
 
+  @Trace()
   async checkItem(
     checklistId: string,
     checklistItemId: string,
@@ -117,6 +122,7 @@ export class ChecklistManagerService {
     return checkedItem;
   }
 
+  @Trace()
   async uncheckItem(
     checklistId: string,
     checklistItemId: string,
@@ -137,6 +143,7 @@ export class ChecklistManagerService {
     );
   }
 
+  @Trace()
   async generateChecklistItemsFromRecurringItems(
     recurringItems: RecurringChecklistItem[],
     user: AuthUser,

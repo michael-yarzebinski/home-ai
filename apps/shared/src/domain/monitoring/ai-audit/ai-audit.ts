@@ -9,6 +9,10 @@ export const AIAuditSchema = z.object({
   toolCalls: z.unknown().optional(),
   finalResponse: z.string().optional(),
   durationMs: z.number().optional(),
+  model: z.string().optional(),
+  promptTokens: z.number().optional(),
+  completionTokens: z.number().optional(),
+  totalTokens: z.number().optional(),
   success: z.boolean(),
   createdAt: z.date(),
 });

@@ -1,6 +1,7 @@
 // src/background/notification-queue.processor.ts
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { Trace } from "../../common/decorators/trace.decorator";
 import { NotificationQueueStore } from "../../core/stores/notification-queue/notification-queue.store";
 import { NotificationLogStore } from "../../core/stores/monitoring/notification-log/notification-log.store";
 import { BlueBubblesService } from "../../integrations/blue-bubbles/blue-bubbles.service";
@@ -28,6 +29,7 @@ export class NotificationQueueProcessor {
    * Respects per-user quiet hours.
    */
   @Cron(CronExpression.EVERY_MINUTE)
+  @Trace()
   async processNotificationQueue() {
     const start = Date.now();
 

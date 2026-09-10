@@ -15,6 +15,7 @@ import {
 import { DefaultEmbeddingFunction } from '@chroma-core/default-embed';
 import { AppConfigService } from '../../core/services/app-config.service';
 import { LogStore } from '../../core/stores/monitoring/log/log.store';
+import { Trace } from '../../common/decorators/trace.decorator';
 
 interface ChromaMetadata {
   category: 'observation' | 'fact';
@@ -56,6 +57,7 @@ export class ChromaService implements OnModuleInit {
     }
   }
 
+  @Trace()
   async addRecord(params: {
     id: string;
     text: string;
@@ -68,6 +70,7 @@ export class ChromaService implements OnModuleInit {
     });
   }
 
+  @Trace()
   async search(criteria: MemorySearchCriteria): Promise<Paginated<MemoryRecord>> {
 
     let items: MemoryRecord[];
@@ -96,6 +99,7 @@ export class ChromaService implements OnModuleInit {
     return toPaginated(items, total, criteria.page, criteria.pageSize);
   }
 
+  @Trace()
   async getForUser(
     userId: string,
     query?: string,

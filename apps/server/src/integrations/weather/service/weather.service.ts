@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 import axios from "axios";
 import {
   WeatherRequest,
@@ -14,6 +15,7 @@ export class WeatherService {
 
   constructor(private readonly logStore: LogStore) {}
 
+  @Trace()
   async getWeather(
     zipCode: string,
     weatherRequest: WeatherRequest,

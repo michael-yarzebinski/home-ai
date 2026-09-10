@@ -3,6 +3,8 @@ import { LLMServiceBase } from "../../abstract/llm.service.base";
 import { LLMQueryParams, UnifiedToolCall } from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
+import { LogStore } from "../../../core/stores/monitoring/log/log.store";
+import { Trace } from "../../../common/decorators/trace.decorator";
 import OpenAI from "openai";
 
 @Injectable()
@@ -10,14 +12,19 @@ export class LocalLLMService extends LLMServiceBase {
   private openai: OpenAI;
   private model: string;
 
+  get modelName(): string {
+    return this.model;
+  }
+
   constructor(
     protected readonly aiAuditStore: AIAuditStore,
+    protected readonly logStore: LogStore,
     private readonly modelConfig: {
       model: string;
       baseURL: string;
     },
   ) {
-    super(aiAuditStore);
+    super(aiAuditStore, logStore);
 
     this.model = modelConfig.model;
     this.openai = new OpenAI({
@@ -26,9 +33,19 @@ export class LocalLLMService extends LLMServiceBase {
     });
   }
 
+  @Trace()
   async query(params: LLMQueryParams): Promise<LLMResponse> {
     const startTime = Date.now();
 
+    try {
+    return await this._query(params, startTime);
+    } catch (error: any) {
+      await this.logFailedInteraction(params, error, Date.now() - startTime);
+      throw error;
+    }
+  }
+
+  private async _query(params: LLMQueryParams, startTime: number): Promise<LLMResponse> {
     const tools: OpenAI.Chat.ChatCompletionTool[] =
       params.tools?.map((tool) => ({
         type: "function",

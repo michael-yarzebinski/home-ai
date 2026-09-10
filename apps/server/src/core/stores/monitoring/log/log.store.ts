@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { AbstractMonitoringStore } from "../abstract/abstract-monitoring.store";
 import type { Log } from "@home-ai/shared/domain/monitoring/log/log";
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Insertable } from "@home-ai/shared/common/crud.helper";
 
 export interface LogRecord {
@@ -17,9 +18,16 @@ export interface LogRecord {
 @Injectable()
 export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
   private logger = new Logger(LogStore.name);
+  private readonly consoleOnly: boolean;
 
-  constructor(@Inject("KNEX_CONNECTION") knex: Knex) {
+  constructor(
+    @Inject("KNEX_CONNECTION") knex: Knex,
+    configService: ConfigService,
+  ) {
     super(knex, { tableName: "logs" });
+    this.consoleOnly =
+      configService.get<string>("LOG_TO_CONSOLE", "false").toLowerCase() ===
+      "true";
   }
 
   protected applyTextSearch(
@@ -55,7 +63,18 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
   }
 
   async create(log: Insertable<Log>): Promise<Log> {
-    this.logger.log(log);
+    if (this.consoleOnly) {
+      this.logger.log(log);
+      return this.recordToDomain({
+        id: "",
+        user_id: log.userId,
+        severity: log.severity,
+        message: log.message,
+        metadata: log.metadata,
+        created_at: new Date(),
+      });
+    }
+
     return super.create(log);
   }
 }
