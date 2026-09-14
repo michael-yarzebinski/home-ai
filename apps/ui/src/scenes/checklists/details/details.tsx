@@ -22,11 +22,13 @@ import { useChecklistDetail, useUpdateChecklist, useSoftDeleteChecklist } from '
 import {
   useCheckChecklistItem,
   useCreateChecklistItem,
+  useSoftDeleteChecklistItem,
   useUncheckChecklistItem,
   useUpdateChecklistItem,
 } from '@/api/checklist-items/checklist-items.hooks';
 import {
   useCreateRecurringChecklistItem,
+  useSoftDeleteRecurringChecklistItem,
   useUpdateRecurringChecklistItem,
 } from '@/api/recurring-checklist-items/recurring-checklist-items.hooks';
 import type { FormViewMode } from '@/components/form/entities/types';
@@ -73,8 +75,11 @@ export default function ChecklistDetails() {
   const { mutate: createRecurringItem, isPending: isCreatingRecurringItem } =
     useCreateRecurringChecklistItem();
   const { mutate: updateItem, isPending: isUpdatingItem } = useUpdateChecklistItem();
+  const { mutate: deleteItem, isPending: isDeletingItem } = useSoftDeleteChecklistItem();
   const { mutate: updateRecurringItem, isPending: isUpdatingRecurringItem } =
     useUpdateRecurringChecklistItem();
+  const { mutate: deleteRecurringItem, isPending: isDeletingRecurringItem } =
+    useSoftDeleteRecurringChecklistItem();
   const { mutate: updateChecklist, isPending: isUpdatingChecklist } = useUpdateChecklist();
   const { mutate: deleteChecklist, isPending: isDeletingChecklist } = useSoftDeleteChecklist();
 
@@ -170,6 +175,20 @@ export default function ChecklistDetails() {
     );
   };
 
+  const handleDeleteItem = () => {
+    if (!detailsItem) return;
+    deleteItem(
+      { id: detailsItem.id, checklistId: detailsItem.checklistId },
+      {
+        onSuccess: () => {
+          toast.success('Item deleted');
+          closeDetailsItemModal();
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
   const handleCreateRecurringItem = (formData: InsertableRecurringChecklistItem) => {
     createRecurringItem(
       { ...formData, checklistId: id! },
@@ -231,6 +250,20 @@ export default function ChecklistDetails() {
         onSuccess: () => {
           toast.success('Recurring item saved');
           setRecurringModalMode('READ');
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  const handleDeleteRecurringItem = () => {
+    if (!detailsRecurringItem || !id) return;
+    deleteRecurringItem(
+      { id: detailsRecurringItem.id, checklistId: id },
+      {
+        onSuccess: () => {
+          toast.success('Recurring item deleted');
+          closeDetailsRecurringModal();
         },
         onError: (e) => toast.error(e.message),
       },
@@ -434,6 +467,11 @@ export default function ChecklistDetails() {
         }
         isOpen={detailsItem != null}
         onClose={closeDetailsItemModal}
+        formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
+        saveLabel="Save item"
+        isLoading={isUpdatingItem}
+        onDelete={canWrite ? handleDeleteItem : undefined}
+        isDeleting={isDeletingItem}
         footer={
           itemModalMode === 'READ' ? (
             <>
@@ -454,15 +492,7 @@ export default function ChecklistDetails() {
                 </Button>
               )}
             </>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => setItemModalMode('READ')}
-              className="text-xs font-bold uppercase tracking-wider"
-            >
-              Cancel
-            </Button>
-          )
+          ) : undefined
         }
       >
         {detailsItem && (
@@ -470,6 +500,7 @@ export default function ChecklistDetails() {
             key={`${detailsItem.id}-${itemModalMode}`}
             viewMode={itemModalMode}
             lockChecklistId
+            formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
             isLoading={isUpdatingItem}
             onSubmit={itemModalMode === 'EDIT' ? handleUpdateItem : () => {}}
             initialData={detailsItem}
@@ -487,6 +518,11 @@ export default function ChecklistDetails() {
         }
         isOpen={detailsRecurringItem != null}
         onClose={closeDetailsRecurringModal}
+        formId={recurringModalMode === 'EDIT' ? 'edit-recurring-item-form' : undefined}
+        saveLabel="Save changes"
+        isLoading={isUpdatingRecurringItem}
+        onDelete={canWrite ? handleDeleteRecurringItem : undefined}
+        isDeleting={isDeletingRecurringItem}
         footer={
           recurringModalMode === 'READ' ? (
             <>
@@ -507,15 +543,7 @@ export default function ChecklistDetails() {
                 </Button>
               )}
             </>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => setRecurringModalMode('READ')}
-              className="text-xs font-bold uppercase tracking-wider"
-            >
-              Cancel
-            </Button>
-          )
+          ) : undefined
         }
       >
         {detailsRecurringItem && (
@@ -523,6 +551,7 @@ export default function ChecklistDetails() {
             key={`${detailsRecurringItem.id}-${recurringModalMode}`}
             viewMode={recurringModalMode}
             lockChecklistId
+            formId={recurringModalMode === 'EDIT' ? 'edit-recurring-item-form' : undefined}
             isLoading={isUpdatingRecurringItem}
             onSubmit={recurringModalMode === 'EDIT' ? handleUpdateRecurringItem : () => {}}
             initialData={detailsRecurringItem}

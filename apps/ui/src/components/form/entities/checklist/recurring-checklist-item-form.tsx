@@ -44,6 +44,7 @@ export function RecurringChecklistItemForm({
   viewMode, 
   onSubmit, 
   isLoading,
+  formId,
   lockChecklistId = false,
 }: RecurringChecklistItemFormProps) {
   
@@ -73,7 +74,7 @@ export function RecurringChecklistItemForm({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <EntityIdField value={initialData?.id} />
 
         <div className="space-y-4">
@@ -175,7 +176,7 @@ export function RecurringChecklistItemForm({
           <EntityTimestampField createdAt={initialData?.createdAt} updatedAt={initialData?.updatedAt} />
         )}
 
-        {viewMode !== 'READ' && (
+        {viewMode !== 'READ' && !formId && (
           <div className="flex justify-end border-t border-border/50 pt-4">
             <button type="submit" disabled={isLoading} className={submitButtonClassName}>
               {isLoading ? 'Saving...' : viewMode === 'CREATE' ? 'Add recurring item' : 'Save changes'}

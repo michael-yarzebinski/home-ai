@@ -40,6 +40,7 @@ export function ChecklistItemForm({
   viewMode, 
   onSubmit, 
   isLoading,
+  formId,
   lockChecklistId = false,
 }: ChecklistItemFormProps) {
   
@@ -65,7 +66,7 @@ export function ChecklistItemForm({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <EntityIdField value={initialData?.id} />
 
         <div className="space-y-4">
@@ -143,7 +144,7 @@ export function ChecklistItemForm({
           <EntityTimestampField createdAt={initialData?.createdAt} updatedAt={initialData?.updatedAt} />
         )}
 
-        {viewMode !== 'READ' && (
+        {viewMode !== 'READ' && !formId && (
           <div className="flex justify-end border-t border-border/50 pt-4">
             <button type="submit" disabled={isLoading} className={submitButtonClassName}>
               {isLoading ? 'Saving...' : viewMode === 'CREATE' ? 'Add item' : 'Save item'}

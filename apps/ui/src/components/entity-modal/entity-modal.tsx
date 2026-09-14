@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EntityModalProps {
   title: string;
@@ -24,8 +25,72 @@ interface EntityModalProps {
   // Passing footer={null} suppresses the footer entirely (form owns its submit).
   // Passing a ReactNode renders it as a fully custom footer.
   // Omitting footer renders the default Save / Cancel buttons (uses onSave).
+  // When onDelete is set, Delete is shown on the left of any footer except
+  // footer={null}.
   footer?: ReactNode | null;
   onSave?: () => void;
+}
+
+function DeleteControls({
+  onDelete,
+  confirmingDelete,
+  onConfirmingChange,
+  isDeleting,
+  isLoading,
+}: {
+  onDelete?: () => void;
+  confirmingDelete: boolean;
+  onConfirmingChange: (next: boolean) => void;
+  isDeleting?: boolean;
+  isLoading?: boolean;
+}) {
+  if (!onDelete) return null;
+
+  if (!confirmingDelete) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onConfirmingChange(true)}
+          disabled={isDeleting || isLoading}
+        >
+          <Trash2 size={12} className="mr-1.5" />
+          Delete
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-destructive font-medium">Are you sure?</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={() => onConfirmingChange(false)}
+        disabled={isDeleting}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        onClick={() => onDelete()}
+        disabled={isDeleting}
+      >
+        {isDeleting
+          ? <><Loader2 size={12} className="mr-1.5 animate-spin" />Deleting…</>
+          : <><Trash2 size={12} className="mr-1.5" />Yes, delete</>
+        }
+      </Button>
+    </div>
+  );
 }
 
 export function EntityModal({
@@ -50,6 +115,16 @@ export function EntityModal({
     }
   };
 
+  const deleteControls = (
+    <DeleteControls
+      onDelete={onDelete}
+      confirmingDelete={confirmingDelete}
+      onConfirmingChange={setConfirmingDelete}
+      isDeleting={isDeleting}
+      isLoading={isLoading}
+    />
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-background border-border/50 p-0 overflow-hidden flex flex-col max-h-[90vh]">
@@ -65,52 +140,13 @@ export function EntityModal({
 
         {/* ── Unified footer when formId is provided ── */}
         {formId ? (
-          <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/5 flex-shrink-0 flex items-center justify-between gap-3">
-            {/* Delete — left side */}
-            <div className="flex items-center gap-2">
-              {onDelete && !confirmingDelete && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => setConfirmingDelete(true)}
-                  disabled={isDeleting || isLoading}
-                >
-                  <Trash2 size={12} className="mr-1.5" />
-                  Delete
-                </Button>
-              )}
-              {onDelete && confirmingDelete && (
-                <>
-                  <span className="text-xs text-destructive font-medium">Are you sure?</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setConfirmingDelete(false)}
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={() => onDelete()}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting
-                      ? <><Loader2 size={12} className="mr-1.5 animate-spin" />Deleting…</>
-                      : <><Trash2 size={12} className="mr-1.5" />Yes, delete</>
-                    }
-                  </Button>
-                </>
-              )}
-            </div>
-
-            {/* Save — right side */}
+          <DialogFooter
+            className={cn(
+              'px-6 py-4 border-t border-border/50 bg-muted/5 flex-shrink-0 flex items-center gap-3',
+              onDelete ? 'justify-between' : 'justify-end',
+            )}
+          >
+            {deleteControls}
             <Button
               type="submit"
               form={formId}
@@ -123,24 +159,32 @@ export function EntityModal({
           </DialogFooter>
         ) : footer !== null ? (
           /* ── Custom or default footer ── */
-          <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/5 flex-shrink-0">
-            {footer ? (
-              footer
-            ) : (
-              <>
-                <Button variant="ghost" onClick={onClose} className="text-xs font-bold uppercase tracking-wider">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={onSave}
-                  disabled={isLoading}
-                  className="h-9 px-6 text-xs font-bold uppercase tracking-widest"
-                >
-                  {isLoading && <Loader2 size={14} className="mr-2 animate-spin" />}
-                  {saveLabel}
-                </Button>
-              </>
+          <DialogFooter
+            className={cn(
+              'px-6 py-4 border-t border-border/50 bg-muted/5 flex-shrink-0 flex items-center gap-3',
+              onDelete ? 'justify-between' : 'justify-end',
             )}
+          >
+            {deleteControls}
+            <div className="flex items-center gap-2">
+              {footer ? (
+                footer
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={onClose} className="text-xs font-bold uppercase tracking-wider">
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={onSave}
+                    disabled={isLoading || isDeleting}
+                    className="h-9 px-6 text-xs font-bold uppercase tracking-widest"
+                  >
+                    {isLoading && <Loader2 size={14} className="mr-2 animate-spin" />}
+                    {saveLabel}
+                  </Button>
+                </>
+              )}
+            </div>
           </DialogFooter>
         ) : null /* footer={null} → no footer at all */}
       </DialogContent>

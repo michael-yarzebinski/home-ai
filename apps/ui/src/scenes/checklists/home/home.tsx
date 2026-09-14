@@ -12,6 +12,7 @@ import {
 import { capitalizeFirst } from '@/utils/string.utils';
 import {
   useCheckChecklistItem,
+  useSoftDeleteChecklistItem,
   useUncheckChecklistItem,
   useUpdateChecklistItem,
 } from '@/api/checklist-items/checklist-items.hooks';
@@ -50,6 +51,7 @@ export function ChecklistHome() {
   const { mutate: checkItem } = useCheckChecklistItem();
   const { mutate: uncheckItem } = useUncheckChecklistItem();
   const { mutate: updateItem, isPending: isUpdatingItem } = useUpdateChecklistItem();
+  const { mutate: deleteItem, isPending: isDeletingItem } = useSoftDeleteChecklistItem();
 
   const allTodos = useMemo(
     () => [...assignedTodos, ...otherTodos],
@@ -130,6 +132,20 @@ export function ChecklistHome() {
         onSuccess: () => {
           toast.success('Item saved');
           setItemModalMode('READ');
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  const handleDeleteItem = () => {
+    if (!detailsItem) return;
+    deleteItem(
+      { id: detailsItem.id, checklistId: detailsItem.checklistId },
+      {
+        onSuccess: () => {
+          toast.success('Item deleted');
+          closeDetailsItemModal();
         },
         onError: (e) => toast.error(e.message),
       },
@@ -258,6 +274,11 @@ export function ChecklistHome() {
         }
         isOpen={detailsItem != null}
         onClose={closeDetailsItemModal}
+        formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
+        saveLabel="Save item"
+        isLoading={isUpdatingItem}
+        onDelete={canWriteItem ? handleDeleteItem : undefined}
+        isDeleting={isDeletingItem}
         footer={
           itemModalMode === 'READ' ? (
             <>
@@ -278,15 +299,7 @@ export function ChecklistHome() {
                 </Button>
               )}
             </>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={() => setItemModalMode('READ')}
-              className="text-xs font-bold uppercase tracking-wider"
-            >
-              Cancel
-            </Button>
-          )
+          ) : undefined
         }
       >
         {detailsItem && (
@@ -294,6 +307,7 @@ export function ChecklistHome() {
             key={`${detailsItem.id}-${itemModalMode}`}
             viewMode={itemModalMode}
             lockChecklistId
+            formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
             isLoading={isUpdatingItem}
             onSubmit={itemModalMode === 'EDIT' ? handleUpdateItem : () => {}}
             initialData={detailsItem}
