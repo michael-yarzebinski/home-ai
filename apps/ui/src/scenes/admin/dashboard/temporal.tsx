@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { DashboardPeriod, DashboardResult, TimeBucket } from '@home-ai/shared/domain/admin/dashboard/dashboard';
+import type { DashboardPeriod, DashboardResult, TimeBucket } from '@home-ai/shared/admin/dashboard/dashboard';
 
 // ---------------------------------------------------------------------------
 // Chart colour palette

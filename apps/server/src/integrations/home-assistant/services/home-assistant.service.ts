@@ -26,6 +26,7 @@ import { User } from "../../../../../shared/dist/domain/user/user";
 import { UserStore } from "../../../core/stores/user/user.store";
 import { HomeAssistantProcessor } from "./home-assistant-processor.service";
 import { Trace } from "../../../common/decorators/trace.decorator";
+import { currentTraceId } from "../../../common/trace-id";
 
 @Injectable()
 export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
@@ -76,6 +77,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     const matchingDevice = await this.getStateChangeDevice(entityId);
     if (!matchingDevice) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "info",
         message: `No matching device found for entity ${entityId}`,
         metadata: { entityId },
@@ -97,6 +99,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       await this.getStateChangeAutomationRules(matchingDevice);
     if (automationRules.length === 0) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "info",
         message: `No valid automation rules found for device ${matchingDevice.id}`,
         metadata: { deviceId: matchingDevice.id },
@@ -127,6 +130,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       )
       .catch(async (error: any) => {
         await this.logStore.create({
+          traceId: currentTraceId(),
           severity: "error",
           message: `Failed to process device automation for ${matchingDevice.id}`,
           metadata: {
@@ -176,6 +180,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     if (!this.connection) throw new Error("Not connected to Home Assistant");
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       severity: "info",
       message: `Calling HA service ${domain}.${service}`,
       metadata: { domain, service, serviceData },
@@ -206,6 +211,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       this.connection = await createConnection({ auth });
 
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "info",
         message: "Connected to Home Assistant WebSocket",
         metadata: { url },
@@ -225,6 +231,7 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (err: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "error",
         message: "Failed to connect to Home Assistant WebSocket",
         metadata: { error: err.message },

@@ -17,6 +17,7 @@ import { NumberInput } from '@/components/form/fields/general/number-input';
 import { DurationInput } from '@/components/form/fields/general/duration-input';
 import { ArrayInput } from '@/components/form/fields/general/array-input';
 import { CronInput } from '@/components/form/fields/general/cron-input';
+import { DateInput } from '@/components/form/fields/general/date-input';
 
 // Domain Fields
 import { EntityIdField } from '@/components/form/fields/domain/entity-id-field';
@@ -54,7 +55,7 @@ export function RecurringChecklistItemForm({
       checklistId: '',
       priority: ChecklistItemPriority.MEDIUM,
       triggerType: RecurringChecklistItemTriggerType.CRON,
-      triggerConfig: { cron: '0 0 * * *', dueInDays: 1 },
+      triggerConfig: { cron: '0 0 * * *', dueInDays: 1, interval: 1 },
       tags: [],
       dependsOnRecurringIds: [],
       metadata: {
@@ -113,6 +114,24 @@ export function RecurringChecklistItemForm({
               <CronInput name="triggerConfig.cron" label="Schedule" viewMode={viewMode} />
             ) : (
               <TextInput name="triggerConfig.eventTag" label="Event Tag" placeholder="system.startup" viewMode={viewMode} />
+            )}
+            {selectedTriggerType === RecurringChecklistItemTriggerType.CRON && (
+              <>
+                <NumberInput
+                  name="triggerConfig.interval"
+                  label="Every Nth occurrence"
+                  placeholder="1"
+                  description="1 = every match. 2 with a Sunday schedule = every other Sunday."
+                  viewMode={viewMode}
+                />
+                <DateInput
+                  name="triggerConfig.startDate"
+                  label="Start on"
+                  placeholder="Next matching date"
+                  description="First on-occurrence is the next schedule match on or after this date. Leave blank to start after creation."
+                  viewMode={viewMode}
+                />
+              </>
             )}
             <NumberInput name="triggerConfig.dueInDays" label="Days to Complete" description="How many days until the generated item is due" viewMode={viewMode} />
             <DurationInput

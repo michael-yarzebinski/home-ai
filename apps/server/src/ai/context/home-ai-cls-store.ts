@@ -12,6 +12,7 @@ export interface HomeAIClsStore extends ClsStore {
   chatSessionId?: string;
   originalPrompt: string;
   requestDepth: number; // 0 = User, 1+ = Tool Inception
+  traceId?: string;
 
   // --- Environmental Context ---
   currentISO: string;

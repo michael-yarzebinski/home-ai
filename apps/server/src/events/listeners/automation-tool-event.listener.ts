@@ -13,6 +13,7 @@ import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { AutomationRuleStore } from "../../core/stores/automation-rule/automation-rule.store";
 import { UserStore } from "../../core/stores/user/user.store";
+import { createTraceId, currentTraceId } from "../../common/trace-id";
 import {
   TOOL_EXECUTION_EVENT_CHANNEL,
   ToolExecutionEvent,
@@ -50,6 +51,7 @@ export class AutomationToolEventListener
         await this.processToolExecutionEvent(event);
       } catch (error: any) {
         await this.logStore.create({
+          traceId: currentTraceId(),
           severity: "warn",
           message: `AutomationToolEventListener: ignoring invalid tool execution payload`,
           metadata: { error: error?.message ?? String(error) },
@@ -71,6 +73,7 @@ export class AutomationToolEventListener
     const filteredRules = await this.loadMatchingToolEventRules(event);
 
     await this.logStore.create({
+      traceId: event.traceId,
       severity: "debug",
       message: `AutomationToolEventListener: tool event consumed (${event.toolName}) with ${filteredRules.length} matching automation rules`,
       metadata: {
@@ -85,6 +88,7 @@ export class AutomationToolEventListener
 
     if (!this.automationUser) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "error",
         message: `AutomationToolEventListener: automation user not loaded (AUTOMATION_USER_ID)`,
         metadata: {
@@ -106,6 +110,7 @@ export class AutomationToolEventListener
       const ruleOwner = await this.userStore.getById(ruleOwnerUserId);
       if (!ruleOwner?.active) {
         await this.logStore.create({
+          traceId: event.traceId,
           severity: "warn",
           message: `AutomationToolEventListener: skip automation — rule owner missing or inactive`,
           metadata: {
@@ -141,18 +146,24 @@ export class AutomationToolEventListener
       ruleOwnerUserId,
     );
 
+    const traceId = event.traceId ?? createTraceId();
+
     try {
       await this.orchestratorService.handleEvent(
         this.automationUser,
         input,
         `automation:tool-event:${ruleOwnerUserId}`,
         LLMModelTypes.SOON,
-        { suppressToolEvents: true },
+        {
+          suppressToolEvents: true,
+          traceId,
+        },
       );
 
       await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
     } catch (error: any) {
       await this.logStore.create({
+        traceId,
         userId: this.automationUser.id,
         severity: "error",
         message: `AutomationToolEventListener: orchestration failed for TOOL_EVENT automation`,

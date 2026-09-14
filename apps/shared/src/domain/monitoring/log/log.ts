@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const LogSchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
+  traceId: z.string().optional(),
   severity: z.string(),
   message: z.string(),
   metadata: z.unknown(),

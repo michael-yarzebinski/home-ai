@@ -84,7 +84,7 @@ export class DashboardService {
         Array<{ severity: string; count: string }>
       >,
       this.knex("logs")
-        .select("id", "message", "created_at as createdAt", "metadata")
+        .select("id", "message", "created_at as createdAt", "metadata", "trace_id as traceId")
         .where("severity", "error")
         .where(
           "created_at",
@@ -98,6 +98,7 @@ export class DashboardService {
           message: string;
           createdAt: Date;
           metadata: unknown;
+          traceId?: string;
         }>
       >,
       this.knex("notification_queue")
@@ -187,6 +188,7 @@ export class DashboardService {
           message: r.message,
           createdAt: r.createdAt,
           metadata: r.metadata,
+          traceId: r.traceId || undefined,
         })),
       },
     };

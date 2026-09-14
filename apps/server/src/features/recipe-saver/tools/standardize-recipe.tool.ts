@@ -9,6 +9,7 @@ import {
   LLMModelTypes,
   LLMProviderService,
 } from "../../../ai/llm/llm.provider.sevice";
+import { currentTraceId } from "../../../common/trace-id";
 
 const StandardizeRecipeSchema = z.object({
   rawText: z.preprocess(
@@ -102,6 +103,7 @@ export class StandardizeRecipeTool extends ToolHandler<
           userId: context.authUser.id,
           chatSessionId: context.chatSessionId,
           originalPrompt: `Standardizing recipe extraction`,
+          traceId: currentTraceId(),
         },
       },
       LLMModelTypes.IMMEDIATE,

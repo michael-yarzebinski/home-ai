@@ -1,15 +1,24 @@
 import { Injectable } from "@nestjs/common";
+import { Ollama } from "ollama";
+import { v4 as uuidv4 } from "uuid";
 import { LLMServiceBase } from "../../abstract/llm.service.base";
-import { LLMQueryParams, UnifiedToolCall } from "../../types/llm-query-params";
+import {
+  LLMQueryParams,
+  UnifiedMessage,
+  UnifiedToolCall,
+} from "../../types/llm-query-params";
 import { LLMResponse } from "../../types/llm-response";
 import { AIAuditStore } from "../../../core/stores/monitoring/ai-audit/ai-audit.store";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 import { Trace } from "../../../common/decorators/trace.decorator";
-import OpenAI from "openai";
+
+const NUM_CTX = 10240;
+const NUM_PREDICT = 512;
+const KEEP_ALIVE = "60m";
 
 @Injectable()
 export class LocalLLMService extends LLMServiceBase {
-  private openai: OpenAI;
+  private client: Ollama;
   private model: string;
 
   get modelName(): string {
@@ -27,9 +36,8 @@ export class LocalLLMService extends LLMServiceBase {
     super(aiAuditStore, logStore);
 
     this.model = modelConfig.model;
-    this.openai = new OpenAI({
-      baseURL: modelConfig.baseURL,
-      apiKey: "ollama",
+    this.client = new Ollama({
+      host: this.normalizeHost(modelConfig.baseURL),
     });
   }
 
@@ -38,81 +46,117 @@ export class LocalLLMService extends LLMServiceBase {
     const startTime = Date.now();
 
     try {
-    return await this._query(params, startTime);
+      return await this._query(params, startTime);
     } catch (error: any) {
       await this.logFailedInteraction(params, error, Date.now() - startTime);
       throw error;
     }
   }
 
-  private async _query(params: LLMQueryParams, startTime: number): Promise<LLMResponse> {
-    const tools: OpenAI.Chat.ChatCompletionTool[] =
+  private async _query(
+    params: LLMQueryParams,
+    startTime: number,
+  ): Promise<LLMResponse> {
+    const tools =
       params.tools?.map((tool) => ({
-        type: "function",
+        type: "function" as const,
         function: {
           name: tool.name,
           description: tool.description,
           parameters: this.mapZodShapeToJsonSchema(tool.inputSchema),
         },
-      })) || [];
+      })) ?? [];
 
-    const messages = params.messages.map((msg) => this.mapToOpenAiMessage(msg));
-
-    const response = await this.openai.chat.completions.create({
+    const response = await this.client.chat({
       model: this.model,
-      messages: messages as any,
+      messages: params.messages.map((msg) => this.mapToOllamaMessage(msg)),
       tools: tools.length > 0 ? tools : undefined,
-      response_format: params.jsonMode
-        ? { type: "json_object" }
-        : { type: "text" },
+      think: false,
+      format: params.jsonMode ? "json" : undefined,
       stream: false,
-      extra_body: {
-        options: {
-          num_ctx: 8192,
-          temperature: 0,
-          top_p: 0.9,
-          // Optimization: Predict fewer tokens to end the generation faster
-          num_predict: 800,
-          // Keep the model 'hot' in VRAM to avoid reload latency
-          keep_alive: "60m",
-          // Use more threads if running on CPU (Ollama usually auto-detects, but 8 is a safe sweet spot)
-          num_thread: 8,
-          // If the model supports it, this helps with speed significantly
-          f16_kv: true,
-        },
+      keep_alive: KEEP_ALIVE,
+      options: {
+        num_ctx: NUM_CTX,
+        temperature: 0,
+        top_p: 0.9,
+        num_predict: NUM_PREDICT,
       },
-    } as any);
+    });
 
-    const choice = response.choices[0];
     const latencyMs = Date.now() - startTime;
-
-    const toolCalls: UnifiedToolCall[] | undefined =
-      choice.message.tool_calls?.map((call) => {
-        if (call.type !== "function") {
-          throw new Error(`Unsupported tool call type: ${call.type}`);
-        }
-
-        return {
-          id: call.id,
-          name: call.function.name,
-          args: JSON.parse(call.function.arguments),
-        };
-      });
+    const toolCalls = this.mapToolCalls(response.message.tool_calls);
+    const promptTokens = response.prompt_eval_count || 0;
+    const completionTokens = response.eval_count || 0;
 
     const finalResponse: LLMResponse = {
-      content: choice.message.content || "",
+      content: response.message.content || "",
       toolCalls,
       latencyMs,
       usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
       },
     };
 
     await this.logInteraction(params, finalResponse);
 
     return finalResponse;
+  }
+
+  /** OpenAI-compat URLs in .env include /v1; the native client wants the origin. */
+  private normalizeHost(baseURL: string): string {
+    return baseURL.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  }
+
+  private mapToOllamaMessage(msg: UnifiedMessage) {
+    if (msg.role === "tool") {
+      return {
+        role: "tool" as const,
+        content:
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content),
+        tool_name: msg.name,
+      };
+    }
+
+    const thought =
+      msg.metadata?.thoughtSignature || (msg as { thoughtSignature?: string }).thoughtSignature;
+    const content = thought
+      ? `[THOUGHT]: ${thought}\n${msg.content}`
+      : msg.content;
+
+    return {
+      role: msg.role,
+      content,
+      tool_calls: msg.toolCalls?.map((tc) => ({
+        function: {
+          name: tc.name,
+          arguments: tc.args,
+        },
+      })),
+    };
+  }
+
+  private mapToolCalls(
+    calls: { function?: { name?: string; arguments?: unknown } }[] | undefined,
+  ): UnifiedToolCall[] | undefined {
+    if (!calls?.length) {
+      return undefined;
+    }
+
+    return calls.map((call) => {
+      const rawArgs = call.function?.arguments;
+      const args =
+        typeof rawArgs === "string" ? JSON.parse(rawArgs || "{}") : rawArgs ?? {};
+
+      return {
+        id: uuidv4(),
+        name: call.function?.name || "unknown",
+        args,
+      };
+    });
   }
 
   private mapZodShapeToJsonSchema(shape: any) {
@@ -131,22 +175,6 @@ export class LocalLLMService extends LLMServiceBase {
         {} as any,
       ),
       required: Object.keys(shape),
-    };
-  }
-
-  private mapToOpenAiMessage(msg: any) {
-    if (msg.role === "tool") {
-      return {
-        role: "tool",
-        tool_call_id: msg.toolCallId,
-        content: msg.content,
-      };
-    }
-    return {
-      role: msg.role,
-      content: msg.thoughtSignature
-        ? `[THOUGHT]: ${msg.thoughtSignature}\n${msg.content}`
-        : msg.content,
     };
   }
 }

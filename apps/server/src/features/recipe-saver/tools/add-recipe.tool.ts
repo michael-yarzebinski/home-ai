@@ -10,6 +10,7 @@ import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { Tool } from "src/tools/decorators/tool.decorator";
 import { Injectable } from "@nestjs/common";
 import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
+import { currentTraceId } from "../../../common/trace-id";
 
 const IngredientSchema = z.object({
   name: z.preprocess(
@@ -127,6 +128,7 @@ export class AddRecipeTool extends ToolHandler<
           severity: "warn",
           message: `PDF file not found at ${params.temporaryPdfPath}, skipping rename`,
           metadata: { temporaryPdfPath: params.temporaryPdfPath, recipeReadableId: readableId },
+          traceId: currentTraceId(),
         });
       }
 

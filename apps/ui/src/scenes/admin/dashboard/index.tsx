@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import type { DashboardPeriod, DashboardResult } from '@home-ai/shared/domain/admin/dashboard/dashboard';
+import type { DashboardPeriod, DashboardResult } from '@home-ai/shared/admin/dashboard/dashboard';
 import { TemporalIntelligence } from './temporal';
 import { SystemOperations } from './system-ops';
 

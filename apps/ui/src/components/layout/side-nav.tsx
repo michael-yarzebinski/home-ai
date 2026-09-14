@@ -11,6 +11,7 @@ import {
   Radio,
   Recycle,
   Search,
+  GitBranch,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
       { icon: Search, label: 'Entity Search', href: '/entities' },
+      { icon: GitBranch, label: 'Traces', href: '/traces', activePathPrefix: '/traces' },
       { icon: Recycle, label: 'Forms playground', href: '/dev/automation-rule-playground' },
     ],
   },

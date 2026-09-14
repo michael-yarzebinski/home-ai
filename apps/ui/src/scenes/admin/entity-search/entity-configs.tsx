@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { z } from 'zod';
 import { Role } from '@home-ai/shared/domain/role/role';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 import {
   MOCK_AI_AUDITS, MOCK_AUDITS, MOCK_APP_CONFIGS, MOCK_AUTOMATION_RULES,
   MOCK_CALENDARS, MOCK_DEVICES, MOCK_FACTS, MOCK_LOGS, MOCK_NOTES,
@@ -140,6 +141,18 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       { header: 'Message', key: 'userMessage', render: (v) => truncate(v, 52) },
       { header: 'Status', key: 'success', render: (v) => <BoolBadge value={v as boolean} trueLabel="Success" falseLabel="Failed" /> },
       { header: 'Duration', key: 'durationMs', render: (v) => <>{v != null ? `${v}ms` : '—'}</> },
+      {
+        header: 'Trace',
+        key: 'traceId',
+        render: (v) =>
+          v ? (
+            <Link to={`/traces/${v}`} className="font-mono text-xs hover:underline" onClick={(e) => e.stopPropagation()}>
+              {String(v).slice(0, 8)}…
+            </Link>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
       { header: 'Created', key: 'createdAt', render: fmtRelative },
     ],
   },
@@ -186,6 +199,18 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
         },
       },
       { header: 'Message', key: 'message', render: (v) => truncate(v, 60) },
+      {
+        header: 'Trace',
+        key: 'traceId',
+        render: (v) =>
+          v ? (
+            <Link to={`/traces/${v}`} className="font-mono text-xs hover:underline" onClick={(e) => e.stopPropagation()}>
+              {String(v).slice(0, 8)}…
+            </Link>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
       { header: 'Created', key: 'createdAt', render: fmtRelative },
     ],
   },

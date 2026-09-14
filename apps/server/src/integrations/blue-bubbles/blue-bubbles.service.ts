@@ -5,6 +5,7 @@ import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { Trace } from "../../common/decorators/trace.decorator";
 import axios from "axios";
 import { v4 } from "uuid";
+import { currentTraceId } from "../../common/trace-id";
 
 @Injectable()
 export class BlueBubblesService {
@@ -37,6 +38,7 @@ export class BlueBubblesService {
     await axios.post(this.getAuthUrl("/api/v1/message/text"), payload);
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       userId: undefined,
       severity: "info",
       message: `BlueBubbles message sent`,
@@ -56,6 +58,7 @@ export class BlueBubblesService {
       );
     } catch (err: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "warn",
         message: `Failed to start typing indicator for chat ${chatId}`,
         metadata: {
@@ -77,6 +80,7 @@ export class BlueBubblesService {
       );
     } catch (err: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "warn",
         message: `Failed to stop typing indicator for chat ${chatId}`,
         metadata: {
@@ -99,6 +103,7 @@ export class BlueBubblesService {
       );
     } catch (err: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "warn",
         message: `Failed to mark as read for chat ${chatId}`,
         metadata: {

@@ -34,51 +34,46 @@ import { MemoryService } from "./memory/memory.service";
         const registry = new Map<LLMModelTypes, LLMServiceBase>();
 
         for (const type of Object.values(LLMModelTypes)) {
-          // 1. Grab the dynamic config from the environment
-          const config = {
-            clientType: appConfigService.getFromEnv<ProviderClientType>(
-              `${type.toUpperCase()}_CLIENT_TYPE`,
-            ),
-            apiKey: appConfigService.getFromEnv<string>(
-              `${type.toUpperCase()}_API_KEY`,
-            ),
-            model: appConfigService.getFromEnv<string>(
-              `${type.toUpperCase()}_MODEL_NAME`,
-            ),
-            baseUrl: appConfigService.getFromEnv<string>(
-              `${type.toUpperCase()}_BASE_URL`,
-            ),
-          };
+          const prefix = type.toUpperCase();
+          const clientType = appConfigService.getFromEnv<ProviderClientType>(
+            `${prefix}_CLIENT_TYPE`,
+          );
+          const model = appConfigService.getFromEnv<string>(
+            `${prefix}_MODEL_NAME`,
+          );
 
-          // 2. Map the ClientType to the correct Service implementation
-          if (config.clientType === ProviderClientType.OPENAI) {
+          if (clientType === ProviderClientType.OPENAI) {
             registry.set(
               type,
               new OpenAILLMService(aiAuditStore, logStore, {
-                apiKey: config.apiKey,
-                baseURL: config.baseUrl,
-                model: config.model,
+                apiKey: appConfigService.getFromEnv<string>(`${prefix}_API_KEY`),
+                baseURL: appConfigService.getFromEnv<string>(
+                  `${prefix}_BASE_URL`,
+                ),
+                model,
               }),
             );
-          } else if (config.clientType === ProviderClientType.GEMINI) {
+          } else if (clientType === ProviderClientType.GEMINI) {
             registry.set(
               type,
               new GeminiLLMService(aiAuditStore, logStore, {
-                apiKey: config.apiKey,
-                model: config.model,
+                apiKey: appConfigService.getFromEnv<string>(`${prefix}_API_KEY`),
+                model,
               }),
             );
-          } else if (config.clientType === ProviderClientType.OLLAMA) {
+          } else if (clientType === ProviderClientType.OLLAMA) {
             registry.set(
               type,
               new LocalLLMService(aiAuditStore, logStore, {
-                model: config.model,
-                baseURL: config.baseUrl,
+                model,
+                baseURL: appConfigService.getFromEnv<string>(
+                  `${prefix}_BASE_URL`,
+                ),
               }),
             );
           } else {
             throw new Error(
-              `Unsupported provider type: ${config.clientType} for flow ${type}`,
+              `Unsupported provider type: ${clientType} for flow ${type}`,
             );
           }
         }

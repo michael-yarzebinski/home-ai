@@ -9,6 +9,7 @@ import { Insertable } from "@home-ai/shared/common/crud.helper";
 export interface LogRecord {
   id: string;
   user_id?: string;
+  trace_id?: string;
   severity: string;
   message: string;
   metadata: any;
@@ -35,15 +36,19 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
     text: string,
   ): Knex.QueryBuilder {
     const like = `%${text}%`;
-    return query.where((b) =>
-      b.whereILike("message", like).orWhereILike("severity", like),
-    );
+    return query.where((b) => {
+      b.whereILike("message", like).orWhereILike("severity", like);
+      if (isUuid(text)) {
+        b.orWhere("trace_id", text);
+      }
+    });
   }
 
   protected recordToDomain(record: LogRecord): Log {
     return {
       id: record.id,
       userId: record.user_id,
+      traceId: record.trace_id || undefined,
       severity: record.severity,
       message: record.message,
       metadata: record.metadata,
@@ -55,11 +60,19 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
     return {
       id: domain.id,
       user_id: domain.userId,
+      trace_id: domain.traceId,
       severity: domain.severity,
       message: domain.message,
       metadata: domain.metadata,
       created_at: domain.createdAt,
     };
+  }
+
+  async findByTraceId(traceId: string): Promise<Log[]> {
+    const records = (await this.table
+      .where({ trace_id: traceId })
+      .orderBy("created_at", "asc")) as LogRecord[];
+    return records.map((r) => this.recordToDomain(r));
   }
 
   async create(log: Insertable<Log>): Promise<Log> {
@@ -68,6 +81,7 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
       return this.recordToDomain({
         id: "",
         user_id: log.userId,
+        trace_id: log.traceId,
         severity: log.severity,
         message: log.message,
         metadata: log.metadata,
@@ -77,4 +91,10 @@ export class LogStore extends AbstractMonitoringStore<Log, LogRecord> {
 
     return super.create(log);
   }
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

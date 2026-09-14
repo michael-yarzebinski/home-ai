@@ -80,7 +80,7 @@ function DateEdit<T extends FieldValues>({ name, placeholder }: BaseFieldProps<T
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {
-                  field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                  field.onChange(date ? format(date, 'yyyy-MM-dd') : undefined);
                   setOpen(false);
                 }}
               />

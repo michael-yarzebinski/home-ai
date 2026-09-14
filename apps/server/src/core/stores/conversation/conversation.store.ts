@@ -8,6 +8,8 @@ import {
   ChatMessage,
 } from "@home-ai/shared/domain/conversation/conversation";
 import { AuthUser } from "../../auth/jwt.strategy";
+import type { SearchCriteriaBase } from "@home-ai/shared/search/search";
+import type { Paginated } from "@home-ai/shared/search/pagination";
 
 /**
  * Database Record Type
@@ -181,6 +183,32 @@ export class ConversationStore extends AbstractEntityStore<
       } as any,
       user,
     );
+  }
+
+  /**
+   * Paginated search hard-scoped to a single owner, regardless of role.
+   * Used by `/v1/chat/sessions` so even admins only see their own threads
+   * (unlike admin search, which skips user scoping).
+   */
+  async searchByUserId(
+    criteria: SearchCriteriaBase,
+    userId: string,
+  ): Promise<Paginated<Conversation>> {
+    const query = this.table.where("user_id", userId);
+    return this.paginateScopedSearch(query, criteria);
+  }
+
+  /** Fetch a single conversation only if it belongs to the given owner. */
+  async getByIdForUser(
+    id: string,
+    userId: string,
+    includeInactive = false,
+  ): Promise<Conversation | null> {
+    const record = (await this.activeOrInactive(includeInactive)
+      .where({ id, user_id: userId })
+      .first()) as ConversationRecord | undefined;
+
+    return record ? this.recordToDomain(record) : null;
   }
 
   /**

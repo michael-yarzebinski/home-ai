@@ -45,6 +45,7 @@ export abstract class LLMServiceBase {
   ): Promise<void> {
     await this.aiAuditStore.create({
       userId: params.context.userId,
+      traceId: params.context.traceId,
       chatSessionId: params.context.chatSessionId,
       userMessage: params.context.originalPrompt,
       toolCalls: response.toolCalls,
@@ -66,6 +67,7 @@ export abstract class LLMServiceBase {
     try {
       await this.aiAuditStore.create({
         userId: params.context.userId,
+        traceId: params.context.traceId,
         chatSessionId: params.context.chatSessionId,
         userMessage: params.context.originalPrompt,
         finalResponse: error.message,

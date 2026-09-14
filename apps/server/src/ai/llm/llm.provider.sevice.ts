@@ -26,7 +26,7 @@ export const MODEL_MAP = {
   [LLMModelTypes.SOON]: {
     provider: "open-ai",
     envKey: "nvidia",
-    model: "z-ai/glm4.7",
+    model: "nvidia/nemotron-3.5-lightning-30b-a3b",
   },
 };
 

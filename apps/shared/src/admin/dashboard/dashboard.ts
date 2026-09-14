@@ -27,6 +27,12 @@ export interface DashboardResult {
   system: {
     notificationQueue: { total: number; pending: number };
     pendingActions: { total: number; pending: number; approved: number; rejected: number };
-    recentErrors: Array<{ id: string; message: string; createdAt: Date; metadata: unknown }>;
+    recentErrors: Array<{
+      id: string;
+      message: string;
+      createdAt: Date;
+      metadata: unknown;
+      traceId?: string;
+    }>;
   };
 }

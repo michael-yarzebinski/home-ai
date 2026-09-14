@@ -36,46 +36,24 @@ services:
     networks:
       - home-ai-network
 
+  # Linux / NVIDIA deploys only. On the Mac Mini hub, Ollama runs on the host
+  # so it can use Metal. Start this service with:
+  #   docker compose --profile linux-ollama up -d
   ollama:
+    profiles: ["linux-ollama"]
     image: ollama/ollama:latest
     container_name: home-ai-ollama
     restart: unless-stopped
-    tty: true
-    stdin_open: true
     ports:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
-    entrypoint: /bin/sh
-    command: >
-      -c "
-        apt-get update -qq && apt-get install -y -qq curl > /dev/null 2>&1;
-        ollama serve & 
-        SERVER_PID=\$$!;
-        echo '[OLLAMA-INIT] ⏳ Waiting for server to boot...';
-        while ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; do
-          sleep 2;
-        done;
-        echo '[OLLAMA-INIT] ✅ Server is UP. Starting model downloads...';
-        
-        echo '[OLLAMA-INIT] 📥 Pulling Qwen 2.5 (7B)...';
-        ollama pull qwen2.5:7b;
-        
-        echo '[OLLAMA-INIT] 📥 Pulling Granite 3.1 (8B)...';
-        ollama pull granite3.1;
-        
-        echo '[OLLAMA-INIT] 📥 Pulling Nomic Embed Text...';
-        ollama pull nomic-embed-text;
-        
-        echo '[OLLAMA-INIT] 🎉 ALL MODELS INSTALLED SUCCESSFULLY';
-        wait \$$SERVER_PID
-      "
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      test: ["CMD-SHELL", "ollama list || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 15
-      start_period: 60s
+      start_period: 20s
     networks:
       - home-ai-network
 
@@ -113,7 +91,7 @@ services:
       - DB_HOST=postgres
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_HOST=http://host.docker.internal:11434
       - RELAY_URL=http://host.docker.internal:3100
       - BLUEBUBBLES_URL=http://host.docker.internal:1234
       - HOME_ASSISTANT_URL=http://host.docker.internal:8123
@@ -126,8 +104,6 @@ services:
       - ./home_ai_id_rsa:/root/.ssh/id_ed25519:ro
     depends_on:
       postgres:
-        condition: service_healthy
-      ollama:
         condition: service_healthy
       redis:
         condition: service_healthy

@@ -14,6 +14,7 @@ import { AppConfigService } from "../../../core/services/app-config.service";
 import { User } from "@home-ai/shared/domain/user/user";
 import { AutomationRuleStore } from "../../../core/stores/automation-rule/automation-rule.store";
 import { Trace } from "../../../common/decorators/trace.decorator";
+import { createTraceId, currentTraceId } from "../../../common/trace-id";
 
 export type DeviceStateChange = {
   entityId: string;
@@ -52,6 +53,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
       await this.ensureAutomationUser();
     } catch (error: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "warn",
         message:
           "HomeAssistantProcessor: automation user warm-up failed; will retry lazily",
@@ -110,9 +112,11 @@ export class HomeAssistantProcessor implements OnModuleInit {
     const modelType = this.resolveModelType(device);
 
     for (const [ruleOwnerUserId, ownerRules] of byRuleOwnerId.entries()) {
+      const traceId = createTraceId();
       const ruleOwner = await this.userStore.getById(ruleOwnerUserId);
       if (!ruleOwner?.active) {
         await this.logStore.create({
+          traceId,
           severity: "warn",
           message: `HomeAssistantProcessor: skip automation — rule owner missing or inactive`,
           metadata: {
@@ -138,6 +142,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
         ownerRules,
         prompt,
         modelType,
+        traceId,
       );
     }
   }
@@ -158,6 +163,7 @@ export class HomeAssistantProcessor implements OnModuleInit {
     rules: AutomationRule[],
     prompt: string,
     modelType: LLMModelTypes,
+    traceId: string,
   ): Promise<void> {
     const automationUser = this.automationUser;
     if (!automationUser) {
@@ -170,13 +176,14 @@ export class HomeAssistantProcessor implements OnModuleInit {
         prompt,
         `automation:${device.slug}:${ruleOwnerUserId}`,
         modelType,
-        { suppressToolEvents: false },
+        { suppressToolEvents: false, traceId },
       );
 
       await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
     } catch (error: any) {
       await this.logStore.create({
         userId: automationUser.id,
+        traceId,
         severity: "error",
         message: `HomeAssistantProcessor: orchestration failed for device automation`,
         metadata: {

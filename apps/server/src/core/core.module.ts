@@ -15,6 +15,7 @@ import knex, { Knex } from "knex";
 import * as pg from "pg";
 import { ConversationStore } from "./stores/conversation/conversation.store";
 import { DashboardService } from "./services/dashboard.service";
+import { TraceService } from "./services/trace.service";
 import { AuthService } from "./services/auth.service";
 import { AutomationRuleStore } from "./stores/automation-rule/automation-rule.store";
 import { JwtModule } from "@nestjs/jwt";
@@ -121,6 +122,7 @@ import { DeviceEventStore } from "./stores/device/device-event.store";
     AppConfigService,
     AuthService,
     DashboardService,
+    TraceService,
     JwtStrategy,
     DeviceEventStore,
   ],
@@ -142,6 +144,7 @@ import { DeviceEventStore } from "./stores/device/device-event.store";
     AppConfigService,
     AuthService,
     DashboardService,
+    TraceService,
     JwtModule,
     DeviceEventStore,
   ],

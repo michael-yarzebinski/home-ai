@@ -4,6 +4,7 @@ import { lastValueFrom } from "rxjs";
 import { AppConfigService } from "../../core/services/app-config.service";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { Trace } from "../../common/decorators/trace.decorator";
+import { currentTraceId } from "../../common/trace-id";
 
 @Injectable()
 export class RelayService {
@@ -38,6 +39,7 @@ export class RelayService {
       return response.data.output;
     } catch (error) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "error",
         message: `Relay Error: ${error instanceof Error ? error.message : "Unknown error"}`,
         metadata: { error: error },

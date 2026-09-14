@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { LogStore } from "../../../core/stores/monitoring/log/log.store";
 import { Trace } from "../../../common/decorators/trace.decorator";
 import axios from "axios";
+import { currentTraceId } from "../../../common/trace-id";
 import {
   WeatherRequest,
   WeatherTimePeriod,
@@ -64,6 +65,7 @@ export class WeatherService {
     });
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       severity: "debug",
       message: `Retrieved weather for zip ${zipCode}`,
       metadata: { zipCode, city: location.name, weatherRequest },

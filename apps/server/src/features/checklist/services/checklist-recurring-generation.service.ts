@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { parseExpression } from "cron-parser";
 import { RecurringChecklistItemTriggerType } from "@home-ai/shared/domain/checklist/recurring-checklist-item";
 import type { AuthUser } from "src/core/auth/jwt.strategy";
 import { AppConfigService } from "src/core/services/app-config.service";
@@ -9,7 +8,9 @@ import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { ChecklistItemStore } from "../stores/checklist-item.store";
 import { RecurringChecklistItemStore } from "../stores/recurring-checklist-item.store";
 import { ChecklistManagerService } from "./checklist-manager.service";
+import { isCronTriggerDue } from "./cron-occurrence";
 import { Trace } from "src/common/decorators/trace.decorator";
+import { currentTraceId } from "../../../common/trace-id";
 
 export interface RecurringGenerationSummary {
   evaluated: number;
@@ -51,6 +52,7 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
     const durationMs = Date.now() - start;
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       severity: "debug",
       message: `Recurring checklist generation completed in ${durationMs}ms`,
       metadata: {
@@ -94,15 +96,22 @@ export class ChecklistRecurringGenerationService implements OnModuleInit {
         continue;
       }
 
-      const interval = parseExpression(cronExpression, { currentDate: now });
-      const previousScheduledTick = interval.prev().toDate();
       const latestGeneratedItem = latestByRecurringId.get(recurringItem.id);
-      const referenceDate =
-        latestGeneratedItem?.createdAt ?? recurringItem.createdAt;
+      const dueCheck = isCronTriggerDue({
+        cron: cronExpression,
+        now,
+        createdAt: recurringItem.createdAt,
+        lastGeneratedAt: latestGeneratedItem?.createdAt,
+        interval: recurringItem.triggerConfig?.interval,
+        startDate: recurringItem.triggerConfig?.startDate,
+      });
 
-      // If at least one cron tick happened after the last generated item,
-      // this template is due for one new generated checklist item.
-      if (previousScheduledTick > referenceDate) {
+      if (!dueCheck.ok) {
+        skippedInvalidCron += 1;
+        continue;
+      }
+
+      if (dueCheck.due) {
         dueItems.push(recurringItem);
       }
     }

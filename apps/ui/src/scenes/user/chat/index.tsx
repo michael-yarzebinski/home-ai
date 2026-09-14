@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
-import type { Conversation } from '@home-ai/shared/domain/conversation/converstation';
-import type { Paginated } from '@/types/api';
+import { chatSessionsApi } from '@/api/chat-sessions/chat-sessions.api';
+import type { Conversation } from '@home-ai/shared/domain/conversation/conversation';
 
 // ---------------------------------------------------------------------------
 // UI types
@@ -229,11 +229,11 @@ export function Chat() {
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
 
-  // Load sessions on mount — mounted flag prevents double-fire in React StrictMode
+  // Load this user's sessions — `/v1/chat/sessions` is owner-scoped even for admins.
   useEffect(() => {
     let mounted = true;
-    api
-      .get<Paginated<Conversation>>('/v1/chat/sessions')
+    chatSessionsApi
+      .getSessions()
       .then((result) => {
         if (!mounted) return;
         const uiSessions = result.items.map(conversationToSession);

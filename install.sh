@@ -1,7 +1,13 @@
 #!/bin/bash
 # ================================================
-# Home AI - One-Click Install
+# Home AI - One-Click Install (Mac Mini hub)
 # ================================================
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/host-ollama.sh
+source "${ROOT}/scripts/host-ollama.sh"
 
 clear
 echo "🚀 Home AI - Infrastructure Install"
@@ -28,7 +34,13 @@ if ! command -v node &> /dev/null; then
     brew install node
 fi
 
-# 4. Dependency Check: BlueBubbles
+# 4. Native Ollama (Metal). Docker cannot use the Apple GPU.
+if ! command -v ollama &> /dev/null; then
+    echo "📥 Installing Ollama..."
+    brew install ollama
+fi
+
+# 5. Dependency Check: BlueBubbles
 if [ ! -d "/Applications/BlueBubbles.app" ]; then
     echo "⚠️  BlueBubbles (iMessage Bridge) is missing."
     read -p "📥 Would you like to install BlueBubbles now? (y/n): " install_bb
@@ -47,10 +59,10 @@ else
     open -a "BlueBubbles"
 fi
 
-# 5. Configuration Setup
-[ ! -f ".env" ] && [ -f ".env.example" ] && cp .env.example .env && echo "✅ Created .env from example."
+# 6. Configuration Setup
+[ ! -f "${ROOT}/.env" ] && [ -f "${ROOT}/.env.example" ] && cp "${ROOT}/.env.example" "${ROOT}/.env" && echo "✅ Created .env from example."
 
-# 6. Setup Express Relay (Native Mac Host Bridge)
+# 7. Setup Express Relay (Native Mac Host Bridge)
 echo "🔗 Setting up Native Mac Relay..."
 
 if ! command -v pm2 &> /dev/null; then
@@ -58,22 +70,26 @@ if ! command -v pm2 &> /dev/null; then
     npm install -g pm2
 fi
 
-if [ -d "./apps/relay" ]; then
+if [ -d "${ROOT}/apps/relay" ]; then
     echo "📦 Starting Relay Service..."
-    cd ./apps/relay
-    npm install
-    
-    # Start or Restart the relay
-    pm2 delete home-ai-relay &> /dev/null
-    pm2 start index.js --name "home-ai-relay"
-    pm2 save
-    cd ../..
+    (
+        cd "${ROOT}/apps/relay"
+        npm install
+        pm2 delete home-ai-relay &> /dev/null || true
+        pm2 start index.js --name "home-ai-relay"
+        pm2 save
+    )
     echo "✅ Relay is running in the background via PM2."
 else
     echo "❌ Error: ./apps/relay directory not found."
+    exit 1
 fi
 
-# 7. Wait for Docker Engine
+# 8. Wait for Docker Engine
+if ! docker info &> /dev/null; then
+    echo "🚀 Opening Docker Desktop..."
+    open -a "Docker"
+fi
 echo "⏳ Waiting for Docker engine to start..."
 until docker info &> /dev/null; do
     printf "."
@@ -81,26 +97,17 @@ until docker info &> /dev/null; do
 done
 echo -e "\n✅ Docker is ready!"
 
-# 8. Start Infrastructure
+# 9. Start Infrastructure (Ollama stays on the host — see scripts/host-ollama.sh)
 echo "📦 Starting Background Services (Postgres, Home Assistant)..."
-docker compose up -d postgres homeassistant
+docker compose -f "${ROOT}/docker-compose.yml" --project-directory "${ROOT}" up -d postgres homeassistant
 
-# 9. Start Ollama and Watch Progress
+stop_docker_ollama
+ensure_host_ollama
+
 echo "--------------------------------------------------------"
-echo "📥 STARTING AI MODEL DOWNLOADS (~10GB)"
+echo "📥 Pulling local LLMs (${OLLAMA_MODEL}, ${OLLAMA_VISION_MODEL})"
 echo "--------------------------------------------------------"
-
-docker compose up -d ollama
-
-# Follow logs until installation is confirmed
-docker compose logs -f ollama | while read -r line; do
-    echo "$line"
-    if [[ "$line" == *"ALL MODELS INSTALLED"* ]]; then
-        # Terminate the log tail process group
-        pkill -l -P $$ docker
-        break
-    fi
-done
+ensure_ollama_model
 
 echo ""
 echo "🎉 INFRASTRUCTURE READY!"

@@ -1,110 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 
-// ---------------------------------------------------------------------------
-// Pin input — individual digit boxes, auto-advances focus
-// ---------------------------------------------------------------------------
-
-const PIN_LENGTH = 6;
-
-interface PinInputProps {
-  value: string;
-  onChange: (v: string) => void;
-  error?: boolean;
-  disabled?: boolean;
-}
-
-function PinInput({ value, onChange, error, disabled }: PinInputProps) {
-  const refs = Array.from({ length: PIN_LENGTH }, () => useRef<HTMLInputElement>(null)); // eslint-disable-line
-
-  const cells = Array.from({ length: PIN_LENGTH }, (_, i) => value[i] ?? '');
-
-  const focus = (i: number) => refs[i]?.current?.focus();
-
-  const handleKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      if (cells[i]) {
-        const next = value.slice(0, i) + value.slice(i + 1);
-        onChange(next);
-      } else if (i > 0) {
-        const next = value.slice(0, i - 1) + value.slice(i);
-        onChange(next);
-        focus(i - 1);
-      }
-      e.preventDefault();
-      return;
-    }
-
-    if (e.key === 'ArrowLeft' && i > 0) { focus(i - 1); return; }
-    if (e.key === 'ArrowRight' && i < PIN_LENGTH - 1) { focus(i + 1); return; }
-  };
-
-  const handleInput = (i: number, e: React.FormEvent<HTMLInputElement>) => {
-    const ch = (e.currentTarget.value ?? '').replace(/\D/g, '').slice(-1);
-    if (!ch) return;
-    const arr = cells.map((c, idx) => (idx === i ? ch : c));
-    // fill remaining slots
-    const newVal = arr.join('').slice(0, PIN_LENGTH);
-    onChange(newVal);
-    if (i < PIN_LENGTH - 1) focus(i + 1);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, PIN_LENGTH);
-    onChange(pasted);
-    const nextFocus = Math.min(pasted.length, PIN_LENGTH - 1);
-    focus(nextFocus);
-    e.preventDefault();
-  };
-
-  return (
-    <div className="flex gap-2 justify-center" onPaste={handlePaste}>
-      {cells.map((ch, i) => {
-        const filled = Boolean(ch);
-        return (
-          <input
-            key={i}
-            ref={refs[i]}
-            type="password"
-            inputMode="numeric"
-            maxLength={1}
-            value={ch}
-            disabled={disabled}
-            onKeyDown={(e) => handleKey(i, e)}
-            onInput={(e) => handleInput(i, e)}
-            onChange={() => {}} // suppress React warning; handled by onInput
-            onClick={() => focus(i)}
-            className={cn(
-              'h-12 w-10 rounded-lg border text-center text-xl font-semibold',
-              'bg-background caret-transparent',
-              'focus:outline-none transition-colors',
-              filled && !error
-                ? 'border-primary text-primary bg-primary/5'
-                : error
-                  ? 'border-red-500/60 text-red-400 bg-red-500/5'
-                  : 'border-border text-foreground focus:border-ring',
-              disabled && 'opacity-50 cursor-not-allowed',
-            )}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Login page
-// ---------------------------------------------------------------------------
+const MIN_CODE_LENGTH = 4;
+const MAX_CODE_LENGTH = 32;
 
 export function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
   const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
@@ -120,13 +26,24 @@ export function Login() {
     setTimeout(() => setShake(false), 500);
   };
 
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (submitting) return;
+
+    // Uncontrolled fields + FormData so iOS/Safari Autofill is not overwritten by React state.
+    const formData = new FormData(e.currentTarget);
+    const submittedName = String(formData.get('username') ?? '').trim();
+    const submittedCode = String(formData.get('password') ?? '').replace(/\D/g, '').slice(0, MAX_CODE_LENGTH);
+
+    if (!submittedName || submittedCode.length < MIN_CODE_LENGTH) {
+      setError(!submittedName ? 'Enter your name.' : 'Access code must be at least 4 digits.');
+      triggerShake();
+      return;
+    }
 
     setError(null);
     setSubmitting(true);
-    const result = await login(name, code);
+    const result = await login(submittedName, submittedCode);
     if (result.success) {
       navigate('/', { replace: true });
     } else {
@@ -134,16 +51,7 @@ export function Login() {
       triggerShake();
     }
     setSubmitting(false);
-  }, [submitting, login, name, code, navigate]); // eslint-disable-line
-
-  // Submit when PIN is fully filled
-  useEffect(() => {
-    if (code.length === PIN_LENGTH && name.trim()) {
-      void handleSubmit();
-    }
-  }, [code]); // eslint-disable-line
-
-  const canSubmit = name.trim().length > 0 && code.length >= 4;
+  }, [submitting, login, navigate]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
@@ -193,76 +101,77 @@ export function Login() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-5" method="post" autoComplete="on" noValidate>
           {/* Name */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground" htmlFor="login-name">
+            <label className="text-sm font-medium text-foreground" htmlFor="username">
               Name
             </label>
             <input
-              id="login-name"
+              id="username"
+              name="username"
               type="text"
-              autoComplete="given-name"
+              autoComplete="username"
+              autoCapitalize="words"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
+              required
               placeholder="Your name"
-              value={name}
-              onChange={(e) => { setName(e.target.value); setError(null); }}
               disabled={submitting}
+              onInput={() => setError(null)}
               className={cn(
                 'flex h-10 w-full rounded-lg border bg-background px-3 text-sm',
                 'text-foreground placeholder:text-muted-foreground/40',
                 'focus:outline-none focus:ring-1 focus:ring-ring transition-colors',
-                error && !code ? 'border-red-500/60' : 'border-border',
+                error ? 'border-red-500/60' : 'border-border',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             />
           </div>
 
           {/* Code */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">
-                Access Code
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowCode((s) => !s)}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              >
-                {showCode ? <EyeOff size={11} /> : <Eye size={11} />}
-                {showCode ? 'Hide' : 'Reveal'}
-              </button>
-            </div>
-
-            {showCode ? (
-              /* Plain text input when revealed */
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground" htmlFor="password">
+              Access Code
+            </label>
+            <div className="relative">
               <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
+                id="password"
+                name="password"
+                type={showCode ? 'text' : 'password'}
+                autoComplete="current-password"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+                minLength={MIN_CODE_LENGTH}
+                maxLength={MAX_CODE_LENGTH}
                 placeholder="Enter code"
-                value={code}
-                onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH)); setError(null); }}
                 disabled={submitting}
+                onInput={(e) => {
+                  const next = e.currentTarget.value.replace(/\D/g, '').slice(0, MAX_CODE_LENGTH);
+                  if (next !== e.currentTarget.value) e.currentTarget.value = next;
+                  setError(null);
+                }}
                 className={cn(
-                  'flex h-10 w-full rounded-lg border bg-background px-3 text-sm text-center tracking-[0.4em] font-mono',
-                  'text-foreground placeholder:text-muted-foreground/40 placeholder:tracking-normal',
+                  'flex h-10 w-full rounded-lg border bg-background px-3 pr-10 text-sm',
+                  'text-foreground placeholder:text-muted-foreground/40',
                   'focus:outline-none focus:ring-1 focus:ring-ring transition-colors',
                   error ? 'border-red-500/60' : 'border-border',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
               />
-            ) : (
-              <PinInput
-                value={code}
-                onChange={(v) => { setCode(v); setError(null); }}
-                error={Boolean(error)}
-                disabled={submitting}
-              />
-            )}
-
+              <button
+                type="button"
+                onClick={() => setShowCode((s) => !s)}
+                aria-label={showCode ? 'Hide access code' : 'Show access code'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              >
+                {showCode ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
             <p className={cn(
-              'text-[11px] text-center transition-colors',
+              'text-[11px] transition-colors',
               error ? 'text-red-500' : 'text-muted-foreground/50',
             )}>
               {error ?? 'At least 4 digits'}
@@ -272,7 +181,7 @@ export function Login() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={!canSubmit || submitting}
+            disabled={submitting}
             className={cn(
               'w-full h-10 rounded-lg text-sm font-medium transition-all',
               'bg-primary text-primary-foreground',

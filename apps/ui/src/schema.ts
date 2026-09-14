@@ -154,6 +154,7 @@ export const ToolSchema = z.object({
 export const LogSchema = z.object({
     id: z.string(),
     userId: z.string().optional(),
+    traceId: z.string().optional(),
     severity: z.string(),
     message: z.string(),
     metadata: z.unknown(),
@@ -261,6 +262,7 @@ export const RecipeSchema = z.object({
 export const AIAuditSchema = z.object({
     id: z.string(),
     userId: z.string(),
+    traceId: z.string().optional(),
     chatSessionId: z.string().optional(),
     userMessage: z.string(),
     toolCalls: z.unknown().optional(),

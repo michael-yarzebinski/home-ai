@@ -71,10 +71,26 @@ const UpdateRecurringItemToolSchema = z.object({
             ToolParameterUtils.toNumberValue,
             z.number().optional(),
           ),
+          interval: z.preprocess(
+            ToolParameterUtils.toNumberValue,
+            z.number().int().min(1).optional(),
+          ),
+          startDate: z.preprocess(
+            (value) =>
+              ToolParameterUtils.isEmptyOptionalInput(value)
+                ? undefined
+                : ToolParameterUtils.stripQuotes(value),
+            z
+              .string()
+              .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+              .optional(),
+          ),
         })
         .optional(),
     )
-    .describe("Optional trigger config patch ({ cron, eventTag, dueInDays })"),
+    .describe(
+      "Optional trigger config patch ({ cron, eventTag, dueInDays, interval, startDate }). interval is every Nth cron match; startDate is YYYY-MM-DD.",
+    ),
   dependsOnRecurringIds: z
     .preprocess(
       ToolParameterUtils.toStringArray,
@@ -125,7 +141,7 @@ export class UpdateRecurringItemTool extends ToolHandler<
     params: z.infer<typeof this.parameters>,
     context: ToolContext,
   ): Promise<UpdateRecurringItemResult> {
-    const { id, ...updates } = params;
+    const { id, triggerConfig, ...updates } = params;
     const existingRecurringItem = await this.recurringStore.getById(
       id,
       context.authUser,
@@ -138,9 +154,23 @@ export class UpdateRecurringItemTool extends ToolHandler<
       throw new NotFoundException("Checklist not found");
     }
 
+    const mergedTriggerConfig = triggerConfig
+      ? {
+          ...existingRecurringItem?.triggerConfig,
+          ...Object.fromEntries(
+            Object.entries(triggerConfig).filter(
+              ([, value]) => value !== undefined,
+            ),
+          ),
+        }
+      : undefined;
+
     const item = await this.recurringStore.update(
       id,
-      updates,
+      {
+        ...updates,
+        ...(mergedTriggerConfig ? { triggerConfig: mergedTriggerConfig } : {}),
+      },
       context.authUser,
     );
     return {

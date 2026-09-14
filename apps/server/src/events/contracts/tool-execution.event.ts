@@ -13,6 +13,8 @@ export interface ToolExecutionEvent {
   argsSummary: unknown;
   /** Full tool handler result payload. */
   resultSummary?: unknown;
+  /** Orchestrator turn id, when the event was produced inside handleEvent. */
+  traceId?: string;
   approval?: {
     pendingActionReadableId: number;
     action: ApprovalAction;

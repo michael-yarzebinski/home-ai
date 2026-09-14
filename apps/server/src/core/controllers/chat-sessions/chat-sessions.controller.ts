@@ -9,13 +9,19 @@ export class ChatSessionsController {
 
   @Get()
   getSessions(@CurrentUser() authUser: AuthUser) {
-    // Empty query = list all sessions for this user, most recent first.
-    return this.conversationStore.search({ page: 1, pageSize: 50 }, authUser);
+    // Always owner-scoped — even admins only see their own personal threads here.
+    return this.conversationStore.searchByUserId(
+      { page: 1, pageSize: 50 },
+      authUser.id,
+    );
   }
 
   @Get(":id")
   async getSession(@Param("id") id: string, @CurrentUser() authUser: AuthUser) {
-    const session = await this.conversationStore.getById(id, authUser);
+    const session = await this.conversationStore.getByIdForUser(
+      id,
+      authUser.id,
+    );
     if (!session) throw new NotFoundException(`Chat session ${id} not found`);
     return session;
   }

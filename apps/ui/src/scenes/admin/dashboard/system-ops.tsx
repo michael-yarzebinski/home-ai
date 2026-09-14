@@ -11,7 +11,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DashboardResult } from '@home-ai/shared/domain/admin/dashboard/dashboard';
+import { Link } from 'react-router-dom';
+import type { DashboardResult } from '@home-ai/shared/admin/dashboard/dashboard';
 
 const ERRORS_PER_PAGE = 3;
 
@@ -144,6 +145,14 @@ function ErrorFeed({ errors, loading }: { errors: RecentError[]; loading: boolea
                       <span className="text-[10px] text-muted-foreground/60 font-medium">
                         DOMAIN: {meta.domain}
                       </span>
+                    )}
+                    {log.traceId && (
+                      <Link
+                        to={`/traces/${log.traceId}`}
+                        className="text-[10px] font-mono text-primary hover:underline"
+                      >
+                        TRACE {log.traceId.slice(0, 8)}
+                      </Link>
                     )}
                   </div>
                 </div>

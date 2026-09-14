@@ -11,6 +11,13 @@ export const RecurringChecklistItemTriggerConfigSchema = z.object({
     cron: z.string().optional(),
     eventTag: z.string().optional(),
     dueInDays: z.number().optional(),
+    /** Every Nth cron match. 1 (or omitted) = every match; 2 = every other Sunday, etc. */
+    interval: z.number().int().min(1).optional(),
+    /** YYYY-MM-DD; first "on" occurrence is the first cron tick on or after this date. */
+    startDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+        .optional(),
 });
 
 export const RecurringChecklistItemMetadataSchema = z.object({

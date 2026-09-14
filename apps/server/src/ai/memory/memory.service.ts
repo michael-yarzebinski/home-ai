@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { ConversationStore } from '../../core/stores/conversation/conversation.store';
 import { ChatMessage, Conversation } from '@home-ai/shared/domain/conversation/conversation';
 import { Trace } from '../../common/decorators/trace.decorator';
+import { createTraceId } from "../../common/trace-id";
 
 const AbstractionResponseSchema = z.object({
     newAbstractions: z.array(
@@ -39,7 +40,9 @@ export class MemoryService {
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
     @Trace()
     async handleMemoryConsolidation() {
+        const traceId = createTraceId();
         await this.logStore.create({
+            traceId,
             severity: "info",
             message: "Starting daily rolling 7-day memory compaction cycle",
             metadata: {}
@@ -59,11 +62,12 @@ export class MemoryService {
             const userBatches = this.groupByUser(activeConversations);
 
             for (const [userId, conversations] of Object.entries(userBatches)) {
-                await this.analyzeUserWindow(userId, conversations);
+                await this.analyzeUserWindow(userId, conversations, traceId);
             }
 
         } catch (error) {
             await this.logStore.create({
+                traceId,
                 severity: "error",
                 message: "Failed executing daily rolling window memory compaction",
                 metadata: { error: error instanceof Error ? error.message : error },
@@ -71,7 +75,7 @@ export class MemoryService {
         }
     }
 
-    private async analyzeUserWindow(userId: string, conversations: Conversation[]) {
+    private async analyzeUserWindow(userId: string, conversations: Conversation[], traceId: string) {
         try {
             // 3. Fetch current database facts to pass as baseline knowledge
             const rawExisting = await this.chromaService.getForUser(userId);
@@ -118,6 +122,7 @@ If there are no new insights to add beyond what is already known, return: { "new
                     userId: this.automationUserId,
                     originalPrompt: `Automated rolling daily memory extraction task for target user: ${userId}`,
                     chatSessionId: v4(),
+                    traceId,
                 }
             };
 
@@ -132,6 +137,7 @@ If there are no new insights to add beyond what is already known, return: { "new
 
             if (!validationResult.success) {
                 await this.logStore.create({
+                    traceId,
                     severity: "error",
                     message: `LLM response failed schema validation for target user ${userId}`,
                     metadata: { validationErrors: validationResult.error.format(), rawContent: llmResponse.content },
@@ -156,6 +162,7 @@ If there are no new insights to add beyond what is already known, return: { "new
                 });
 
                 await this.logStore.create({
+                    traceId,
                     severity: "info",
                     message: `Captured new long-term ${abstraction.category} for user ${userId}`,
                     metadata: { text: abstraction.text },
@@ -164,6 +171,7 @@ If there are no new insights to add beyond what is already known, return: { "new
 
         } catch (error) {
             await this.logStore.create({
+                traceId,
                 severity: "error",
                 message: `Error evaluating rolling memory window for user ${userId}`,
                 metadata: { error: error instanceof Error ? error.message : error },

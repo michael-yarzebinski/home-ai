@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PriorityBadge } from '../components/priority-badge';
-import { getCronDisplayLabel } from '@/utils/cron.utils';
+import { formatCronTriggerConfig } from '@/utils/cron.utils';
 
 interface RecurringItemsPanelProps {
   recurringItems: RecurringChecklistItem[];
@@ -18,7 +18,7 @@ interface RecurringItemsPanelProps {
 function formatTrigger(item: RecurringChecklistItem): string {
   const cfg = item.triggerConfig ?? {};
   if (item.triggerType === RecurringChecklistItemTriggerType.CRON) {
-    return cfg.cron ? getCronDisplayLabel(cfg.cron) : 'Schedule not configured';
+    return formatCronTriggerConfig(cfg);
   }
   const parts = [cfg.eventTag && `Event: ${cfg.eventTag}`, cfg.dueInDays != null && `Due in ${cfg.dueInDays}d`].filter(
     Boolean,

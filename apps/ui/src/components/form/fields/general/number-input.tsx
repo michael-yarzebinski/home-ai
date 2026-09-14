@@ -11,6 +11,9 @@ export function NumberInput<T extends FieldValues>(props: BaseFieldProps<T>) {
     <div className="flex flex-col gap-1.5">
       <Label>{props.label}</Label>
       {isReadMode ? <NumberView {...props} /> : <NumberEdit {...props} />}
+      {props.description && !isReadMode && (
+        <p className="text-xs text-muted-foreground">{props.description}</p>
+      )}
     </div>
   );
 }
@@ -40,7 +43,7 @@ function NumberEdit<T extends FieldValues>({ name, placeholder }: BaseFieldProps
           className={fieldState.error ? "border-destructive" : ""}
           onChange={(e) => {
             // Ensure we send a number or null to the Zod schema
-            const val = e.target.value === "" ? null : Number(e.target.value);
+            const val = e.target.value === "" ? undefined : Number(e.target.value);
             field.onChange(val);
           }}
         />

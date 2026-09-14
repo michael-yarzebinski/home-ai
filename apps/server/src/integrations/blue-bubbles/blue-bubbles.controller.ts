@@ -10,6 +10,7 @@ import {
 import { UserStore } from "src/core/stores/user/user.store";
 import { OrchestratorService } from "../../ai/orchestrator/orchestrator.service";
 import { LLMModelTypes } from "../../ai/llm/llm.provider.sevice";
+import { createTraceId, currentTraceId } from "../../common/trace-id";
 
 @Controller("v1/bluebubbles")
 export class BlueBubblesController {
@@ -23,16 +24,9 @@ export class BlueBubblesController {
   @Post("webhook")
   @Public()
   async handleIncomingMessage(@Body() payload: BlueBubblesWebhookPayload) {
-    // this.logStore.create({
-    //   severity: "info",
-    //   message: "New message received from BlueBubbles",
-    //   metadata: {
-    //     payload,
-    //   },
-    // });
-
     if (payload.type !== "new-message") {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "info",
         message: `Message from BlueBubbles is of type ${payload.type}.  Skipping...`,
         metadata: {
@@ -57,6 +51,7 @@ export class BlueBubblesController {
 
     if (!chatId || !messageText) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "warn",
         message: `BlueBubbles message does not have the correct information to be processed`,
         metadata: {
@@ -72,6 +67,7 @@ export class BlueBubblesController {
     const user = await this.userStore.getByPhoneNumber(phoneNumber);
     if (!user) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "error",
         message: `Message received for user that is not recognized: ${phoneNumber}`,
         metadata: {
@@ -84,18 +80,20 @@ export class BlueBubblesController {
 
     // 1. Immediately show typing indicator
     await this.blueBubblesService.startTyping(chatId);
+    const traceId = createTraceId();
     let result: any;
     try {
-      // 2. Process the message with the LLM Runner
       result = await this.orchestratorService.handleEvent(
         user,
         messageText,
         chatId,
         LLMModelTypes.IMMEDIATE,
+        { suppressToolEvents: false, traceId },
       );
     } catch (error) {
       await this.logStore.create({
         userId: user.id,
+        traceId,
         severity: "error",
         message: `Error processing BlueBubbles message`,
         metadata: { error: (error as any).message },
@@ -114,6 +112,7 @@ export class BlueBubblesController {
 
     await this.logStore.create({
       userId: user.id,
+      traceId,
       severity: "info",
       message: `Successfully processed BlueBubbles message`,
       metadata: {

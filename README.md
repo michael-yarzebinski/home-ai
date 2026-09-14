@@ -14,9 +14,9 @@ The system uses a "Hybrid-Native" architecture to bypass the limitations of cont
 
 * **Home Assistant:** Manages IoT devices (lights, switches, sensors).
 
-* **Ollama:** Hosts local LLMs (Mistral/Llama) for private natural language processing.
-
 ### 2. The Bridge (Native Mac Host)
+
+* **Ollama:** Runs on the Mac (not in Docker) so models can use Metal. The Nest container talks to it at `host.docker.internal:11434`. Linux deploys can still start Ollama in Compose with `--profile linux-ollama`.
 
 * **Express Relay:** A lightweight Node.js service running on the host OS. It acts as a secure bridge for the Dockerized server to execute AppleScripts (controlling Notes and Calendar) with full UI/Accessibility permissions.
 
@@ -45,13 +45,13 @@ chmod +x install.sh
 
 **This script will:**
 
-* Install **Homebrew**, **Docker**, and **Node.js** if missing.
+* Install **Homebrew**, **Docker**, **Node.js**, and **Ollama** if missing.
 
 * Install and launch **BlueBubbles**.
 
 * Start the **Express Relay** as a background service via PM2.
 
-* Pull and configure **Ollama** models (~10GB).
+* Start **native Ollama** and pull `qwen3:8b` plus vision model `qwen3-vl:8b`.
 
 ### 2. Grant Permissions (CRITICAL)
 
@@ -69,9 +69,9 @@ We provide simple scripts to manage the entire stack without needing to remember
 
 * **Stop everything:** `./stop.sh`
 
-* **Check logs:** `docker compose logs -f server`
+* **Check logs:** `docker compose logs -f home-ai`
 
-* **Check Relay status:** `pm2 list`
+* **Check Relay / Ollama:** `pm2 list`
 
 ## 📝 Features & Integrations
 

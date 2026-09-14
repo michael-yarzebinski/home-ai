@@ -3,21 +3,29 @@
 # Home AI - Stop Script
 # ================================================
 
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/host-ollama.sh
+source "${ROOT}/scripts/host-ollama.sh"
+
 echo "🛑 Stopping Home AI..."
 
-# 1. Stop the Docker containers
-# Using 'down' instead of 'stop' is often preferred if you want to clean up 
-# the internal networks, but 'stop' is fine if you want a faster restart.
-docker compose stop
+# Stop Compose services, including a Linux-profile Ollama container if it was started.
+docker compose -f "${ROOT}/docker-compose.yml" --project-directory "${ROOT}" --profile linux-ollama stop
+stop_docker_ollama
 
-# 2. Stop the Native Mac Relay
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    stop_host_ollama
+fi
+
+# Stop the Native Mac Relay
 if command -v pm2 &> /dev/null; then
     echo "🔗 Stopping Native Mac Relay (PM2)..."
-    pm2 stop home-ai-relay
+    pm2 stop home-ai-relay >/dev/null 2>&1 || true
 else
-    # Fallback if they didn't use PM2
     echo "⚠️  PM2 not found. Checking for orphan relay processes..."
-    pkill -f "node apps/relay/index.js"
+    pkill -f "node apps/relay/index.js" || true
 fi
 
 echo "✅ All services stopped (volumes preserved)."

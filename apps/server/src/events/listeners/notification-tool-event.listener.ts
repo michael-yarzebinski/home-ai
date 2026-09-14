@@ -16,6 +16,7 @@ import {
   ToolExecutionEvent,
 } from "../contracts/tool-execution.event";
 import { ApproveActionToolSchema } from "../../tools/default/pending-action/approve-action.tool";
+import { currentTraceId } from "../../common/trace-id";
 
 @Injectable()
 export class NotificationToolEventListener
@@ -42,6 +43,7 @@ export class NotificationToolEventListener
         await this.processEvent(event);
       } catch (error: any) {
         await this.logStore.create({
+          traceId: currentTraceId(),
           severity: "error",
           message: `NotificationToolEventListener: failed to process tool event`,
           metadata: {
@@ -73,6 +75,7 @@ export class NotificationToolEventListener
       );
     } catch (err: any) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: failed to emit tool event to pub/sub`,
         metadata: { error: err?.message ?? String(err) },
@@ -143,6 +146,7 @@ Requirements:
             userId: event.userId,
             originalPrompt: `Notification listener: approval requested for ${event.toolName}`,
             chatSessionId: `notification:approval-requested:${event.userId}`,
+            traceId: event.traceId,
           },
         },
         LLMModelTypes.SOON,
@@ -153,6 +157,7 @@ Requirements:
       return text.length > 0 ? text : fallback;
     } catch (err: any) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: LLM failed for approval-requested message`,
         metadata: {
@@ -176,6 +181,7 @@ Requirements:
       ?.readableId;
     if (readableId == null) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: approve/reject event missing readableId`,
         metadata: { toolName: event.toolName },
@@ -190,6 +196,7 @@ Requirements:
     );
     if (!pending) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: pending action not found for readableId`,
         metadata: { readableId, toolName: event.toolName },
@@ -212,6 +219,7 @@ Requirements:
     const tool = await this.toolStore.getById(pending.toolId, undefined);
     if (!tool) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: tool not found for pending action`,
         metadata: { toolId: pending.toolId, readableId },
@@ -273,6 +281,7 @@ Requirements:
             userId: event.userId,
             originalPrompt: `Notification listener: tool executed ${event.toolName}`,
             chatSessionId: `notification:tool-executed:${event.userId}`,
+            traceId: event.traceId,
           },
         },
         LLMModelTypes.SOON,
@@ -283,6 +292,7 @@ Requirements:
       return text.length > 0 ? text : fallback;
     } catch (err: any) {
       await this.logStore.create({
+        traceId: event.traceId,
         severity: "warn",
         message: `NotificationToolEventListener: LLM failed for default tool-executed message`,
         metadata: {

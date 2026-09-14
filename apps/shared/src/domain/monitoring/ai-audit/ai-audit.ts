@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const AIAuditSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  traceId: z.string().optional(),
   chatSessionId: z.string().optional(),
   userMessage: z.string(),
   toolCalls: z.unknown().optional(),

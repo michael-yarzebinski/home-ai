@@ -593,7 +593,7 @@ export default function ChecklistDetails() {
             description: '',
             priority: ChecklistItemPriority.MEDIUM,
             triggerType: RecurringChecklistItemTriggerType.CRON,
-            triggerConfig: { cron: '0 0 * * *', dueInDays: 1 },
+            triggerConfig: { cron: '0 0 * * *', dueInDays: 1, interval: 1 },
             tags: [],
             dependsOnRecurringIds: [],
             metadata: {

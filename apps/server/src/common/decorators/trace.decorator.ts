@@ -1,4 +1,5 @@
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
+import { currentTraceId } from "../trace-id";
 
 /**
  * Method decorator that logs IN (with params) and OUT (with duration and result summary)
@@ -22,11 +23,14 @@ export function Trace(): MethodDecorator {
       const tag = `${className}.${methodName}`;
 
       if (logStore) {
-        await logStore.create({
-          severity: "debug",
-          message: `IN ${tag}`,
-          metadata: { params: sanitizeParams(args) },
-        });
+        await logStore.create(
+          {
+            traceId: currentTraceId(),
+            severity: "debug",
+            message: `IN ${tag}`,
+            metadata: { params: sanitizeParams(args) },
+          },
+        );
       }
 
       const start = Date.now();
@@ -35,11 +39,14 @@ export function Trace(): MethodDecorator {
         const durationMs = Date.now() - start;
 
         if (logStore) {
-          await logStore.create({
-            severity: "debug",
-            message: `OUT ${tag} (${durationMs}ms)`,
-            metadata: { durationMs, success: true },
-          });
+          await logStore.create(
+            {
+              traceId: currentTraceId(),
+              severity: "debug",
+              message: `OUT ${tag} (${durationMs}ms)`,
+              metadata: { durationMs, success: true },
+            },
+          );
         }
 
         return result;
@@ -47,15 +54,18 @@ export function Trace(): MethodDecorator {
         const durationMs = Date.now() - start;
 
         if (logStore) {
-          await logStore.create({
-            severity: "debug",
-            message: `OUT ${tag} (${durationMs}ms) ERROR`,
-            metadata: {
-              durationMs,
-              success: false,
-              error: error?.message ?? String(error),
+          await logStore.create(
+            {
+              traceId: currentTraceId(),
+              severity: "debug",
+              message: `OUT ${tag} (${durationMs}ms) ERROR`,
+              metadata: {
+                durationMs,
+                success: false,
+                error: error?.message ?? String(error),
+              },
             },
-          });
+          );
         }
 
         throw error;

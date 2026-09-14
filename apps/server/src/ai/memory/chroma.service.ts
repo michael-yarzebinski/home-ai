@@ -16,6 +16,7 @@ import { DefaultEmbeddingFunction } from '@chroma-core/default-embed';
 import { AppConfigService } from '../../core/services/app-config.service';
 import { LogStore } from '../../core/stores/monitoring/log/log.store';
 import { Trace } from '../../common/decorators/trace.decorator';
+import { currentTraceId } from "../../common/trace-id";
 
 interface ChromaMetadata {
   category: 'observation' | 'fact';
@@ -50,6 +51,7 @@ export class ChromaService implements OnModuleInit {
       });
     } catch (error) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: 'error',
         message: 'Failed to initialize ChromaDB collection',
         metadata: { error: error instanceof Error ? error.message : error },

@@ -37,5 +37,6 @@ export interface LLMQueryParams {
     userId: string;
     chatSessionId?: string;
     originalPrompt: string;
+    traceId?: string;
   };
 }

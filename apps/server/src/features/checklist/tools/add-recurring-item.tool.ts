@@ -64,10 +64,26 @@ const AddRecurringItemToolSchema = z.object({
           ToolParameterUtils.toNumberValue,
           z.number().optional(),
         ),
+        interval: z.preprocess(
+          ToolParameterUtils.toNumberValue,
+          z.number().int().min(1).optional(),
+        ),
+        startDate: z.preprocess(
+          (v) =>
+            ToolParameterUtils.isEmptyOptionalInput(v)
+              ? undefined
+              : ToolParameterUtils.stripQuotes(v),
+          z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+            .optional(),
+        ),
       }),
     )
     .default({})
-    .describe("Trigger configuration object ({ cron, eventTag, dueInDays })"),
+    .describe(
+      'Trigger configuration. For CRON: { cron, dueInDays, interval, startDate }. interval is every Nth match (2 + Sunday cron = every other Sunday). startDate is YYYY-MM-DD for the first "on" occurrence. For EVENT: { eventTag, dueInDays }.',
+    ),
   metadata: z
     .preprocess(
       (value) => ToolParameterUtils.toObject(value, {}),

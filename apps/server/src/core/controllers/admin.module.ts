@@ -10,6 +10,7 @@ import { AutomationRulesAdminController } from "./automation-rules/admin/automat
 import { AIAuditAdminController } from "./monitoring/ai-audit/admin/ai-audit.admin.controller";
 import { AuditAdminController } from "./monitoring/audit/admin/audit.admin.controller";
 import { LogsAdminController } from "./monitoring/logs/admin/logs.admin.controller";
+import { TracesAdminController } from "./monitoring/traces/admin/traces.admin.controller";
 import { NotificationLogAdminController } from "./monitoring/notification-log/admin/notification-log.admin.controller";
 import { DashboardAdminController } from "./dashboard/admin/dashboard.admin.controller";
 
@@ -26,6 +27,7 @@ import { DashboardAdminController } from "./dashboard/admin/dashboard.admin.cont
     AIAuditAdminController,
     AuditAdminController,
     LogsAdminController,
+    TracesAdminController,
     NotificationLogAdminController,
     DashboardAdminController,
   ],

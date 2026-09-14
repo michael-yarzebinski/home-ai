@@ -11,6 +11,7 @@ import { LogStore } from "src/core/stores/monitoring/log/log.store";
 import { UserStore } from "src/core/stores/user/user.store";
 import { Trace } from "src/common/decorators/trace.decorator";
 import { ChecklistItemStore } from "../stores/checklist-item.store";
+import { currentTraceId } from "../../../common/trace-id";
 
 export interface DueReminderSummary {
   evaluated: number;
@@ -49,6 +50,7 @@ export class ChecklistDueReminderService implements OnModuleInit {
     const durationMs = Date.now() - start;
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       severity: "debug",
       message: `Checklist due reminders completed in ${durationMs}ms`,
       metadata: {
@@ -84,6 +86,7 @@ export class ChecklistDueReminderService implements OnModuleInit {
       } catch (error: any) {
         skipped += 1;
         await this.logStore.create({
+          traceId: currentTraceId(),
           severity: "error",
           message: `Failed to queue due reminder for checklist item ${item.id}`,
           metadata: {

@@ -9,6 +9,7 @@ import {
   LLMModelTypes,
   LLMProviderService,
 } from "../../../ai/llm/llm.provider.sevice";
+import { currentTraceId } from "../../../common/trace-id";
 
 const StandardizeIngredientsSchema = z.object({
   ingredients: z.preprocess(
@@ -92,6 +93,7 @@ export class StandardizeIngredientsTool extends ToolHandler<
           userId: context.authUser.id,
           chatSessionId: context.chatSessionId,
           originalPrompt: `Standardizing ${params.ingredients.length} ingredients`,
+          traceId: currentTraceId(),
         },
       },
       LLMModelTypes.IMMEDIATE,

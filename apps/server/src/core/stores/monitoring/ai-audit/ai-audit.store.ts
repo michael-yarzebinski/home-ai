@@ -7,6 +7,7 @@ import { Inject, Injectable } from "@nestjs/common";
 export interface AIAuditRecord {
   id: string;
   user_id: string;
+  trace_id?: string;
   chat_session_id?: string;
   user_message: string;
   tool_calls?: any;
@@ -34,15 +35,19 @@ export class AIAuditStore extends AbstractMonitoringStore<
     text: string,
   ): Knex.QueryBuilder {
     const like = `%${text}%`;
-    return query.where((b) =>
-      b.whereILike("user_message", like).orWhereILike("final_response", like),
-    );
+    return query.where((b) => {
+      b.whereILike("user_message", like).orWhereILike("final_response", like);
+      if (isUuid(text)) {
+        b.orWhere("trace_id", text);
+      }
+    });
   }
 
   protected recordToDomain(record: AIAuditRecord): AIAudit {
     return {
       id: record.id,
       userId: record.user_id,
+      traceId: record.trace_id || undefined,
       chatSessionId: record.chat_session_id,
       userMessage: record.user_message,
       toolCalls: record.tool_calls,
@@ -61,6 +66,7 @@ export class AIAuditStore extends AbstractMonitoringStore<
     return {
       id: domain.id,
       user_id: domain.userId,
+      trace_id: domain.traceId,
       chat_session_id: domain.chatSessionId,
       user_message: domain.userMessage,
       tool_calls: domain.toolCalls ?? null,
@@ -74,4 +80,17 @@ export class AIAuditStore extends AbstractMonitoringStore<
       created_at: domain.createdAt,
     };
   }
+
+  async findByTraceId(traceId: string): Promise<AIAudit[]> {
+    const records = (await this.table
+      .where({ trace_id: traceId })
+      .orderBy("created_at", "asc")) as AIAuditRecord[];
+    return records.map((r) => this.recordToDomain(r));
+  }
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

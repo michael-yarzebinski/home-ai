@@ -10,6 +10,7 @@ import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { NotificationLogStore } from "../../core/stores/monitoring/notification-log/notification-log.store";
 import { Trace } from "src/common/decorators/trace.decorator";
 import { BlueBubblesService } from "../blue-bubbles/blue-bubbles.service";
+import { currentTraceId } from "../../common/trace-id";
 
 export type NotifyUserOptions = {
   skipQuietHours?: boolean;
@@ -54,12 +55,14 @@ export class NotificationService {
       }
 
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "info",
         message: `Dispatched ${usersToNotify.length} notifications for tool: ${toolName}`,
         metadata: { toolName, recipientCount: usersToNotify.length },
       });
     } catch (error: any) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "error",
         message: `Failed to dispatch notifications: ${error.message}`,
         metadata: { toolName, error: error.message },
@@ -95,6 +98,7 @@ export class NotificationService {
         message,
       });
       await this.logStore.create({
+        traceId: currentTraceId(),
         userId: user.id,
         severity: "info",
         message: `Deferred notification for quiet hours`,
@@ -129,6 +133,7 @@ export class NotificationService {
         if (!user) {
           await this.notificationQueueStore.markAsSent(notification.id);
           await this.logStore.create({
+            traceId: currentTraceId(),
             severity: "warn",
             message: `Notification in queue for unknown user`,
             metadata: {
@@ -156,6 +161,7 @@ export class NotificationService {
         sent += 1;
 
         await this.logStore.create({
+          traceId: currentTraceId(),
           userId: user.id,
           severity: "info",
           message: `Sent queued notification to user ${user.id}`,
@@ -163,6 +169,7 @@ export class NotificationService {
         });
       } catch (err: any) {
         await this.logStore.create({
+          traceId: currentTraceId(),
           severity: "error",
           message: `Failed to process queued notification`,
           metadata: { notificationId: notification.id, error: err.message },
@@ -171,6 +178,7 @@ export class NotificationService {
     }
 
     await this.logStore.create({
+      traceId: currentTraceId(),
       severity: "debug",
       message: `Notification queue processor completed`,
       metadata: {
@@ -188,6 +196,7 @@ export class NotificationService {
     const tool = await this.toolStore.getByName(toolName);
     if (!tool || !tool.notifyRoles || tool.notifyRoles.length === 0) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "debug",
         message: `No notification roles configured for tool: ${toolName}`,
         metadata: { toolName },
@@ -199,6 +208,7 @@ export class NotificationService {
 
     if (usersToNotify.length === 0) {
       await this.logStore.create({
+        traceId: currentTraceId(),
         severity: "debug",
         message: `No target users found for roles: ${tool.notifyRoles.join(", ")}`,
         metadata: { toolName, roles: tool.notifyRoles },

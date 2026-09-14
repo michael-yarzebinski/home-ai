@@ -26,12 +26,17 @@ import {
 import { AuthUser } from "../../core/auth/jwt.strategy";
 import { ToolContext } from "../../tools/types/tool-context";
 import { ToolHandler } from "../../tools/abstract/tool-handler";
+import { createTraceId, currentTraceId } from "../../common/trace-id";
+import { Insertable } from "@home-ai/shared/common/crud.helper";
+import { Log } from "@home-ai/shared/domain/monitoring/log/log";
 
 type ToolSummary = NonNullable<ChatMessage["toolSummaries"]>[number];
 
 export type OrchestratorHandleEventOptions = {
   /** When true, do not emit tool-execution pub/sub messages (e.g. orchestrator requery). */
   suppressToolEvents: boolean;
+  /** Reuse a caller-created turn id (e.g. Home Assistant already logged with it). */
+  traceId?: string;
 };
 
 @Injectable()
@@ -47,7 +52,6 @@ export class OrchestratorService {
     @InjectRedis() private readonly redis: Redis,
   ) { }
 
-  @Trace()
   async handleEvent(
     user: User,
     input: string,
@@ -57,15 +61,33 @@ export class OrchestratorService {
       suppressToolEvents: false,
     },
   ): Promise<any> {
+    const traceId = config.traceId ?? createTraceId();
     return this.cls.run(async () => {
+      this.cls.set("traceId", traceId);
+      return this.executeTurn(user, input, externalId, modelType, {
+        ...config,
+        traceId,
+      });
+    });
+  }
+
+  @Trace()
+  private async executeTurn(
+    user: User,
+    input: string,
+    externalId: string,
+    modelType: LLMModelTypes,
+    config: OrchestratorHandleEventOptions & { traceId: string },
+  ): Promise<any> {
       const session = await this.conversationStore.getOrCreateSession(
         externalId,
         user,
       );
       const chatSessionId = session.id;
       const timeZone = await this.appConfigService.getTimezone();
+      const traceId = config.traceId;
 
-      this.initializeClsContext(user, input, chatSessionId, timeZone);
+      this.initializeClsContext(user, input, chatSessionId, timeZone, traceId);
 
       const userMessage: ChatMessage = {
         role: LLMRole.USER,
@@ -83,7 +105,7 @@ export class OrchestratorService {
         userMessage,
       ];
 
-      await this.logStore.create({
+      await this.writeLog({
         userId: user.id,
         severity: "info",
         message: `Processing event for session: ${chatSessionId}`,
@@ -115,12 +137,17 @@ export class OrchestratorService {
           {
             messages,
             tools: llmTools,
-            context: { userId: user.id, chatSessionId, originalPrompt: input },
+            context: {
+              userId: user.id,
+              chatSessionId,
+              originalPrompt: input,
+              traceId,
+            },
           },
           modelType,
         );
 
-        await this.logStore.create({
+        await this.writeLog({
           userId: user.id,
           severity: "debug",
           message: `LLM response received (turn ${loopCount + 1})`,
@@ -154,7 +181,7 @@ export class OrchestratorService {
             user,
           );
 
-          await this.logStore.create({
+          await this.writeLog({
             userId: user.id,
             severity: "info",
             message: `Completed conversation turn for session: ${chatSessionId}`,
@@ -171,7 +198,7 @@ export class OrchestratorService {
           );
 
           if (!tool) {
-            await this.logStore.create({
+            await this.writeLog({
               userId: user.id,
               severity: "warn",
               message: `Tool not found or unauthorized: ${toolCall.name}`,
@@ -192,7 +219,7 @@ export class OrchestratorService {
 
           // PERMISSION CHECKING
           if (!tool.canWrite && !tool.canRequest) {
-            await this.logStore.create({
+            await this.writeLog({
               userId: user.id,
               severity: "warn",
               message: `Access denied for tool: ${toolCall.name}`,
@@ -233,7 +260,7 @@ export class OrchestratorService {
                   },
                 });
               } catch (err: any) {
-                await this.logStore.create({
+                await this.writeLog({
                   userId: user.id,
                   severity: "warn",
                   message: `Failed to emit approval-requested tool event: ${err?.message ?? err}`,
@@ -254,7 +281,7 @@ export class OrchestratorService {
 
           // Normal execution
           try {
-            await this.logStore.create({
+            await this.writeLog({
               userId: user.id,
               severity: "info",
               message: `Executing tool: ${toolCall.name}`,
@@ -285,7 +312,7 @@ export class OrchestratorService {
               content: contentString,
             });
           } catch (error: any) {
-            await this.logStore.create({
+            await this.writeLog({
               userId: user.id,
               severity: "error",
               message: `Tool execution failed: ${toolCall.name}`,
@@ -309,7 +336,6 @@ export class OrchestratorService {
       }
 
       return this.handleTimeout(user, chatSessionId, loopCount, toolSummaries);
-    });
   }
 
   /**
@@ -320,7 +346,7 @@ export class OrchestratorService {
     toolCall: any,
   ): Promise<string> {
     try {
-      await this.logStore.create({
+      await this.writeLog({
         userId: user.id,
         severity: "info",
         message: `Escalating requested tool call to PendingAction: ${toolCall.name}`,
@@ -379,19 +405,27 @@ export class OrchestratorService {
   private async publishToolExecutionEvent(
     event: ToolExecutionEvent,
   ): Promise<void> {
+    const payload: ToolExecutionEvent = {
+      ...event,
+      traceId: event.traceId ?? currentTraceId(),
+    };
     try {
       await this.redis.publish(
         TOOL_EXECUTION_EVENT_CHANNEL,
-        JSON.stringify(event),
+        JSON.stringify(payload),
       );
     } catch (err: any) {
-      await this.logStore.create({
-        userId: event.userId,
+      await this.writeLog({
+        userId: payload.userId,
         severity: "warn",
         message: `Tool execution pub/sub publish failed: ${err?.message ?? err}`,
-        metadata: { event },
+        metadata: { event: payload },
       });
     }
+  }
+
+  private async writeLog(log: Insertable<Log>): Promise<void> {
+    await this.logStore.create({ ...log, traceId: log.traceId ?? currentTraceId() });
   }
 
   private initializeClsContext(
@@ -399,6 +433,7 @@ export class OrchestratorService {
     input: string,
     chatSessionId: string,
     timeZone: string,
+    traceId: string,
   ) {
     this.cls.set("userName", user.name);
     this.cls.set("authUser", { id: user.id, role: user.role });
@@ -406,6 +441,7 @@ export class OrchestratorService {
     this.cls.set("chatSessionId", chatSessionId);
     this.cls.set("currentISO", new Date().toISOString());
     this.cls.set("timezone", timeZone);
+    this.cls.set("traceId", traceId);
   }
 
   private assembleMessageContext(
@@ -464,12 +500,8 @@ export class OrchestratorService {
 
     return `
 ## Identity
-You are ${aiName}. User: ${user.name} (${user.role}). Current time: ${nowLocal} (${timeZone}).
+You are ${aiName}. User: ${user.name} (${user.role}).
 Style: Professional, helpful, and extremely concise.
-
-## Long-Term Profile & Behavioral Context
-The following historical behaviors, user traits, and automated household observations have been extracted over time. Use these to tailor your tone, defaults, and physical home environment choices without explicitly stating why:
-${memory}
 
 ## Operational Protocol: Discovery First
 You must follow a "Read-Before-Write" workflow for all data domains (Devices, Facts, Calendar, Notes).
@@ -487,7 +519,15 @@ If a user asks to "add" or "save" information (like a Fact or Device) that alrea
 - Unless the user asks for a specific result, return all of the relevant results.
 
 ## Approval Queue
-If an action is queued for approval, inform the user and provide the Request ID immediately.`;
+If an action is queued for approval, inform the user and provide the Request ID immediately.
+
+## Long-Term Profile & Behavioral Context
+The following historical behaviors, user traits, and automated household observations have been extracted over time. Use these to tailor your tone, defaults, and physical home environment choices without explicitly stating why:
+${memory}
+
+## Current time
+${nowLocal} (${timeZone}).
+`;
   }
 
   private async handleTimeout(
@@ -498,7 +538,7 @@ If an action is queued for approval, inform the user and provide the Request ID 
   ) {
     const timeoutError =
       "I've tried too many steps and had to stop. Could you try being more specific?";
-    await this.logStore.create({
+    await this.writeLog({
       userId: user.id,
       severity: "error",
       message: "Orchestration loop timeout - MAX_STEPS reached",
@@ -526,7 +566,7 @@ If an action is queued for approval, inform the user and provide the Request ID 
       const memory = await this.chromaService.getForUser(user.id, input);
       return memory.map((m) => m.document).join("\n");
     } catch (error: any) {
-      await this.logStore.create({
+      await this.writeLog({
         userId: user.id,
         severity: "warn",
         message: `Failed fetching long term memory context for system prompt assembly`,

@@ -11,6 +11,8 @@ import { Chat } from '@/scenes/user/chat';
 import { SettingsAutomationRules } from '@/scenes/user/settings/automation-rules';
 import { AutomationRulePlaygroundPage } from '@/scenes/dev';
 import { EntitySearch } from './scenes/admin/entity-search';
+import { TracesList } from './scenes/admin/traces';
+import { TraceDetail } from './scenes/admin/traces/detail';
 import { ChecklistHome } from './scenes/checklists/home/home';
 import { ChecklistsAll } from './scenes/checklists/all/all';
 import ChecklistDetails from './scenes/checklists/details/details';
@@ -36,6 +38,14 @@ const router = createBrowserRouter([
   {
     path: '/entities',
     element: <ProtectedRoute><AppLayout><EntitySearch /></AppLayout></ProtectedRoute>,
+  },
+  {
+    path: '/traces',
+    element: <ProtectedRoute><AppLayout><TracesList /></AppLayout></ProtectedRoute>,
+  },
+  {
+    path: '/traces/:traceId',
+    element: <ProtectedRoute><AppLayout><TraceDetail /></AppLayout></ProtectedRoute>,
   },
   {
     path: '/chat',

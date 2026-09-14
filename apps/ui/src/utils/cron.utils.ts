@@ -113,6 +113,53 @@ export function getCronDisplayLabel(cron: string | undefined | null): string {
   return findCronPreset(cron)?.label ?? normalizeCronExpression(cron);
 }
 
+function occurrencePhrase(interval: number): string {
+  if (interval === 2) return 'every other time';
+  const mod100 = interval % 100;
+  const mod10 = interval % 10;
+  const suffix =
+    mod100 >= 11 && mod100 <= 13
+      ? 'th'
+      : mod10 === 1
+        ? 'st'
+        : mod10 === 2
+          ? 'nd'
+          : mod10 === 3
+            ? 'rd'
+            : 'th';
+  return `every ${interval}${suffix} time`;
+}
+
+function formatStartDate(startDate: string): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return startDate;
+  const [year, month, day] = startDate.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return startDate;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/** Cron schedule plus optional every-Nth-match interval and start date. */
+export function formatCronTriggerConfig(cfg: {
+  cron?: string;
+  interval?: number;
+  startDate?: string;
+}): string {
+  if (!cfg.cron) return 'Schedule not configured';
+  const parts = [getCronDisplayLabel(cfg.cron)];
+  if (cfg.interval && cfg.interval > 1) {
+    parts.push(occurrencePhrase(cfg.interval));
+  }
+  if (cfg.startDate) {
+    const formatted = formatStartDate(cfg.startDate);
+    if (formatted) parts.push(`starting ${formatted}`);
+  }
+  return parts.join(' · ');
+}
+
 export function getCronPresetsByGroup(group: (typeof CRON_PRESET_GROUPS)[number]): CronPreset[] {
   return CRON_PRESETS.filter((preset) => preset.group === group);
 }
