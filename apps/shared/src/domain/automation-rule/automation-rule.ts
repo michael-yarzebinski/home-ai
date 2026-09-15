@@ -93,6 +93,9 @@ export type AutomationRule = z.infer<typeof AutomationRuleSchema>;
 
 export const InsertableAutomationRuleSchema = AutomationRuleSchema.omit({ id: true, active: true, createdAt: true, updatedAt: true });
 export const UpdatableAutomationRuleSchema = InsertableAutomationRuleSchema.omit({ userId: true }).partial();
+/** User-facing create body. `userId` is taken from the authenticated session. */
+export const CreateAutomationRuleBodySchema = InsertableAutomationRuleSchema.omit({ userId: true });
 
 export type InsertableAutomationRule = z.infer<typeof InsertableAutomationRuleSchema>;
 export type UpdatableAutomationRule = z.infer<typeof UpdatableAutomationRuleSchema>;
+export type CreateAutomationRuleBody = z.infer<typeof CreateAutomationRuleBodySchema>;

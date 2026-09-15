@@ -277,7 +277,7 @@ export function ChecklistHome() {
         formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
         saveLabel="Save item"
         isLoading={isUpdatingItem}
-        onDelete={canWriteItem ? handleDeleteItem : undefined}
+        onDelete={canWriteItem && itemModalMode === 'EDIT' ? handleDeleteItem : undefined}
         isDeleting={isDeletingItem}
         footer={
           itemModalMode === 'READ' ? (

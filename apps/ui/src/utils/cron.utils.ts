@@ -7,28 +7,22 @@ export interface CronPreset {
   group: string;
 }
 
-function formatClockTime(hour: number, minute = 0): string {
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const displayMinute = minute.toString().padStart(2, '0');
-  return minute === 0 ? `${displayHour} ${period}` : `${displayHour}:${displayMinute} ${period}`;
-}
+const SCHEDULE_TIMES = [
+  { hour: 0, label: 'midnight' },
+  { hour: 8, label: '8 AM' },
+  { hour: 12, label: 'noon' },
+  { hour: 20, label: '8 PM' },
+] as const;
 
-function dailyAt(hour: number, minute = 0): CronPreset {
-  return {
-    group: 'Daily',
-    label: `Every day at ${formatClockTime(hour, minute)}`,
-    cron: `${minute} ${hour} * * *`,
-  };
-}
-
-function weekdaysAt(hour: number, minute = 0): CronPreset {
-  return {
-    group: 'Weekday times',
-    label: `Weekdays at ${formatClockTime(hour, minute)}`,
-    cron: `${minute} ${hour} * * 1-5`,
-  };
-}
+const WEEK_DAYS = [
+  { cronDay: 0, name: 'Sunday' },
+  { cronDay: 1, name: 'Monday' },
+  { cronDay: 2, name: 'Tuesday' },
+  { cronDay: 3, name: 'Wednesday' },
+  { cronDay: 4, name: 'Thursday' },
+  { cronDay: 5, name: 'Friday' },
+  { cronDay: 6, name: 'Saturday' },
+] as const;
 
 const INTERVAL_PRESETS: CronPreset[] = [
   { group: 'Intervals', label: 'Every minute', cron: '*/1 * * * *' },
@@ -43,11 +37,25 @@ const INTERVAL_PRESETS: CronPreset[] = [
   { group: 'Intervals', label: 'Every 12 hours', cron: '0 */12 * * *' },
 ];
 
-const WEEKLY_PRESETS: CronPreset[] = [
-  { group: 'Weekly', label: 'Every week (Sunday at midnight)', cron: '0 0 * * 0' },
-  { group: 'Weekly', label: 'Every weekday (Mon–Fri at midnight)', cron: '0 0 * * 1-5' },
-  { group: 'Weekly', label: 'Every weekend (Sat–Sun at midnight)', cron: '0 0 * * 6,0' },
-];
+const DAILY_PRESETS: CronPreset[] = SCHEDULE_TIMES.map((time) => ({
+  group: 'Daily',
+  label: `Every day at ${time.label}`,
+  cron: `0 ${time.hour} * * *`,
+}));
+
+const DAY_PRESETS: CronPreset[] = WEEK_DAYS.flatMap((day) =>
+  SCHEDULE_TIMES.map((time) => ({
+    group: day.name,
+    label: `${day.name} at ${time.label}`,
+    cron: `0 ${time.hour} * * ${day.cronDay}`,
+  })),
+);
+
+const WEEKDAY_PRESETS: CronPreset[] = SCHEDULE_TIMES.map((time) => ({
+  group: 'Weekdays',
+  label: `Weekdays at ${time.label}`,
+  cron: `0 ${time.hour} * * 1-5`,
+}));
 
 const MONTHLY_PRESETS: CronPreset[] = [
   { group: 'Monthly & yearly', label: '1st of every month at midnight', cron: '0 0 1 * *' },
@@ -79,11 +87,9 @@ const BUSINESS_HOURS_PRESETS: CronPreset[] = [
 /** NestJS CronExpression-style presets mapped to standard 5-field cron. */
 export const CRON_PRESETS: CronPreset[] = [
   ...INTERVAL_PRESETS,
-  ...Array.from({ length: 24 }, (_, hour) => dailyAt(hour)),
-  ...WEEKLY_PRESETS,
-  ...Array.from({ length: 24 }, (_, hour) => weekdaysAt(hour)),
-  weekdaysAt(9, 30),
-  weekdaysAt(11, 30),
+  ...DAILY_PRESETS,
+  ...DAY_PRESETS,
+  ...WEEKDAY_PRESETS,
   ...MONTHLY_PRESETS,
   ...BUSINESS_HOURS_PRESETS,
 ];
@@ -91,8 +97,8 @@ export const CRON_PRESETS: CronPreset[] = [
 export const CRON_PRESET_GROUPS = [
   'Intervals',
   'Daily',
-  'Weekly',
-  'Weekday times',
+  ...WEEK_DAYS.map((day) => day.name),
+  'Weekdays',
   'Monthly & yearly',
   'Business hours',
 ] as const;
@@ -145,11 +151,17 @@ function formatStartDate(startDate: string): string | undefined {
 /** Cron schedule plus optional every-Nth-match interval and start date. */
 export function formatCronTriggerConfig(cfg: {
   cron?: string;
+  dueInDays?: number;
   interval?: number;
   startDate?: string;
 }): string {
   if (!cfg.cron) return 'Schedule not configured';
   const parts = [getCronDisplayLabel(cfg.cron)];
+  if (cfg.dueInDays != null) {
+    if (cfg.dueInDays === 0) parts.push('due the same day');
+    else if (cfg.dueInDays === 1) parts.push('due in 1 day');
+    else parts.push(`due in ${cfg.dueInDays} days`);
+  }
   if (cfg.interval && cfg.interval > 1) {
     parts.push(occurrencePhrase(cfg.interval));
   }

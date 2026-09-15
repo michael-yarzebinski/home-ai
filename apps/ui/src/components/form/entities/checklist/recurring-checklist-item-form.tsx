@@ -116,6 +116,13 @@ export function RecurringChecklistItemForm({
             ) : (
               <TextInput name="triggerConfig.eventTag" label="Event Tag" placeholder="system.startup" viewMode={viewMode} />
             )}
+            <NumberInput
+              name="triggerConfig.dueInDays"
+              label="Due in days"
+              placeholder="1"
+              description="How many days after generation the item is due. 0 = due the same day."
+              viewMode={viewMode}
+            />
             {selectedTriggerType === RecurringChecklistItemTriggerType.CRON && (
               <>
                 <NumberInput
@@ -134,7 +141,6 @@ export function RecurringChecklistItemForm({
                 />
               </>
             )}
-            <NumberInput name="triggerConfig.dueInDays" label="Days to Complete" description="How many days until the generated item is due" viewMode={viewMode} />
             <DurationInput
               name="notifyBefore"
               label="Notify before due"

@@ -470,7 +470,7 @@ export default function ChecklistDetails() {
         formId={itemModalMode === 'EDIT' ? 'edit-checklist-item-form' : undefined}
         saveLabel="Save item"
         isLoading={isUpdatingItem}
-        onDelete={canWrite ? handleDeleteItem : undefined}
+        onDelete={canWrite && itemModalMode === 'EDIT' ? handleDeleteItem : undefined}
         isDeleting={isDeletingItem}
         footer={
           itemModalMode === 'READ' ? (
@@ -521,7 +521,7 @@ export default function ChecklistDetails() {
         formId={recurringModalMode === 'EDIT' ? 'edit-recurring-item-form' : undefined}
         saveLabel="Save changes"
         isLoading={isUpdatingRecurringItem}
-        onDelete={canWrite ? handleDeleteRecurringItem : undefined}
+        onDelete={canWrite && recurringModalMode === 'EDIT' ? handleDeleteRecurringItem : undefined}
         isDeleting={isDeletingRecurringItem}
         footer={
           recurringModalMode === 'READ' ? (

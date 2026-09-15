@@ -18,9 +18,9 @@ import {
   type SearchCriteriaBase,
 } from "@home-ai/shared/search/search";
 import {
-  InsertableAutomationRuleSchema,
+  CreateAutomationRuleBodySchema,
   UpdatableAutomationRuleSchema,
-  type InsertableAutomationRule,
+  type CreateAutomationRuleBody,
   type UpdatableAutomationRule,
 } from "@home-ai/shared/domain/automation-rule/automation-rule";
 import type { AuthUser } from "../../auth/jwt.strategy";
@@ -51,8 +51,8 @@ export class AutomationRulesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
-    @Body(new ZodValidationPipe(InsertableAutomationRuleSchema))
-    dto: InsertableAutomationRule,
+    @Body(new ZodValidationPipe(CreateAutomationRuleBodySchema))
+    dto: CreateAutomationRuleBody,
     @CurrentUser() authUser: AuthUser,
   ) {
     return this.automationRuleStore.create(
