@@ -147,7 +147,7 @@ function blankFormValues(): FormValues {
     description: '',
     cooldownMinutes: 60,
     triggerType: TriggerType.TIME,
-    cron: '',
+    cron: '0 0 * * *',
     timezone: 'America/Chicago',
     deviceId: '',
     deviceIntent: '',
@@ -586,7 +586,9 @@ export function AutomationRuleModal({
             {!isReadOnly && (
               <button
                 type="button"
-                onClick={form.handleSubmit(onSubmit)}
+                onClick={form.handleSubmit(onSubmit, () => {
+                  toast.error('Please fix the highlighted fields');
+                })}
                 disabled={pending}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >

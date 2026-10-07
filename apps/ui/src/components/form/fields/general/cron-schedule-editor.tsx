@@ -38,6 +38,7 @@ export function CronScheduleEditor({
   return (
     <div className="space-y-2">
       <Select
+        modal={false}
         value={selectValue}
         onValueChange={(next) => {
           if (next === CRON_CUSTOM_VALUE) return;
@@ -48,7 +49,10 @@ export function CronScheduleEditor({
         <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder="Choose a schedule…" />
         </SelectTrigger>
-        <SelectContent className="max-h-80">
+        <SelectContent
+          className="max-h-80"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           {CRON_PRESET_GROUPS.map((group) => (
             <SelectGroup key={group}>
               <SelectLabel>{group}</SelectLabel>
