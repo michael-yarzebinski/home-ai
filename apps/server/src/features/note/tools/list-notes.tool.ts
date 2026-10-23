@@ -29,8 +29,9 @@ export class ListNotesTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "List notes registered in Home AI; each row includes canRead/canWrite for this user. " +
-    "Call this before get-note or add-to-note unless the exact registered name is already known. " +
+    "List all notes registered in Home AI; each row includes canRead/canWrite for this user. " +
+    "Prefer find-notes when resolving a user phrase to a specific note; use this when find returns 0/many or you need the full set. " +
+    "Call find-notes or list-notes before get-note or add-to-note unless the exact registered name is already known. " +
     "Use discover-notes only when you need names from the Apple Notes app before registering the note in Home AI.";
 
   readonly parameters = ListNotesToolSchema;

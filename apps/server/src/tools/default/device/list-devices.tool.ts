@@ -31,7 +31,8 @@ export class ListDevicesTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "List devices registered in Home AI; returns only devices this user may see (canRead/canWrite on each row). " +
+    "List all devices registered in Home AI; returns only devices this user may see (canRead/canWrite on each row). " +
+    "Prefer find-devices when resolving a user phrase to a specific device. " +
     "Use discover-devices when the user refers to a Home Assistant entity not yet registered in Home AI.";
 
   readonly parameters = ListDevicesToolSchema;

@@ -35,7 +35,7 @@ const AddEventToCalendarToolSchema = z.object({
       return typeof s === "string" && s.length > 0 ? s : undefined;
     }, z.string())
     .describe(
-      "Calendar `name` from list-calendars (calendars registered in Home AI; not friendlyName). Must be a calendar this user may write to.",
+      "Calendar `name` from find-calendars or list-calendars (calendars registered in Home AI; not friendlyName). Must be a calendar this user may write to.",
     ),
 });
 
@@ -55,7 +55,7 @@ export class AddEventToCalendarTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Add a new event to Apple Calendar. Always call list-calendars first; `calendarName` must match a calendar `name` registered in Home AI. " +
+    "Add a new event to Apple Calendar. Resolve the calendar with find-calendars (or list-calendars); `calendarName` must match a calendar `name` registered in Home AI. " +
     "Do not pick names only from discover-calendars unless the user is registering that calendar in Home AI first.";
 
   readonly parameters = AddEventToCalendarToolSchema;

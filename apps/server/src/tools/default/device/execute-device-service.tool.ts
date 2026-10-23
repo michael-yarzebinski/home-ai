@@ -54,7 +54,7 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
 
   readonly description =
     "Call a Home Assistant service for a device registered in Home AI (e.g. light.turn_on, switch.turn_off). " +
-    "Use list-devices to resolve `deviceId` if needed; call get-device-state first to see available services. " +
+    "Use find-devices to resolve `deviceId` if needed; call get-device-state first to see available services. " +
     "When the service depends on an image, call it on a later step, after you have received that image.";
 
   readonly parameters = ExecuteDeviceServiceToolSchema;

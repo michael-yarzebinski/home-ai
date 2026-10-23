@@ -38,7 +38,7 @@ export class GetDeviceStateTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    'Get the current state of a logical device registered in Home AI by its slug (e.g. "bedroom_humidifier"). Use list-devices first if the slug is unknown. ' +
+    'Get the current state of a logical device registered in Home AI by its slug (e.g. "bedroom_humidifier"). Use find-devices first if the slug is unknown. ' +
     "Returns related Home Assistant entities and their current states.";
 
   readonly parameters = GetDeviceStateToolSchema;

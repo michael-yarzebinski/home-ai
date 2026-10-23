@@ -64,7 +64,7 @@ const UpdateCalendarEventToolSchema = z
         return typeof s === "string" && s.length > 0 ? s : undefined;
       }, z.string())
       .describe(
-        "Calendar `name` from list-calendars (calendars registered in Home AI; not friendlyName) that contains the event. Use at most once per user request unless the tool returns an error.",
+        "Calendar `name` from find-calendars or list-calendars (calendars registered in Home AI; not friendlyName) that contains the event. Use at most once per user request unless the tool returns an error.",
       ),
   })
   .refine(
@@ -95,7 +95,7 @@ export class UpdateCalendarEventTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Update an existing event in Apple Calendar. Always call list-calendars first; `calendarName` must match a calendar `name` registered in Home AI. " +
+    "Update an existing event in Apple Calendar. Resolve the calendar with find-calendars (or list-calendars); `calendarName` must match a calendar `name` registered in Home AI. " +
     "Use `uid` from get-calendar-events for the event to change.";
 
   readonly parameters = UpdateCalendarEventToolSchema;

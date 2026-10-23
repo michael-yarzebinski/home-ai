@@ -30,8 +30,9 @@ export class ListFactsTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "List facts registered in Home AI; returns only facts this user may see (canRead/canWrite on each row). " +
-    "Call this before get-fact or update-fact unless the exact key is already known.";
+    "List all facts registered in Home AI; returns only facts this user may see (canRead/canWrite on each row). " +
+    "Prefer find-facts when resolving a user phrase to a specific fact key; use this when find returns 0/many or you need the full set. " +
+    "Call find-facts or list-facts before get-fact or update-fact unless the exact key is already known.";
 
   readonly parameters = ListFactsToolSchema;
 

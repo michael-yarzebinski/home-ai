@@ -29,7 +29,7 @@ const GetCalendarEventsToolSchema = z.object({
   calendarName: z
     .preprocess(ToolParameterUtils.stripQuotes, z.string())
     .describe(
-      "Calendar `name` from list-calendars (calendars registered in Home AI). Call list-calendars first if unknown.",
+      "Calendar `name` from find-calendars or list-calendars (calendars registered in Home AI). Resolve with find-calendars if unknown.",
     ),
 });
 
@@ -49,7 +49,7 @@ export class GetCalendarEventsTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Read events from Apple Calendar for a time range. Always call list-calendars first and use a calendar `name` registered in Home AI (not friendlyName). " +
+    "Read events from Apple Calendar for a time range. Resolve with find-calendars (or list-calendars) and use a calendar `name` registered in Home AI (not friendlyName). " +
     "Compute concrete start/end timestamps from the user request.";
 
   readonly parameters = GetCalendarEventsToolSchema;

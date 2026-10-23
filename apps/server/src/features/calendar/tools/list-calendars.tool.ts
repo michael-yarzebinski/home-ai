@@ -29,7 +29,8 @@ export class ListCalendarsTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "List calendars registered in Home AI; returns only calendars this user may see (canRead/canWrite on each row). " +
+    "List all calendars registered in Home AI; returns only calendars this user may see (canRead/canWrite on each row). " +
+    "Prefer find-calendars when resolving a user phrase to a specific calendar `name`; use this when find returns 0/many or you need the full set. " +
     "Use discover-calendars only when you need calendars from the Apple Calendar app before registering them in Home AI.";
 
   readonly parameters = ListCalendarsToolSchema;

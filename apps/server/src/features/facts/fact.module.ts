@@ -3,6 +3,7 @@ import { CoreModule } from "src/core/core.module";
 import { FactsStore } from "./stores/facts.store";
 import { AddFactTool } from "./tools/add-fact.tool";
 import { GetFactTool } from "./tools/get-fact.tool";
+import { FindFactsTool } from "./tools/find-facts.tool";
 import { ListFactsTool } from "./tools/list-facts.tool";
 import { UpdateFactTool } from "./tools/update-fact.tool";
 import { FactsAdminController } from "./controllers/admin/facts.admin.controller";
@@ -15,6 +16,7 @@ import { FactsController } from "./controllers/facts.controller";
     FactsStore,
     AddFactTool,
     GetFactTool,
+    FindFactsTool,
     ListFactsTool,
     UpdateFactTool,
   ],
@@ -22,6 +24,7 @@ import { FactsController } from "./controllers/facts.controller";
     FactsStore,
     AddFactTool,
     GetFactTool,
+    FindFactsTool,
     ListFactsTool,
     UpdateFactTool,
   ],

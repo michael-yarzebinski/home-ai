@@ -22,7 +22,9 @@ export class ListChecklistsTool extends ToolHandler<
   ListChecklistsResult
 > {
   readonly name = "list-checklists";
-  readonly description = "Retrieves a list of available checklists.";
+  readonly description =
+    "List all available checklists registered in Home AI. " +
+    "Prefer find-checklists when resolving a user phrase to a specific checklist; use this when find returns 0/many or you need the full set.";
 
   readonly parameters = ListChecklistsToolSchema;
 
