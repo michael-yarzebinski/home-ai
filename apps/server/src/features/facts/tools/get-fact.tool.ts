@@ -11,7 +11,7 @@ const GetFactToolSchema = z.object({
   key: z
     .preprocess(ToolParameterUtils.toStringValue, z.string().min(1))
     .describe(
-      "Exact key from list-facts (facts registered in Home AI). Do not guess.",
+      "Exact key from find-facts or list-facts (facts registered in Home AI). Do not guess.",
     ),
 });
 
@@ -31,7 +31,7 @@ export class GetFactTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Retrieve a fact registered in Home AI by exact key. Call list-facts first unless the key is already known.";
+    "Retrieve a fact registered in Home AI by exact key. Call find-facts (or list-facts) first unless the key is already known.";
 
   readonly parameters = GetFactToolSchema;
 

@@ -74,14 +74,7 @@ export class DeviceStore extends AbstractEntityStore<
   ): Knex.QueryBuilder {
     const like = `%${search.toLowerCase()}%`;
     return query.where((b) =>
-      b
-        .whereILike("slug", like)
-        .orWhereILike("friendly_name", like)
-        .orWhereILike("room", like)
-        .orWhereILike("category", like)
-        .orWhereRaw("aliases @> jsonb_build_array(?::text)", [
-          search.toLowerCase(),
-        ]),
+      b.whereILike("slug", like).orWhereILike("friendly_name", like),
     );
   }
 

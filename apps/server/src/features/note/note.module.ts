@@ -6,6 +6,7 @@ import { NotesAdminController } from "./controllers/admin/notes.admin.controller
 import { AddToNoteTool } from "./tools/add-to-note.tool";
 import { DiscoverNotesTool } from "./tools/discover-note.tool";
 import { GetNoteTool } from "./tools/get-note.tool";
+import { FindNotesTool } from "./tools/find-notes.tool";
 import { ListNotesTool } from "./tools/list-notes.tool";
 import { RegisterNoteTool } from "./tools/register-note.tool";
 import { IntegrationsModule } from "../../integrations/integrations.module";
@@ -18,6 +19,7 @@ import { IntegrationsModule } from "../../integrations/integrations.module";
     AddToNoteTool,
     DiscoverNotesTool,
     GetNoteTool,
+    FindNotesTool,
     ListNotesTool,
     RegisterNoteTool,
   ],
@@ -26,6 +28,7 @@ import { IntegrationsModule } from "../../integrations/integrations.module";
     AddToNoteTool,
     DiscoverNotesTool,
     GetNoteTool,
+    FindNotesTool,
     ListNotesTool,
     RegisterNoteTool,
   ],

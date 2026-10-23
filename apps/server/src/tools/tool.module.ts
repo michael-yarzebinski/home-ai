@@ -10,6 +10,7 @@ import { CallHomeAssistantTool } from "./default/image/call-home-assistant.tool"
 import { SaveImageTool } from "./default/image/save-image.tool";
 import { GetDeviceStateTool } from "./default/device/get-device-state.tool";
 import { GetDeviceEventHistoryTool } from "./default/device/get-device-event-history.tool";
+import { FindDevicesTool } from "./default/device/find-devices.tool";
 import { ListDevicesTool } from "./default/device/list-devices.tool";
 import { RegisterDeviceTool } from "./default/device/register-device.tool";
 import { UpdateDeviceTool } from "./default/device/update-device.tool";
@@ -42,6 +43,7 @@ import { AIModule } from "../ai/ai.module";
     SaveImageTool,
     GetDeviceStateTool,
     GetDeviceEventHistoryTool,
+    FindDevicesTool,
     ListDevicesTool,
     RegisterDeviceTool,
     UpdateDeviceTool,

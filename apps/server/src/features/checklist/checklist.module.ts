@@ -9,6 +9,7 @@ import { ChecklistRecurringGenerationService } from "./services/checklist-recurr
 import { ChecklistDueReminderService } from "./services/checklist-due-reminder.service";
 import { AddChecklistTool } from "./tools/add-checklist.tool";
 import { UpdateChecklistTool } from "./tools/update-checklist.tool";
+import { FindChecklistsTool } from "./tools/find-checklists.tool";
 import { ListChecklistsTool } from "./tools/list-checklists.tool";
 import { GetChecklistTool } from "./tools/get-checklist.tool";
 import { CheckChecklistItemTool } from "./tools/check-checklist-item.tool";
@@ -47,6 +48,7 @@ import { RecurringChecklistItemsAdminController } from "./controllers/admin/recu
     ChecklistDueReminderService,
     AddChecklistTool,
     UpdateChecklistTool,
+    FindChecklistsTool,
     ListChecklistsTool,
     GetChecklistTool,
     CheckChecklistItemTool,
@@ -69,6 +71,7 @@ import { RecurringChecklistItemsAdminController } from "./controllers/admin/recu
     ChecklistDueReminderService,
     AddChecklistTool,
     UpdateChecklistTool,
+    FindChecklistsTool,
     ListChecklistsTool,
     GetChecklistTool,
     CheckChecklistItemTool,
