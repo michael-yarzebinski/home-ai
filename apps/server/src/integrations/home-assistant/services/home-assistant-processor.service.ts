@@ -171,15 +171,17 @@ export class HomeAssistantProcessor implements OnModuleInit {
     }
 
     try {
-      await this.orchestratorService.handleEvent(
+      const result = await this.orchestratorService.handleEvent(
         automationUser,
         prompt,
-        `automation:${device.slug}:${ruleOwnerUserId}`,
+        `automation:${device.slug}:${ruleOwnerUserId}:${traceId}`,
         modelType,
         { suppressToolEvents: false, traceId },
       );
 
-      await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
+      if (result.didExecuteActions) {
+        await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
+      }
     } catch (error: any) {
       await this.logStore.create({
         userId: automationUser.id,

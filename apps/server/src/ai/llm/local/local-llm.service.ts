@@ -130,6 +130,9 @@ export class LocalLLMService extends LLMServiceBase {
     return {
       role: msg.role,
       content,
+      ...(msg.images?.length
+        ? { images: msg.images.map((image) => image.data) }
+        : {}),
       tool_calls: msg.toolCalls?.map((tc) => ({
         function: {
           name: tc.name,

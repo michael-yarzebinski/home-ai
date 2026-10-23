@@ -5,7 +5,8 @@ import Redis from "ioredis";
 import { ClsService } from "nestjs-cls";
 import { LogStore } from "../../core/stores/monitoring/log/log.store";
 import { ToolRegistry } from "../../tools/registry/tool.registry";
-import { UnifiedMessage } from "../types/llm-query-params";
+import { UnifiedImage, UnifiedMessage } from "../types/llm-query-params";
+import { readToolResultImages } from "../../tools/default/image/tool-result-images";
 import { AppConfigService } from "../../core/services/app-config.service";
 import {
   ChatMessage,
@@ -39,6 +40,13 @@ export type OrchestratorHandleEventOptions = {
   traceId?: string;
 };
 
+export type OrchestratorTurnResult = {
+  sessionId: string;
+  response: string;
+  didExecuteActions: boolean;
+  error?: string;
+};
+
 @Injectable()
 export class OrchestratorService {
   constructor(
@@ -60,7 +68,7 @@ export class OrchestratorService {
     config: OrchestratorHandleEventOptions = {
       suppressToolEvents: false,
     },
-  ): Promise<any> {
+  ): Promise<OrchestratorTurnResult> {
     const traceId = config.traceId ?? createTraceId();
     return this.cls.run(async () => {
       this.cls.set("traceId", traceId);
@@ -78,264 +86,283 @@ export class OrchestratorService {
     externalId: string,
     modelType: LLMModelTypes,
     config: OrchestratorHandleEventOptions & { traceId: string },
-  ): Promise<any> {
-      const session = await this.conversationStore.getOrCreateSession(
-        externalId,
-        user,
+  ): Promise<OrchestratorTurnResult> {
+    const session = await this.conversationStore.getOrCreateSession(
+      externalId,
+      user,
+    );
+    const chatSessionId = session.id;
+    const timeZone = await this.appConfigService.getTimezone();
+    const traceId = config.traceId;
+
+    this.initializeClsContext(user, input, chatSessionId, timeZone, traceId);
+
+    const userMessage: ChatMessage = {
+      role: LLMRole.USER,
+      content: input,
+      timestamp: new Date(),
+    };
+    await this.conversationStore.addMessage(chatSessionId, userMessage, user);
+
+    const sessionWithUser = await this.conversationStore.getById(
+      chatSessionId,
+      user,
+    );
+    const history = sessionWithUser?.messages ?? [
+      ...session.messages,
+      userMessage,
+    ];
+
+    await this.writeLog({
+      userId: user.id,
+      severity: "info",
+      message: `Processing event for session: ${chatSessionId}`,
+      metadata: { input, chatSessionId, externalId },
+    });
+
+    const systemPrompt = await this.generateSystemPrompt(
+      user,
+      input,
+      timeZone,
+    );
+    const messages = this.assembleMessageContext(systemPrompt, history);
+    const toolSummaries: ToolSummary[] = [];
+    let didExecuteActions = false;
+
+    let loopCount = 0;
+    const MAX_STEPS =
+      (await this.appConfigService.getFromDb("LLM_MAX_TURNS")) || 10;
+
+    while (loopCount < MAX_STEPS) {
+      const authorizedTools =
+        await this.toolRegistry.getAvailableToolsForUser(user);
+      const llmTools = authorizedTools.map((t) => ({
+        name: t.name,
+        description: t.handler.description,
+        inputSchema: t.handler.parameters.shape,
+      }));
+
+      const response = await this.llmProviderService.query(
+        {
+          messages,
+          tools: llmTools,
+          context: {
+            userId: user.id,
+            chatSessionId,
+            originalPrompt: input,
+            traceId,
+          },
+        },
+        modelType,
       );
-      const chatSessionId = session.id;
-      const timeZone = await this.appConfigService.getTimezone();
-      const traceId = config.traceId;
-
-      this.initializeClsContext(user, input, chatSessionId, timeZone, traceId);
-
-      const userMessage: ChatMessage = {
-        role: LLMRole.USER,
-        content: input,
-        timestamp: new Date(),
-      };
-      await this.conversationStore.addMessage(chatSessionId, userMessage, user);
-
-      const sessionWithUser = await this.conversationStore.getById(
-        chatSessionId,
-        user,
-      );
-      const history = sessionWithUser?.messages ?? [
-        ...session.messages,
-        userMessage,
-      ];
 
       await this.writeLog({
         userId: user.id,
-        severity: "info",
-        message: `Processing event for session: ${chatSessionId}`,
-        metadata: { input, chatSessionId, externalId },
+        severity: "debug",
+        message: `LLM response received (turn ${loopCount + 1})`,
+        metadata: {
+          hasToolCalls: !!response.toolCalls?.length,
+          toolCount: response.toolCalls?.length || 0,
+          latency: response.latencyMs,
+        },
       });
 
-      const systemPrompt = await this.generateSystemPrompt(
-        user,
-        input,
-        timeZone,
-      );
-      const messages = this.assembleMessageContext(systemPrompt, history);
-      const toolSummaries: ToolSummary[] = [];
+      messages.push({
+        role: LLMRole.ASSISTANT,
+        content: response.content,
+        toolCalls: response.toolCalls,
+        metadata: response.metadata,
+      });
 
-      let loopCount = 0;
-      const MAX_STEPS =
-        (await this.appConfigService.getFromDb("LLM_MAX_TURNS")) || 10;
-
-      while (loopCount < MAX_STEPS) {
-        const authorizedTools =
-          await this.toolRegistry.getAvailableToolsForUser(user);
-        const llmTools = authorizedTools.map((t) => ({
-          name: t.name,
-          description: t.handler.description,
-          inputSchema: t.handler.parameters.shape,
-        }));
-
-        const response = await this.llmProviderService.query(
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        const finalContent =
+          typeof response.content === "string"
+            ? response.content
+            : JSON.stringify(response.content);
+        await this.conversationStore.addMessage(
+          chatSessionId,
           {
-            messages,
-            tools: llmTools,
-            context: {
-              userId: user.id,
-              chatSessionId,
-              originalPrompt: input,
-              traceId,
-            },
+            role: LLMRole.ASSISTANT,
+            content: finalContent,
+            timestamp: new Date(),
+            ...(toolSummaries.length > 0 ? { toolSummaries } : {}),
           },
-          modelType,
+          user,
         );
 
         await this.writeLog({
           userId: user.id,
-          severity: "debug",
-          message: `LLM response received (turn ${loopCount + 1})`,
-          metadata: {
-            hasToolCalls: !!response.toolCalls?.length,
-            toolCount: response.toolCalls?.length || 0,
-            latency: response.latencyMs,
-          },
+          severity: "info",
+          message: `Completed conversation turn for session: ${chatSessionId}`,
+          metadata: { loopCount },
         });
 
-        messages.push({
-          role: LLMRole.ASSISTANT,
-          content: response.content,
-          toolCalls: response.toolCalls,
-          metadata: response.metadata,
-        });
+        return { sessionId: chatSessionId, response: finalContent, didExecuteActions };
+      }
 
-        if (!response.toolCalls || response.toolCalls.length === 0) {
-          const finalContent =
-            typeof response.content === "string"
-              ? response.content
-              : JSON.stringify(response.content);
-          await this.conversationStore.addMessage(
-            chatSessionId,
-            {
-              role: LLMRole.ASSISTANT,
-              content: finalContent,
-              timestamp: new Date(),
-              ...(toolSummaries.length > 0 ? { toolSummaries } : {}),
-            },
-            user,
-          );
+      const turnImages: UnifiedImage[] = [];
+      for (const toolCall of response.toolCalls) {
+        const tool = await this.toolRegistry.getRegisteredTool(
+          toolCall.name,
+          user,
+        );
 
+        if (!tool) {
           await this.writeLog({
             userId: user.id,
-            severity: "info",
-            message: `Completed conversation turn for session: ${chatSessionId}`,
-            metadata: { loopCount },
+            severity: "warn",
+            message: `Tool not found or unauthorized: ${toolCall.name}`,
+            metadata: { toolCall, userRole: user.role },
           });
 
-          return { sessionId: chatSessionId, response: finalContent };
+          const notFound = `Error: Tool ${toolCall.name} not found.`;
+          this.recordToolSummary(toolSummaries, toolCall.name, notFound);
+          messages.push({
+            role: "tool",
+            name: toolCall.name,
+            toolCallId: toolCall.id,
+            content: notFound,
+            isError: true,
+          });
+          continue;
         }
 
-        for (const toolCall of response.toolCalls) {
-          const tool = await this.toolRegistry.getRegisteredTool(
-            toolCall.name,
+        // PERMISSION CHECKING
+        if (!tool.canWrite && !tool.canRequest) {
+          await this.writeLog({
+            userId: user.id,
+            severity: "warn",
+            message: `Access denied for tool: ${toolCall.name}`,
+            metadata: { toolCall, userRole: user.role },
+          });
+
+          const denied = `Error: Access denied for ${toolCall.name}.`;
+          this.recordToolSummary(toolSummaries, toolCall.name, denied);
+          messages.push({
+            role: "tool",
+            name: toolCall.name,
+            toolCallId: toolCall.id,
+            content: denied,
+            isError: true,
+          });
+          continue;
+        }
+
+        if (!tool.canWrite && tool.canRequest) {
+          const validatedArgs = tool.handler.parameters.parse(toolCall.args);
+          const toolResult = await this.escalateToPendingAction(
             user,
+            toolCall,
           );
+          const readableId = this.readApprovalId(toolResult);
 
-          if (!tool) {
-            await this.writeLog({
-              userId: user.id,
-              severity: "warn",
-              message: `Tool not found or unauthorized: ${toolCall.name}`,
-              metadata: { toolCall, userRole: user.role },
-            });
-
-            const notFound = `Error: Tool ${toolCall.name} not found.`;
-            this.recordToolSummary(toolSummaries, toolCall.name, notFound);
-            messages.push({
-              role: "tool",
-              name: toolCall.name,
-              toolCallId: toolCall.id,
-              content: notFound,
-              isError: true,
-            });
-            continue;
-          }
-
-          // PERMISSION CHECKING
-          if (!tool.canWrite && !tool.canRequest) {
-            await this.writeLog({
-              userId: user.id,
-              severity: "warn",
-              message: `Access denied for tool: ${toolCall.name}`,
-              metadata: { toolCall, userRole: user.role },
-            });
-
-            const denied = `Error: Access denied for ${toolCall.name}.`;
-            this.recordToolSummary(toolSummaries, toolCall.name, denied);
-            messages.push({
-              role: "tool",
-              name: toolCall.name,
-              toolCallId: toolCall.id,
-              content: denied,
-              isError: true,
-            });
-            continue;
-          }
-
-          if (!tool.canWrite && tool.canRequest) {
-            const validatedArgs = tool.handler.parameters.parse(toolCall.args);
-            const toolResult = await this.escalateToPendingAction(
-              user,
-              toolCall,
-            );
-
-            if (!config.suppressToolEvents) {
-              try {
-                const readableId = JSON.parse(toolResult).readableId;
-                await this.publishToolExecutionEvent({
-                  eventType: "tool-executed",
-                  userId: user.id,
-                  toolName: toolCall.name,
-                  argsSummary: validatedArgs,
-                  resultSummary: toolResult,
-                  approval: {
-                    pendingActionReadableId: readableId,
-                    action: "requested",
-                  },
-                });
-              } catch (err: any) {
-                await this.writeLog({
-                  userId: user.id,
-                  severity: "warn",
-                  message: `Failed to emit approval-requested tool event: ${err?.message ?? err}`,
-                  metadata: { toolCall, userRole: user.role },
-                });
-              }
-            }
-
-            this.recordToolSummary(toolSummaries, toolCall.name, toolResult);
-            messages.push({
-              role: "tool",
-              name: toolCall.name,
-              toolCallId: toolCall.id,
-              content: toolResult,
-            });
-            continue;
-          }
-
-          // Normal execution
-          try {
-            await this.writeLog({
-              userId: user.id,
-              severity: "info",
-              message: `Executing tool: ${toolCall.name}`,
-              metadata: { args: toolCall.args },
-            });
-
-            const validatedArgs = tool.handler.parameters.parse(toolCall.args);
-            const { result, contentString } = await this.runTool(
-              tool.handler,
-              validatedArgs,
-            );
-
-            if (!config.suppressToolEvents) {
+          if (!config.suppressToolEvents && readableId != null) {
+            try {
               await this.publishToolExecutionEvent({
                 eventType: "tool-executed",
                 userId: user.id,
                 toolName: toolCall.name,
                 argsSummary: validatedArgs,
-                resultSummary: result,
+                resultSummary: toolResult,
+                approval: {
+                  pendingActionReadableId: readableId,
+                  action: "requested",
+                },
+              });
+            } catch (err: any) {
+              await this.writeLog({
+                userId: user.id,
+                severity: "warn",
+                message: `Failed to emit approval-requested tool event: ${err?.message ?? err}`,
+                metadata: { toolCall, userRole: user.role },
               });
             }
+          }
 
-            this.recordToolSummary(toolSummaries, toolCall.name, contentString);
-            messages.push({
-              role: "tool",
-              name: toolCall.name,
-              toolCallId: toolCall.id,
-              content: contentString,
-            });
-          } catch (error: any) {
-            await this.writeLog({
+          this.recordToolSummary(toolSummaries, toolCall.name, toolResult);
+          messages.push({
+            role: "tool",
+            name: toolCall.name,
+            toolCallId: toolCall.id,
+            content: toolResult,
+            ...(readableId == null ? { isError: true } : {}),
+          });
+          continue;
+        }
+
+        // Normal execution
+        try {
+          await this.writeLog({
+            userId: user.id,
+            severity: "info",
+            message: `Executing tool: ${toolCall.name}`,
+            metadata: { args: toolCall.args },
+          });
+
+          const validatedArgs = tool.handler.parameters.parse(toolCall.args);
+          const { result, contentString, images } = await this.runTool(
+            tool.handler,
+            validatedArgs,
+          );
+          didExecuteActions = true;
+          turnImages.push(...images);
+
+          if (!config.suppressToolEvents) {
+            await this.publishToolExecutionEvent({
+              eventType: "tool-executed",
               userId: user.id,
-              severity: "error",
-              message: `Tool execution failed: ${toolCall.name}`,
-              metadata: { error: error.message, toolCall },
-            });
-
-            const errorMessage = JSON.stringify({
-              errorMessage: error.message,
-            });
-            this.recordToolSummary(toolSummaries, toolCall.name, errorMessage);
-            messages.push({
-              role: "tool",
-              name: toolCall.name,
-              toolCallId: toolCall.id,
-              content: errorMessage,
-              isError: true,
+              toolName: toolCall.name,
+              argsSummary: validatedArgs,
+              resultSummary: result,
             });
           }
-        }
-        loopCount++;
-      }
 
-      return this.handleTimeout(user, chatSessionId, loopCount, toolSummaries);
+          this.recordToolSummary(toolSummaries, toolCall.name, contentString);
+          messages.push({
+            role: "tool",
+            name: toolCall.name,
+            toolCallId: toolCall.id,
+            content: contentString,
+          });
+        } catch (error: any) {
+          await this.writeLog({
+            userId: user.id,
+            severity: "error",
+            message: `Tool execution failed: ${toolCall.name}`,
+            metadata: { error: error.message, toolCall },
+          });
+
+          const errorMessage = JSON.stringify({
+            errorMessage: error.message,
+          });
+          this.recordToolSummary(toolSummaries, toolCall.name, errorMessage);
+          messages.push({
+            role: "tool",
+            name: toolCall.name,
+            toolCallId: toolCall.id,
+            content: errorMessage,
+            isError: true,
+          });
+        }
+      }
+      if (turnImages.length > 0) {
+        messages.push({
+          role: "user",
+          content:
+            "The previous tool captured an image. Use that image when you respond.",
+          images: turnImages,
+        });
+      }
+      loopCount++;
+    }
+
+    return this.handleTimeout(
+      user,
+      chatSessionId,
+      loopCount,
+      toolSummaries,
+      didExecuteActions,
+    );
   }
 
   /**
@@ -370,18 +397,40 @@ export class OrchestratorService {
 
       return contentString;
     } catch (error: any) {
-      return `Failed to queue action for approval: ${error.message}`;
+      const errorMessage = `Failed to queue action for approval: ${error.message}`;
+      await this.writeLog({
+        userId: user.id,
+        severity: "error",
+        message: errorMessage,
+        metadata: { originalTool: toolCall.name, error: error.message },
+      });
+      return JSON.stringify({ errorMessage });
+    }
+  }
+
+  /** Approval receipts include a numeric readableId. Failures do not. */
+  private readApprovalId(toolResult: string): number | undefined {
+    try {
+      const readableId = JSON.parse(toolResult)?.readableId;
+      return typeof readableId === "number" ? readableId : undefined;
+    } catch {
+      return undefined;
     }
   }
 
   private async runTool(
     handler: ToolHandler,
     args: Record<string, unknown>,
-  ): Promise<{ result: unknown; contentString: string }> {
+  ): Promise<{
+    result: unknown;
+    contentString: string;
+    images: UnifiedImage[];
+  }> {
     const result = await handler.execute(args, this.getToolContext());
     return {
       result,
       contentString: JSON.stringify(result, null, 2),
+      images: readToolResultImages(result),
     };
   }
 
@@ -535,7 +584,8 @@ ${nowLocal} (${timeZone}).
     chatSessionId: string,
     loopCount: number,
     toolSummaries: ToolSummary[],
-  ) {
+    didExecuteActions: boolean,
+  ): Promise<OrchestratorTurnResult> {
     const timeoutError =
       "I've tried too many steps and had to stop. Could you try being more specific?";
     await this.writeLog({
@@ -557,6 +607,7 @@ ${nowLocal} (${timeZone}).
     return {
       sessionId: chatSessionId,
       response: timeoutError,
+      didExecuteActions,
       error: "MAX_STEPS_EXCEEDED",
     };
   }

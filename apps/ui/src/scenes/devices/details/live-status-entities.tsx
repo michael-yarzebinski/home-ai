@@ -37,28 +37,23 @@ function LiveStatusEntityRow({
 }) {
   const { domain } = parseHomeAssistantEntityId(entity.entityId);
   const label = formatHomeAssistantEntityName(entity.entityId, deviceSlug);
-  const hasDetails =
-    Boolean(entity.lastChanged) ||
-    (entity.attributes && Object.keys(entity.attributes).length > 0);
+  const hasAttributeDetails =
+    entity.attributes && Object.keys(entity.attributes).length > 0;
 
   return (
     <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2 space-y-2">
       <div className="flex items-center gap-1.5 min-w-0">
-        {hasDetails ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={onToggle}
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Hide entity details' : 'Show entity details'}
-          >
-            {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-          </Button>
-        ) : (
-          <span className="size-6 shrink-0" aria-hidden />
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Hide entity details' : 'Show entity id'}
+        >
+          {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+        </Button>
 
         <p className="min-w-0 flex-1 text-sm leading-snug">
           <span className="font-medium text-foreground">{label}</span>
@@ -69,8 +64,11 @@ function LiveStatusEntityRow({
         <EntityTypeBadge domain={domain} />
       </div>
 
-      {expanded && hasDetails && (
+      {expanded && (
         <div className="ml-7 space-y-2 border-t border-border/40 pt-2">
+          <p className="font-mono text-[10px] text-muted-foreground break-all">
+            {entity.entityId}
+          </p>
           {entity.lastChanged && (
             <p className="text-[10px] text-muted-foreground">
               Changed{' '}
@@ -83,7 +81,7 @@ function LiveStatusEntityRow({
               })}
             </p>
           )}
-          {entity.attributes && Object.keys(entity.attributes).length > 0 && (
+          {hasAttributeDetails && (
             <pre
               className={cn(
                 'text-[10px] font-mono text-muted-foreground overflow-x-auto',

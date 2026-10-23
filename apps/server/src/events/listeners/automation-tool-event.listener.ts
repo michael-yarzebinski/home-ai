@@ -149,10 +149,10 @@ export class AutomationToolEventListener
     const traceId = event.traceId ?? createTraceId();
 
     try {
-      await this.orchestratorService.handleEvent(
+      const result = await this.orchestratorService.handleEvent(
         this.automationUser,
         input,
-        `automation:tool-event:${ruleOwnerUserId}`,
+        `automation:tool-event:${ruleOwnerUserId}:${createTraceId()}`,
         LLMModelTypes.SOON,
         {
           suppressToolEvents: true,
@@ -160,7 +160,9 @@ export class AutomationToolEventListener
         },
       );
 
-      await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
+      if (result.didExecuteActions) {
+        await this.automationRuleStore.updateLastRun(rules.map((r) => r.id));
+      }
     } catch (error: any) {
       await this.logStore.create({
         traceId,
@@ -238,6 +240,7 @@ export class AutomationToolEventListener
     return candidates.filter((rule) => {
       if (
         rule.trigger.type !== TriggerType.TOOL_EVENT ||
+        rule.disabled ||
         !AutomationRuleUtils.isOffCooldown(rule) ||
         rule.userId === event.userId
       ) {

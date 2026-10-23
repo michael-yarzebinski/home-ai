@@ -38,6 +38,20 @@ const UpdateDeviceToolSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe("Any additional metadata to store with the device"),
+
+  ignoredEntityIds: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Home Assistant entity ids to ignore for automations, such as sensor.washer_remaining_time. Replaces the existing list. State changes are still recorded.",
+    ),
+
+  ignoreOffState: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, a state change to off is recorded but does not start an automation. Leave false when off is meaningful, such as a washer or dryer finishing.",
+    ),
 });
 
 export interface UpdateDeviceResult {
@@ -56,7 +70,7 @@ export class UpdateDeviceTool extends ToolHandler<
   readonly filterOnIsRecursiveCall = false;
 
   readonly description =
-    "Update a device registered in Home AI (friendly name, room, category, aliases, roles, or extra metadata).";
+    "Update a device registered in Home AI (friendly name, room, category, aliases, roles, ignored entity ids, off-state filtering, or extra metadata).";
 
   readonly parameters = UpdateDeviceToolSchema;
 
@@ -88,6 +102,8 @@ export class UpdateDeviceTool extends ToolHandler<
         readRoles: params.readRoles as Role[],
         writeRoles: params.writeRoles as Role[],
         extraMetadata: params.extraMetadata,
+        ignoredEntityIds: params.ignoredEntityIds,
+        ignoreOffState: params.ignoreOffState,
       },
       context.authUser,
     );

@@ -95,9 +95,22 @@ export class OpenAILLMService extends LLMServiceBase {
       };
     }
 
+    const content =
+      msg.images?.length && msg.role === "user"
+        ? [
+            { type: "text", text: msg.content },
+            ...msg.images.map((image) => ({
+              type: "image_url",
+              image_url: {
+                url: `data:${image.mimeType};base64,${image.data}`,
+              },
+            })),
+          ]
+        : msg.content;
+
     return {
       role: msg.role,
-      content: msg.content,
+      content,
       tool_calls: msg.toolCalls?.map((tc) => ({
         id: tc.id,
         type: "function",

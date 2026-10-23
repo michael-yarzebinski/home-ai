@@ -70,23 +70,27 @@ export function TraceDetail() {
     window.setTimeout(() => setCopied(false), 1500);
   };
 
+  const promptIsLong = !!detail?.prompt && (
+    detail.prompt.length > 220 || detail.prompt.split('\n').length > 3
+  );
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex-shrink-0 border-b border-border px-6 pt-6 pb-4">
         <Link
           to="/traces"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-3"
+          className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft size={12} /> All traces
         </Link>
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 flex-shrink-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/15">
               <GitBranch className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0">
               <h1 className="text-base font-semibold leading-tight">Turn trace</h1>
-              <p className="font-mono text-[11px] text-muted-foreground mt-0.5 break-all">
+              <p className="mt-0.5 break-all font-mono text-[11px] text-muted-foreground">
                 {traceId}
               </p>
             </div>
@@ -96,7 +100,7 @@ export function TraceDetail() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 text-xs flex-shrink-0"
+              className="h-8 flex-shrink-0 text-xs"
               onClick={() => void copyId()}
             >
               {copied ? (
@@ -109,64 +113,67 @@ export function TraceDetail() {
           )}
         </div>
         {detail && (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mt-3">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                <span>{formatSpan(detail.startedAt, detail.endedAt)}</span>
-                <span>
-                  {detail.logCount} log{detail.logCount === 1 ? '' : 's'}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+              <span>{formatSpan(detail.startedAt, detail.endedAt)}</span>
+              <span>
+                {detail.logCount} log{detail.logCount === 1 ? '' : 's'}
+              </span>
+              <span>
+                {detail.auditCount} LLM
+              </span>
+              {detail.errorCount > 0 ? (
+                <span className="font-medium text-destructive">
+                  {detail.errorCount} error{detail.errorCount === 1 ? '' : 's'}
                 </span>
-                <span>
-                  {detail.auditCount} LLM
-                </span>
-                {detail.errorCount > 0 ? (
-                  <span className="text-destructive font-medium">
-                    {detail.errorCount} error{detail.errorCount === 1 ? '' : 's'}
-                  </span>
-                ) : (
-                  <span>0 errors</span>
-                )}
-              </div>
-              {debugCount > 0 && (
-                <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
-                  <Switch checked={hideDebug} onCheckedChange={setHideDebug} />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    Hide debug ({debugCount})
-                  </span>
-                </label>
+              ) : (
+                <span>0 errors</span>
               )}
             </div>
-            {detail.prompt ? (
-              <div className="mt-3 max-w-3xl">
-                <p
-                  className={
-                    promptOpen
-                      ? 'text-sm text-foreground/90 whitespace-pre-wrap break-words'
-                      : 'text-sm text-foreground/90 whitespace-pre-wrap break-words line-clamp-3'
-                  }
-                >
-                  {detail.prompt}
-                </p>
-                {detail.prompt.length > 220 && (
-                  <button
-                    type="button"
-                    className="text-[11px] text-muted-foreground mt-1.5 hover:underline"
-                    onClick={() => setPromptOpen((v) => !v)}
-                  >
-                    {promptOpen ? 'Hide prompt' : 'Show full prompt'}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm mt-3 text-muted-foreground">
-                No LLM prompt recorded for this turn.
-              </p>
+            {debugCount > 0 && (
+              <label className="flex flex-shrink-0 cursor-pointer items-center gap-2">
+                <Switch checked={hideDebug} onCheckedChange={setHideDebug} />
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  Hide debug ({debugCount})
+                </span>
+              </label>
             )}
-          </>
+          </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-auto px-6 py-4">
+      {detail && (
+        <div className="flex-shrink-0 border-b border-border px-6 py-3">
+          {detail.prompt ? (
+            <div className="min-w-0">
+              <div
+                className={
+                  promptOpen
+                    ? 'max-h-[min(16rem,35vh)] overflow-y-auto text-sm text-foreground/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere]'
+                    : 'max-h-[4.5rem] overflow-hidden text-sm text-foreground/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere]'
+                }
+              >
+                {detail.prompt}
+              </div>
+              {promptIsLong && (
+                <button
+                  type="button"
+                  className="mt-1.5 text-[11px] text-muted-foreground hover:underline"
+                  onClick={() => setPromptOpen((v) => !v)}
+                >
+                  {promptOpen ? 'Hide prompt' : 'Show full prompt'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No LLM prompt recorded for this turn.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -178,7 +185,7 @@ export function TraceDetail() {
         ) : visibleTimeline.length === 0 ? (
           <p className="text-sm text-muted-foreground">No events match this filter.</p>
         ) : (
-          <ol className="space-y-3 max-w-3xl">
+          <ol className="min-w-0 space-y-3">
             {visibleTimeline.map((item, i) =>
               item.kind === 'log' ? (
                 <LogRow key={`log-${item.log.id}-${i}`} log={item.log} />
@@ -197,8 +204,8 @@ function LogRow({ log }: { log: Log }) {
   const [open, setOpen] = useState(false);
   const metadata = hasContent(log.metadata);
   return (
-    <li className="rounded-md border border-border p-3">
-      <div className="flex items-center gap-2 mb-1">
+    <li className="min-w-0 overflow-hidden rounded-md border border-border p-3">
+      <div className="mb-1 flex items-center gap-2">
         <Badge variant={String(log.severity).toLowerCase().includes('error') ? 'destructive' : 'secondary'}>
           {log.severity}
         </Badge>
@@ -206,7 +213,7 @@ function LogRow({ log }: { log: Log }) {
           {new Date(log.createdAt).toLocaleTimeString()}
         </span>
       </div>
-      <p className="text-sm">{log.message}</p>
+      <p className="break-words text-sm [overflow-wrap:anywhere]">{log.message}</p>
       {metadata && (
         <>
           <button
@@ -217,7 +224,7 @@ function LogRow({ log }: { log: Log }) {
             {open ? 'Hide metadata' : 'Show metadata'}
           </button>
           {open && (
-            <pre className="mt-2 text-[11px] overflow-auto rounded bg-muted p-2">
+            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-2 text-[11px] [overflow-wrap:anywhere]">
               {JSON.stringify(log.metadata, null, 2)}
             </pre>
           )}
@@ -231,8 +238,8 @@ function AuditRow({ audit }: { audit: AIAudit }) {
   const [open, setOpen] = useState(false);
   const toolCalls = hasContent(audit.toolCalls);
   return (
-    <li className="rounded-md border border-border p-3 bg-card">
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
+    <li className="min-w-0 overflow-hidden rounded-md border border-border bg-card p-3">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
         <Badge variant={audit.success ? 'default' : 'destructive'}>
           LLM {audit.success ? 'ok' : 'failed'}
         </Badge>
@@ -246,7 +253,7 @@ function AuditRow({ audit }: { audit: AIAudit }) {
           {new Date(audit.createdAt).toLocaleTimeString()}
         </span>
       </div>
-      <p className="text-sm whitespace-pre-wrap">{audit.finalResponse || '—'}</p>
+      <p className="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{audit.finalResponse || '—'}</p>
       {toolCalls && (
         <>
           <button
@@ -257,7 +264,7 @@ function AuditRow({ audit }: { audit: AIAudit }) {
             {open ? 'Hide tool calls' : 'Show tool calls'}
           </button>
           {open && (
-            <pre className="mt-2 text-[11px] overflow-auto rounded bg-muted p-2">
+            <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-2 text-[11px] [overflow-wrap:anywhere]">
               {JSON.stringify(audit.toolCalls, null, 2)}
             </pre>
           )}

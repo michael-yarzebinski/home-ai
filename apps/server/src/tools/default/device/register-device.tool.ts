@@ -59,6 +59,20 @@ const RegisterDeviceToolSchema = z.object({
       "Roles that can control this device. If omitted, defaults to current user's role.",
     ),
 
+  ignoredEntityIds: z
+    .preprocess(ToolParameterUtils.toStringArray, z.array(z.string()))
+    .optional()
+    .describe(
+      "Home Assistant entity ids whose state changes should not trigger automations, such as sensor.washer_remaining_time.",
+    ),
+
+  ignoreOffState: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, a state change to off is recorded but does not start an automation. Leave false when off is meaningful, such as a washer or dryer finishing.",
+    ),
+
   llmModelType: z
     .preprocess(
       (v) =>
@@ -118,6 +132,8 @@ export class RegisterDeviceTool extends ToolHandler<
         readRoles,
         writeRoles,
         llmModelType: params.llmModelType ?? LLMModelType.SOON,
+        ignoredEntityIds: params.ignoredEntityIds ?? [],
+        ignoreOffState: params.ignoreOffState ?? false,
         extraMetadata: {},
       },
       context.authUser,

@@ -5,6 +5,7 @@ import { HomeAssistantService } from "../../../integrations/home-assistant/servi
 import type { ToolContext } from "../../types/tool-context";
 import { Injectable } from "@nestjs/common";
 import { Tool } from "src/tools/decorators/tool.decorator";
+import { ToolParameterUtils } from "src/tools/utils/tool-parameter-utils";
 
 const ExecuteDeviceServiceToolSchema = z.object({
   deviceId: z
@@ -27,10 +28,12 @@ const ExecuteDeviceServiceToolSchema = z.object({
     ),
 
   data: z
-    .record(z.string(), z.any())
-    .optional()
+    .preprocess(
+      (value) => ToolParameterUtils.toObject(value, {}),
+      z.record(z.string(), z.any()).optional(),
+    )
     .describe(
-      'Optional data/parameters to pass to the service (e.g. {"entity_id": "light.bedroom_lights", "brightness": 255})',
+      'Optional service data as a JSON object (e.g. {"entity_id": "light.bedroom_lights", "brightness": 255}). A JSON string is parsed into an object before it is sent to Home Assistant.',
     ),
 });
 
@@ -51,13 +54,12 @@ export class ExecuteDeviceServiceTool extends ToolHandler<
 
   readonly description =
     "Call a Home Assistant service for a device registered in Home AI (e.g. light.turn_on, switch.turn_off). " +
-    "Use list-devices to resolve `deviceId` if needed; call get-device-state first to see available services.";
+    "Use list-devices to resolve `deviceId` if needed; call get-device-state first to see available services. " +
+    "When the service depends on an image, call it on a later step, after you have received that image.";
 
   readonly parameters = ExecuteDeviceServiceToolSchema;
 
-  constructor(
-    private readonly haService: HomeAssistantService,
-  ) {
+  constructor(private readonly haService: HomeAssistantService) {
     super();
   }
 

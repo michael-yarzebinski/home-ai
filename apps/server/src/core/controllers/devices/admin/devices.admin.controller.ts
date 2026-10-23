@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
 } from "@nestjs/common";
 import { DeviceStore } from "../../../stores/device/device.store";
 import { Roles } from "../../../../common/decorators/roles.decorator";
@@ -19,6 +20,10 @@ import {
 
 import { AuthUser } from "../../../auth/jwt.strategy";
 import { CurrentUser } from "../../../../common/decorators/current-user.decorator";
+import {
+  UpdatableDeviceSchema,
+  type UpdatableDevice,
+} from "@home-ai/shared/domain/device/device";
 
 @Controller("v1/admin/devices")
 @Roles(Role.ADMIN)
@@ -32,6 +37,15 @@ export class DevicesAdminController {
     @CurrentUser() authUser: AuthUser,
   ) {
     return this.deviceStore.search(dto, authUser);
+  }
+
+  @Put(":id")
+  update(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(UpdatableDeviceSchema)) dto: UpdatableDevice,
+    @CurrentUser() authUser: AuthUser,
+  ) {
+    return this.deviceStore.update(id, dto, authUser);
   }
 
   @Get(":id")

@@ -4,6 +4,12 @@ export interface UnifiedMessageMetadata {
   thoughtSignature?: string; // For Gemini 3.1+ reasoning chains
 }
 
+export interface UnifiedImage {
+  mimeType: string;
+  /** Raw base64, without a data: URL prefix. */
+  data: string;
+}
+
 export interface UnifiedMessage {
   role: MessageRole;
   content: string;
@@ -12,6 +18,8 @@ export interface UnifiedMessage {
   toolCalls?: UnifiedToolCall[];
   // Used for 'tool' role to provide the result back to the LLM
   toolCallId?: string;
+  /** Vision input. Providers map this to image parts; tool messages stay text. */
+  images?: UnifiedImage[];
   metadata?: UnifiedMessageMetadata;
   isError?: boolean;
 }

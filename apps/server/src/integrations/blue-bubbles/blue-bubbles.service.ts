@@ -29,7 +29,7 @@ export class BlueBubblesService {
   @Trace()
   async sendMessage(to: string, message: string): Promise<void> {
     const payload = {
-      chatGuid: to.includes(";") ? to : `any;-;+${to.replace("+", "")}`,
+      chatGuid: this.chatGuid(to),
       message,
       tempGuid: v4(),
       method: "private-api",
@@ -44,6 +44,46 @@ export class BlueBubblesService {
       message: `BlueBubbles message sent`,
       metadata: { to, messageLength: message.length },
     });
+  }
+
+  @Trace()
+  async sendAttachment(
+    to: string,
+    message: string,
+    fileName: string,
+    bytes: Buffer,
+    mimeType: string,
+  ): Promise<void> {
+    const form = new FormData();
+    form.append("chatGuid", this.chatGuid(to));
+    form.append("tempGuid", v4());
+    form.append("method", "private-api");
+    form.append("name", fileName);
+    form.append(
+      "attachment",
+      new Blob([new Uint8Array(bytes)], { type: mimeType }),
+      fileName,
+    );
+
+    await axios.post(this.getAuthUrl("/api/v1/message/attachment"), form);
+
+    await this.logStore.create({
+      traceId: currentTraceId(),
+      userId: undefined,
+      severity: "info",
+      message: `BlueBubbles attachment sent`,
+      metadata: { to, fileName, messageLength: message.length },
+    });
+
+    // Private API attachment sends leave the iMessage text empty, so the caption goes out on its own.
+    const caption = message.trim();
+    if (caption) {
+      await this.sendMessage(to, caption);
+    }
+  }
+
+  private chatGuid(to: string): string {
+    return to.includes(";") ? to : `any;-;+${to.replace("+", "")}`;
   }
 
   /**

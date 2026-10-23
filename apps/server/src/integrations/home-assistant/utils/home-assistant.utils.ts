@@ -8,15 +8,37 @@ export class HomeAssistantUtils {
   }
 
   static getMatchingDeviceByEntityId(devices: Device[], entityId: string) {
-    return devices.find((d) =>
-      HomeAssistantUtils.doesDeviceSlugMatchEntityId(d.slug, entityId),
+    const matches = devices.filter((device) =>
+      HomeAssistantUtils.doesDeviceSlugMatchEntityId(device.slug, entityId),
     );
+    matches.sort((a, b) => b.slug.length - a.slug.length);
+    return matches[0];
   }
 
   static filterAutomationRules(
     automationRules: AutomationRule[],
   ) {
-    // Rule cooldown is the only remaining rate-limit gate for DEVICE triggers.
-    return automationRules.filter((ar) => AutomationRuleUtils.isOffCooldown(ar));
+    return automationRules.filter(
+      (ar) => !ar.disabled && AutomationRuleUtils.isOffCooldown(ar),
+    );
+  }
+
+  /** When enabled on the device, an "off" transition is stored and does not start an automation. */
+  static isOffStateSkipped(device: Pick<Device, "ignoreOffState">, newState: string) {
+    return device.ignoreOffState === true && newState.trim().toLowerCase() === "off";
+  }
+
+  /**
+   * True when this entity id is on the device's ignore list.
+   * Matching is case-insensitive and ignores surrounding whitespace.
+   */
+  static isIgnoredEntity(device: Pick<Device, "ignoredEntityIds">, entityId: string) {
+    const normalizedEntityId = entityId.trim().toLowerCase();
+    if (!normalizedEntityId) {
+      return false;
+    }
+    return (device.ignoredEntityIds ?? []).some(
+      (id) => id.trim().toLowerCase() === normalizedEntityId,
+    );
   }
 }

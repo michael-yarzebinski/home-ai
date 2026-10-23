@@ -57,10 +57,18 @@ export class GeminiLLMService extends LLMServiceBase {
       },
     });
 
-    // 2. Convert UnifiedMessages to Gemini "Content" format
-    const contents: Content[] = params.messages.map((msg) =>
-      this.mapMessageToContent(msg),
-    );
+    // 2. Convert UnifiedMessages to Gemini "Content" format.
+    // An image follows the tool result as another user turn. Gemini wants those parts together.
+    const contents: Content[] = [];
+    for (const msg of params.messages) {
+      const content = this.mapMessageToContent(msg);
+      const previous = contents[contents.length - 1];
+      if (previous && previous.role === content.role && msg.images?.length) {
+        previous.parts.push(...(content.parts ?? []));
+        continue;
+      }
+      contents.push(content);
+    }
 
     // 3. Send Request
     const result = await model.generateContent({ contents });
@@ -188,6 +196,29 @@ export class GeminiLLMService extends LLMServiceBase {
   }
 
   /**
+   * Gemini function responses must be JSON objects. A plain error sentence
+   * is returned as errorMessage so the model can see the failure.
+   */
+  private toolResponseObject(content: unknown): Record<string, unknown> {
+    if (typeof content !== "string") {
+      if (content && typeof content === "object" && !Array.isArray(content)) {
+        return content as Record<string, unknown>;
+      }
+      return { result: content ?? null };
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+      return { result: parsed };
+    } catch {
+      return { errorMessage: content };
+    }
+  }
+
+  /**
    * Handles Thought Signatures for Gemini 3.1
    */
   private mapMessageToContent(msg: UnifiedMessage): Content {
@@ -199,10 +230,7 @@ export class GeminiLLMService extends LLMServiceBase {
       parts.push({
         functionResponse: {
           name: msg.name!,
-          response:
-            typeof msg.content === "string"
-              ? JSON.parse(msg.content)
-              : msg.content,
+          response: this.toolResponseObject(msg.content),
         },
       });
       return { role, parts };
@@ -234,6 +262,14 @@ export class GeminiLLMService extends LLMServiceBase {
 
     // 3. TEXT TURN
     parts.push({ text: msg.content || "" });
+    for (const image of msg.images ?? []) {
+      parts.push({
+        inlineData: {
+          mimeType: image.mimeType,
+          data: image.data,
+        },
+      });
+    }
     return { role, parts };
   }
 

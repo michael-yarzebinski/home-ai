@@ -84,6 +84,7 @@ export const AutomationRuleSchema = z.object({
   actions: z.array(AutomationActionSchema),
   cooldownMinutes: z.number(),
   lastRun: z.date().optional(),
+  disabled: z.boolean().default(false),
   active: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),

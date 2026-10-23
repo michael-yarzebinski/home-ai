@@ -23,6 +23,7 @@ export interface AutomationRuleRecord {
   trigger: any; // Raw JSONB
   actions: any; // Raw JSONB
   cooldown_minutes: number;
+  disabled?: boolean | null;
   last_run: Date | null;
   created_at: Date;
   updated_at: Date;
@@ -56,6 +57,7 @@ export class AutomationRuleStore extends AbstractEntityStore<
       trigger: trigger,
       actions: record.actions as AutomationAction[],
       cooldownMinutes: record.cooldown_minutes,
+      disabled: record.disabled === true,
       lastRun: record.last_run ?? undefined,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -73,6 +75,7 @@ export class AutomationRuleStore extends AbstractEntityStore<
       trigger: domain.trigger,
       actions: domain.actions,
       cooldown_minutes: domain.cooldownMinutes,
+      disabled: domain.disabled,
       last_run: domain.lastRun || null,
       active: domain.active,
       created_at: domain.createdAt,
@@ -140,7 +143,9 @@ export class AutomationRuleStore extends AbstractEntityStore<
     triggerType: TriggerType,
     deviceId?: string,
   ): Promise<AutomationRule[]> {
-    let query = this.active.whereRaw("trigger->>'type' = ?", [triggerType]);
+    let query = this.active
+      .where("disabled", false)
+      .whereRaw("trigger->>'type' = ?", [triggerType]);
 
     if (deviceId) {
       query = query.andWhere((builder) => {

@@ -28,6 +28,22 @@ import { HomeAssistantProcessor } from "./home-assistant-processor.service";
 import { Trace } from "../../../common/decorators/trace.decorator";
 import { currentTraceId } from "../../../common/trace-id";
 
+const HA_HTTP_MAX_BYTES = 8 * 1024 * 1024;
+
+export type HomeAssistantHttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+
+export interface HomeAssistantHttpRequest {
+  path: string;
+  method?: HomeAssistantHttpMethod;
+  body?: unknown;
+}
+
+export interface HomeAssistantHttpResponse {
+  status: number;
+  contentType: string | null;
+  body: Buffer;
+}
+
 @Injectable()
 export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
   private connection: Connection | null = null;
@@ -94,6 +110,27 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
         attributes: event.data.new_state.attributes,
       },
     });
+
+    if (HomeAssistantUtils.isIgnoredEntity(matchingDevice, entityId)) {
+      await this.logStore.create({
+        traceId: currentTraceId(),
+        severity: "info",
+        message: `Ignored entity ${entityId} for device ${matchingDevice.id}; automation skipped`,
+        metadata: { deviceId: matchingDevice.id, entityId },
+      });
+      return;
+    }
+
+    const newStateValue = newState?.state || "unknown";
+    if (HomeAssistantUtils.isOffStateSkipped(matchingDevice, newStateValue)) {
+      await this.logStore.create({
+        traceId: currentTraceId(),
+        severity: "info",
+        message: `Off state for ${entityId} on device ${matchingDevice.id}; automation skipped`,
+        metadata: { deviceId: matchingDevice.id, entityId, newState: newStateValue },
+      });
+      return;
+    }
 
     const automationRules =
       await this.getStateChangeAutomationRules(matchingDevice);
@@ -187,6 +224,69 @@ export class HomeAssistantService implements OnModuleInit, OnModuleDestroy {
     });
 
     return callService(this.connection, domain, service, serviceData);
+  }
+
+  /**
+   * HTTP request to this Home Assistant instance.
+   * `path` is a path such as `/api/states`, or an absolute URL on the same origin.
+   */
+  @Trace()
+  async request(input: HomeAssistantHttpRequest): Promise<HomeAssistantHttpResponse> {
+    const method = input.method ?? "GET";
+    const raw = this.appConfigService.getFromEnv<string>("HOME_ASSISTANT_URL");
+    const origin = new URL(raw.replace(/^ws(s)?:\/\//, "http$1://")).origin;
+    const trimmed = input.path.trim();
+    let url: URL;
+    try {
+      url = trimmed.startsWith("/")
+        ? new URL(trimmed, `${origin}/`)
+        : new URL(trimmed);
+    } catch {
+      throw new Error("Home Assistant path or URL is invalid.");
+    }
+    if (url.origin !== origin) {
+      throw new Error("URL must point at this Home Assistant instance.");
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.appConfigService.getFromEnv<string>("HOME_ASSISTANT_TOKEN")}`,
+    };
+    let body: string | undefined;
+    if (input.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      body = typeof input.body === "string" ? input.body : JSON.stringify(input.body);
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error(
+        `Home Assistant redirect was not followed for ${method} ${url.pathname}`,
+      );
+    }
+
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > HA_HTTP_MAX_BYTES) {
+      throw new Error("Home Assistant response is larger than 8 MB.");
+    }
+
+    await this.logStore.create({
+      traceId: currentTraceId(),
+      severity: "info",
+      message: `Home Assistant HTTP ${method} ${url.pathname}`,
+      metadata: { method, pathname: url.pathname, status: response.status },
+    });
+
+    return {
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      body: bytes,
+    };
   }
 
   private async connect() {

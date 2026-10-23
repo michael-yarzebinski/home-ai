@@ -1,3 +1,5 @@
+import { promises as fs } from "fs";
+import { basename, extname, resolve, sep } from "path";
 import { Injectable } from "@nestjs/common";
 import type { User } from "@home-ai/shared/domain/user/user";
 import { isInQuietHours } from "@home-ai/shared/common/quiet-hours";
@@ -14,6 +16,7 @@ import { currentTraceId } from "../../common/trace-id";
 
 export type NotifyUserOptions = {
   skipQuietHours?: boolean;
+  fileName?: string;
 };
 
 @Injectable()
@@ -96,6 +99,7 @@ export class NotificationService {
       await this.notificationQueueStore.create({
         userId: toNotifyUserId,
         message,
+        fileName: options.fileName,
       });
       await this.logStore.create({
         traceId: currentTraceId(),
@@ -107,7 +111,7 @@ export class NotificationService {
       return;
     }
 
-    await this.send(user, message);
+    await this.send(user, message, options.fileName);
   }
 
   /** Sends pending queue rows. Still-quiet rows stay pending and are checked again next hour. */
@@ -156,7 +160,7 @@ export class NotificationService {
           continue;
         }
 
-        await this.send(user, notification.message);
+        await this.send(user, notification.message, notification.fileName);
         await this.notificationQueueStore.markAsSent(notification.id);
         sent += 1;
 
@@ -219,15 +223,75 @@ export class NotificationService {
   }
 
   /** iMessage now, then record it in the notification log. */
-  private async send(user: User, message: string): Promise<void> {
+  private async send(
+    user: User,
+    message: string,
+    fileName?: string,
+  ): Promise<void> {
     if (!user.phoneNumber) {
       throw new Error(`User ${user.id} has no phone number`);
     }
 
-    await this.blueBubblesService.sendMessage(user.phoneNumber, message);
+    if (fileName) {
+      const snapshot = await this.readSnapshot(fileName);
+      await this.blueBubblesService.sendAttachment(
+        user.phoneNumber,
+        message,
+        snapshot.fileName,
+        snapshot.bytes,
+        snapshot.mimeType,
+      );
+    } else {
+      await this.blueBubblesService.sendMessage(user.phoneNumber, message);
+    }
+
     await this.notificationLogStore.create({
       userId: user.id,
       message,
     });
+  }
+
+  private async readSnapshot(
+    filename: string,
+  ): Promise<{ fileName: string; bytes: Buffer; mimeType: string }> {
+    const fileName = basename(filename.trim());
+    if (!fileName || fileName === "." || fileName === "..") {
+      throw new Error("Notification image filename is required.");
+    }
+
+    const snapshotsDir = resolve(
+      this.appConfigService.getFromEnv<string>("ATTACHMENTS_DIRECTORY"),
+      "snapshots",
+    );
+    const filePath = resolve(snapshotsDir, fileName);
+    if (!filePath.startsWith(snapshotsDir + sep)) {
+      throw new Error("Snapshot path is outside the snapshots directory.");
+    }
+
+    let bytes: Buffer;
+    try {
+      bytes = await fs.readFile(filePath);
+    } catch {
+      throw new Error(`Snapshot file not found: ${fileName}`);
+    }
+
+    return {
+      fileName,
+      bytes,
+      mimeType: mimeTypeFor(fileName),
+    };
+  }
+}
+
+function mimeTypeFor(fileName: string): string {
+  switch (extname(fileName).toLowerCase()) {
+    case ".png":
+      return "image/png";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
+    default:
+      return "image/jpeg";
   }
 }

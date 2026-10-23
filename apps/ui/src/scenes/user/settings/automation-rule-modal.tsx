@@ -18,6 +18,7 @@ import { CronScheduleField } from '@/components/form/fields/general/cron-schedul
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useDeviceSearch } from '@/api/devices/devices.hooks';
 
@@ -53,6 +54,7 @@ interface FormValues {
   name: string;
   description: string;
   cooldownMinutes: number | string;
+  disabled: boolean;
   // Trigger
   triggerType: TriggerType;
   // TIME
@@ -84,6 +86,7 @@ const schema = z
     name: z.string().min(1, 'Name is required'),
     description: z.string(),
     cooldownMinutes: z.coerce.number().int().nonnegative('Must be ≥ 0'),
+    disabled: z.boolean(),
     triggerType: z.nativeEnum(TriggerType),
     cron: z.string(),
     timezone: z.string(),
@@ -127,6 +130,7 @@ function ruleToFormValues(rule: Record<string, unknown>): FormValues {
     name: String(rule['name'] ?? ''),
     description: String(rule['description'] ?? ''),
     cooldownMinutes: Number(rule['cooldownMinutes'] ?? 60),
+    disabled: rule['disabled'] === true,
     triggerType,
     // TIME
     cron: triggerType === TriggerType.TIME ? String(trigger['cron'] ?? '') : '',
@@ -146,6 +150,7 @@ function blankFormValues(): FormValues {
     name: '',
     description: '',
     cooldownMinutes: 60,
+    disabled: false,
     triggerType: TriggerType.TIME,
     cron: '0 0 * * *',
     timezone: 'America/Chicago',
@@ -175,6 +180,7 @@ function formToRule(values: FormValues): Partial<AutomationRule> {
     name: values.name,
     description: values.description || undefined,
     cooldownMinutes: Number(values.cooldownMinutes),
+    disabled: values.disabled,
     trigger,
     actions: values.actions.map((a, i) => ({
       id: a.tempId.startsWith('tmp_') ? `act_${Date.now()}_${i}` : a.tempId,
@@ -308,6 +314,7 @@ export function AutomationRuleModal({
           <div className="flex items-center gap-2.5 pr-6">
             <DialogTitle className="flex-1 truncate">{title}</DialogTitle>
             {!isActive && <Badge variant="muted">Inactive</Badge>}
+            {form.watch('disabled') && <Badge variant="outline">Disabled</Badge>}
           </div>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
@@ -350,6 +357,24 @@ export function AutomationRuleModal({
               />
               <FieldHint>Minimum wait between executions</FieldHint>
             </Field>
+
+            <Controller
+              name="disabled"
+              control={form.control}
+              render={({ field }) => (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-1">
+                    <Label>Disabled</Label>
+                    <FieldHint>The rule stays in this list and does not run.</FieldHint>
+                  </div>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isReadOnly}
+                  />
+                </div>
+              )}
+            />
           </Section>
 
           {/* ── Trigger ── */}

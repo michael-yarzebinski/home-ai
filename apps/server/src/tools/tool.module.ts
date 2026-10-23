@@ -6,6 +6,8 @@ import { CoreModule } from "src/core/core.module";
 import { FeaturesModule } from "src/features/features.module";
 import { DiscoverDevicesTool } from "./default/device/discover-device.tool";
 import { ExecuteDeviceServiceTool } from "./default/device/execute-device-service.tool";
+import { CallHomeAssistantTool } from "./default/image/call-home-assistant.tool";
+import { SaveImageTool } from "./default/image/save-image.tool";
 import { GetDeviceStateTool } from "./default/device/get-device-state.tool";
 import { GetDeviceEventHistoryTool } from "./default/device/get-device-event-history.tool";
 import { ListDevicesTool } from "./default/device/list-devices.tool";
@@ -36,6 +38,8 @@ import { AIModule } from "../ai/ai.module";
     // Tools
     DiscoverDevicesTool,
     ExecuteDeviceServiceTool,
+    CallHomeAssistantTool,
+    SaveImageTool,
     GetDeviceStateTool,
     GetDeviceEventHistoryTool,
     ListDevicesTool,

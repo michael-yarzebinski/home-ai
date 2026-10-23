@@ -92,6 +92,7 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - OLLAMA_HOST=http://host.docker.internal:11434
+      - ATTACHMENTS_DIRECTORY=/app/local-data
       - RELAY_URL=http://host.docker.internal:3100
       - BLUEBUBBLES_URL=http://host.docker.internal:1234
       - HOME_ASSISTANT_URL=http://host.docker.internal:8123
@@ -99,7 +100,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./attachments:/app/attachments
+      - ./local-data:/app/local-data
       - ./.env:/app/.env:ro
       - ./home_ai_id_rsa:/root/.ssh/id_ed25519:ro
     depends_on:
@@ -138,6 +139,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./homeassistant:/config
+      - ./local-data/snapshots:/snapshots
     ports:
       - "8123:8123"
     privileged: true

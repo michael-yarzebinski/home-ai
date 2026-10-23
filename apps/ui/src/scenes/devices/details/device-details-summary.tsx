@@ -97,6 +97,32 @@ export function DeviceDetailsSummary({
             <RoleBadgeGroup roles={device.writeRoles as Role[]} />
           </div>
 
+          <div className="sm:col-span-2 xl:col-span-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
+              Ignored entities
+            </p>
+            {(device.ignoredEntityIds ?? []).length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {device.ignoredEntityIds.map((entityId) => (
+                  <Badge key={entityId} variant="outline" className="font-mono font-normal">
+                    {entityId}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No entities ignored.</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
+              Off state
+            </p>
+            <Badge variant="outline" className="font-normal">
+              {device.ignoreOffState ? 'Skipped' : 'Runs automations'}
+            </Badge>
+          </div>
+
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
               Automation LLM

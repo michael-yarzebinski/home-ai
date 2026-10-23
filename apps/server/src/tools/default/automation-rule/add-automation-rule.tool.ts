@@ -71,6 +71,9 @@ const AddAutomationRuleSchema = z.object({
     .describe(
       "Minimum minutes between rule executions. Optional; defaults to 60.",
     ),
+  disabled: z
+    .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
+    .describe("When true, create the rule turned off. It stays saved and does not run."),
 });
 
 @Tool()
@@ -104,6 +107,7 @@ export class AddAutomationRuleTool extends ToolHandler<
         trigger,
         actions: params.actions.map((a) => ({ ...a, id: crypto.randomUUID() })),
         cooldownMinutes: params.cooldownMinutes,
+        disabled: params.disabled ?? false,
       },
       context.authUser,
     );

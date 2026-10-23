@@ -3,12 +3,6 @@ import { z } from 'zod';
 import { Role } from '@home-ai/shared/domain/role/role';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import {
-  MOCK_AI_AUDITS, MOCK_AUDITS, MOCK_APP_CONFIGS, MOCK_AUTOMATION_RULES,
-  MOCK_CALENDARS, MOCK_DEVICES, MOCK_FACTS, MOCK_LOGS, MOCK_NOTES,
-  MOCK_NOTIFICATION_LOGS, MOCK_NOTIFICATION_QUEUE,
-  MOCK_RECIPES, MOCK_TOOLS, MOCK_USERS,
-} from '@/mock/entity-data';
 
 // ---------------------------------------------------------------------------
 // Config types
@@ -55,8 +49,6 @@ export interface EntityConfig {
   formFields?: FormFieldDef[];
   formSchema?: z.ZodTypeAny;
   defaultFormValues?: () => Record<string, unknown>;
-  /** Legacy mock data — kept for backwards compat, not used in live mode */
-  mockData?: () => Record<string, unknown>[];
   quickAction?: QuickAction;
 }
 
@@ -135,7 +127,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'AI Audit',
     pluralLabel: 'AI Audits',
     isMonitoring: true,
-    mockData: () => MOCK_AI_AUDITS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'User', key: 'userId', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Message', key: 'userMessage', render: (v) => truncate(v, 52) },
@@ -163,7 +154,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'Audit',
     pluralLabel: 'Audit Logs',
     isMonitoring: true,
-    mockData: () => MOCK_AUDITS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Type', key: 'entityType', render: (v) => <Badge variant="outline">{String(v)}</Badge> },
       { header: 'Entity ID', key: 'entityId', render: (v) => <span className="font-mono text-xs">{truncate(v, 20)}</span> },
@@ -180,7 +170,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'Log',
     pluralLabel: 'System Logs',
     isMonitoring: true,
-    mockData: () => MOCK_LOGS as unknown as Record<string, unknown>[],
     columns: [
       {
         header: 'Severity', key: 'severity',         render: (v) => {
@@ -221,7 +210,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'Notification Log',
     pluralLabel: 'Notification Logs',
     isMonitoring: true,
-    mockData: () => MOCK_NOTIFICATION_LOGS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'User', key: 'userId', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Message', key: 'message', render: (v) => truncate(v, 60) },
@@ -236,7 +224,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'app-config',
     label: 'App Config',
     pluralLabel: 'App Configs',
-    mockData: () => MOCK_APP_CONFIGS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Key', key: 'key', render: (v) => <span className="font-mono text-xs text-primary">{String(v)}</span> },
       { header: 'Value', key: 'value', render: (v) => <span className="font-mono text-xs">{truncate(JSON.stringify(v), 40)}</span> },
@@ -259,7 +246,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'automation-rules',
     label: 'Automation Rule',
     pluralLabel: 'Automation Rules',
-    mockData: () => MOCK_AUTOMATION_RULES as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Name', key: 'name', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Description', key: 'description', render: (v) => v ? truncate(v, 50) : <span className="text-muted-foreground">—</span> },
@@ -286,6 +272,13 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       },
       { header: 'Actions', key: 'actions', render: (v) => <>{Array.isArray(v) ? v.length : 0}</> },
       { header: 'Cooldown', key: 'cooldownMinutes', render: (v) => <>{v != null ? `${v}m` : '—'}</> },
+      {
+        header: 'Disabled',
+        key: 'disabled',
+        render: (v) => v
+          ? <Badge variant="outline">Yes</Badge>
+          : <span className="text-muted-foreground text-xs">No</span>,
+      },
       { header: 'Last Run', key: 'lastRun', render: (v) => v ? fmtRelative(v) : <span className="text-muted-foreground text-xs">Never</span> },
       { header: 'Status', key: 'active', render: (v) => <StatusBadge active={v as boolean} /> },
     ],
@@ -306,7 +299,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'calendars',
     label: 'Calendar',
     pluralLabel: 'Calendars',
-    mockData: () => MOCK_CALENDARS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Name', key: 'friendlyName' },
       { header: 'Slug', key: 'name', render: (v) => <span className="font-mono text-xs text-muted-foreground">{String(v)}</span> },
@@ -338,13 +330,22 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'devices',
     label: 'Device',
     pluralLabel: 'Devices',
-    mockData: () => MOCK_DEVICES as unknown as Record<string, unknown>[],
     quickAction: { label: 'Toggle Power' },
     columns: [
       { header: 'Name', key: 'friendlyName' },
       { header: 'Room', key: 'room', render: (v) => <>{v ?? '—'}</> },
       { header: 'Category', key: 'category', render: (v) => v ? <Badge variant="outline">{String(v)}</Badge> : <span>—</span> },
       { header: 'LLM', key: 'llmModelType', render: (v) => <Badge variant="outline">{String(v ?? 'soon')}</Badge> },
+      {
+        header: 'Ignored',
+        key: 'ignoredEntityIds',
+        render: (v) => {
+          const ids = Array.isArray(v) ? v : [];
+          return ids.length > 0
+            ? <span className="font-mono text-xs">{ids.length}</span>
+            : <span>—</span>;
+        },
+      },
       { header: 'Status', key: 'active', render: (v) => <StatusBadge active={v as boolean} /> },
     ],
     formFields: [
@@ -366,6 +367,19 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
         ],
         description: 'Model tier for device-triggered automations',
       },
+      {
+        name: 'ignoredEntityIds',
+        label: 'Ignored entities',
+        type: 'tags',
+        placeholder: 'sensor.washer_remaining_time',
+        description: 'Entity ids recorded but not sent to automations. Exact ids, such as sensor.washer_cycles.',
+      },
+      {
+        name: 'ignoreOffState',
+        label: 'Skip off state',
+        type: 'switch',
+        description: 'Record a change to off without starting an automation. Leave off for a washer or dryer.',
+      },
     ],
     formSchema: z.object({
       friendlyName: z.string().min(1, 'Display name is required'),
@@ -376,11 +390,15 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
       readRoles: z.array(z.nativeEnum(Role)).min(1, 'At least one read role required'),
       writeRoles: z.array(z.nativeEnum(Role)).min(1, 'At least one write role required'),
       llmModelType: z.enum(['soon', 'immediate']).default('soon'),
+      ignoredEntityIds: z.array(z.string()).optional(),
+      ignoreOffState: z.boolean().optional(),
     }),
     defaultFormValues: () => ({
       readRoles: [Role.ADMIN],
       writeRoles: [Role.ADMIN],
       llmModelType: 'soon',
+      ignoredEntityIds: [],
+      ignoreOffState: false,
     }),
   },
 
@@ -389,7 +407,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'facts',
     label: 'Fact',
     pluralLabel: 'Facts',
-    mockData: () => MOCK_FACTS as unknown as Record<string, unknown>[],
     quickAction: { label: 'Verify Source' },
     columns: [
       { header: 'Key', key: 'key', render: (v) => <span className="font-mono text-xs text-primary">{String(v)}</span> },
@@ -420,7 +437,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'notes',
     label: 'Note',
     pluralLabel: 'Notes',
-    mockData: () => MOCK_NOTES as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Name', key: 'friendlyName' },
       { header: 'Slug', key: 'name', render: (v) => <span className="font-mono text-xs text-muted-foreground">{String(v)}</span> },
@@ -451,17 +467,19 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'Notification Queue',
     pluralLabel: 'Notification Queue',
     canCreate: false,
-    mockData: () => MOCK_NOTIFICATION_QUEUE as unknown as Record<string, unknown>[],
     columns: [
       { header: 'User', key: 'userId', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Message', key: 'message', render: (v) => truncate(v, 52) },
+      { header: 'File', key: 'fileName', render: (v) => <>{v ? String(v) : '—'}</> },
       { header: 'Status', key: 'active', render: (v) => <StatusBadge active={v as boolean} /> },
     ],
     formFields: [
       { name: 'message', label: 'Message', type: 'textarea', required: true, placeholder: 'Notification message…' },
+      { name: 'fileName', label: 'Snapshot file', type: 'text', placeholder: 'front_door_20261012_163000.jpg' },
     ],
     formSchema: z.object({
       message: z.string().min(1, 'Message is required'),
+      fileName: z.string().optional(),
     }),
   },
 
@@ -470,7 +488,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'recipes',
     label: 'Recipe',
     pluralLabel: 'Recipes',
-    mockData: () => MOCK_RECIPES as unknown as Record<string, unknown>[],
     quickAction: { label: 'Run Now' },
     columns: [
       { header: '#', key: 'readableId', className: 'w-12' },
@@ -502,7 +519,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     label: 'Tool',
     pluralLabel: 'Tools',
     canCreate: false,
-    mockData: () => MOCK_TOOLS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Name', key: 'name', render: (v) => <span className="font-mono text-xs">{String(v)}</span> },
       { header: 'Display Name', key: 'friendlyName' },
@@ -530,7 +546,6 @@ export const ENTITY_CONFIGS: EntityConfig[] = [
     apiPath: 'users',
     label: 'User',
     pluralLabel: 'Users',
-    mockData: () => MOCK_USERS as unknown as Record<string, unknown>[],
     columns: [
       { header: 'Name', key: 'name' },
       { header: 'Role', key: 'role', render: (v) => <RoleBadge role={v as Role} /> },

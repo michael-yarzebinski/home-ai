@@ -28,6 +28,11 @@ const UpdateAutomationRuleSchema = z.object({
     ToolParameterUtils.toBooleanValue,
     z.boolean().optional(),
   ),
+  disabled: z
+    .preprocess(ToolParameterUtils.toBooleanValue, z.boolean().optional())
+    .describe(
+      "When true, the rule stays saved and does not run. Set false to turn it back on.",
+    ),
   name: z.preprocess(
     (v) =>
       ToolParameterUtils.isEmptyOptionalInput(v)
@@ -51,7 +56,7 @@ export class UpdateAutomationRuleTool extends ToolHandler<
 > {
   readonly name = "update-automation-rule";
   readonly description =
-    "Modify an existing automation rule (e.g., enable/disable, change schedule).";
+    "Modify an existing automation rule (schedule, actions, or the disabled flag).";
   readonly parameters = UpdateAutomationRuleSchema;
 
   constructor(private readonly automationStore: AutomationRuleStore) {

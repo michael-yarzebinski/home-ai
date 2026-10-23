@@ -22,6 +22,7 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
     defaultValues: {
       userId: initialData?.userId || '',
       message: initialData?.message || '',
+      fileName: initialData?.fileName || '',
     },
   });
 
@@ -42,6 +43,13 @@ export function NotificationQueueForm({ initialData, viewMode, onSubmit, isLoadi
           name="message"
           label="Message Content"
           placeholder="Enter the notification text..."
+          viewMode={viewMode}
+        />
+
+        <TextInput
+          name="fileName"
+          label="Snapshot file"
+          placeholder="front_door_20261012_163000.jpg"
           viewMode={viewMode}
         />
 

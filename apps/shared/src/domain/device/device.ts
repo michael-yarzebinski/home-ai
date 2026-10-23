@@ -25,6 +25,8 @@ export const DeviceSchema = z.object({
   writeRoles: z.array(RoleSchema),
   extraMetadata: z.unknown(),
   llmModelType: LLMModelTypeSchema.default(LLMModelType.SOON),
+  ignoredEntityIds: z.array(z.string()),
+  ignoreOffState: z.boolean().default(false),
   lastTriggeredService: DeviceLastTriggeredServiceSchema.optional(),
   active: z.boolean(),
   createdAt: z.date(),

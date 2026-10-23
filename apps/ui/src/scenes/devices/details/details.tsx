@@ -73,6 +73,8 @@ export default function DeviceDetails() {
       readRoles: formData.readRoles,
       writeRoles: formData.writeRoles,
       llmModelType: formData.llmModelType,
+      ignoredEntityIds: formData.ignoredEntityIds,
+      ignoreOffState: formData.ignoreOffState,
       extraMetadata: formData.extraMetadata,
     };
     updateDevice(

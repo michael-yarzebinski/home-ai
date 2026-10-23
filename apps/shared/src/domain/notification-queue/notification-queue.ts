@@ -4,6 +4,7 @@ export const NotificationQueueSchema = z.object({
   id: z.string(),
   userId: z.string(),
   message: z.string(),
+  fileName: z.string().optional(),
   active: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),

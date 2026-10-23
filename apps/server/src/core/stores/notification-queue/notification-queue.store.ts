@@ -15,6 +15,7 @@ export interface NotificationQueueRecord {
   id: string;
   user_id: string;
   message: string;
+  file_name?: string | null;
   active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -61,6 +62,7 @@ export class NotificationQueueStore extends AbstractEntityStore<
       id: record.id,
       userId: record.user_id,
       message: record.message,
+      fileName: record.file_name ?? undefined,
       active: record.active,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
@@ -72,6 +74,7 @@ export class NotificationQueueStore extends AbstractEntityStore<
       id: domain.id,
       user_id: domain.userId,
       message: domain.message,
+      file_name: domain.fileName,
       active: domain.active,
       created_at: domain.createdAt,
       updated_at: domain.updatedAt,

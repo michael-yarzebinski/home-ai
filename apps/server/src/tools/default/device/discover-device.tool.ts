@@ -113,8 +113,7 @@ export class DiscoverDevicesTool extends ToolHandler<
       text
         .toLowerCase()
         .trim()
-        // Replace underscores, hyphens, and spaces with nothing
-        .replace(/[\s_-]/g, "")
+        .replace(/\s+/g, "_")
     );
   }
 

@@ -16,6 +16,7 @@ import { EntityIdField } from '@/components/form/fields/domain/entity-id-field';
 import { EntityTimestampField } from '@/components/form/fields/domain/entity-timestamp-field';
 import { MultiRoleSelectInput } from '@/components/form/fields/domain/multi-role-select-input';
 import { SelectInput } from '@/components/form/fields/general/select-input';
+import { CheckboxInput } from '@/components/form/fields/general/checkbox-input';
 
 // We type against InsertableDevice for the form state, but we know initialData is a full Device
 export type DeviceFormProps = Omit<EntityFormProps<InsertableDevice, Device>, 'viewMode'> & {
@@ -39,6 +40,8 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
       readRoles: initialData?.readRoles || [],
       writeRoles: initialData?.writeRoles || [],
       llmModelType: initialData?.llmModelType ?? LLMModelType.SOON,
+      ignoredEntityIds: initialData?.ignoredEntityIds || [],
+      ignoreOffState: initialData?.ignoreOffState ?? false,
       extraMetadata: initialData?.extraMetadata || {},
     },
   });
@@ -73,6 +76,21 @@ export function DeviceForm({ initialData, viewMode, onSubmit, isLoading, formId 
         name="aliases"
         label="Aliases"
         description="Add additional names for this device."
+        viewMode={viewMode}
+      />
+
+      <ArrayInput
+        name="ignoredEntityIds"
+        label="Ignored entities"
+        placeholder="sensor.washer_remaining_time"
+        description="Home Assistant entity ids that are recorded but do not trigger automations. Use the exact id from live status, such as sensor.washer_remaining_time or sensor.washer_cycles."
+        viewMode={viewMode}
+      />
+
+      <CheckboxInput
+        name="ignoreOffState"
+        label="Skip off state"
+        description="Record a change to off, and do not start an automation. Leave this off for a washer or dryer, where off is the event you care about."
         viewMode={viewMode}
       />
 

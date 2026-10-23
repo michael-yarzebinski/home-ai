@@ -23,6 +23,8 @@ export interface DeviceRecord {
   write_roles: string[];
   extra_metadata: any;
   llm_model_type: string;
+  ignored_entity_ids?: string[] | null;
+  ignore_off_state?: boolean | null;
   last_triggered_service: any | null;
   active: boolean;
   created_at: Date;
@@ -104,6 +106,10 @@ export class DeviceStore extends AbstractEntityStore<
       writeRoles: record.write_roles as Role[],
       extraMetadata: record.extra_metadata,
       llmModelType: (record.llm_model_type as LLMModelType) || LLMModelType.SOON,
+      ignoredEntityIds: Array.isArray(record.ignored_entity_ids)
+        ? record.ignored_entity_ids
+        : [],
+      ignoreOffState: record.ignore_off_state === true,
       lastTriggeredService: record.last_triggered_service ?? undefined,
       active: record.active,
       createdAt: record.created_at,
@@ -123,6 +129,13 @@ export class DeviceStore extends AbstractEntityStore<
       write_roles: domain.writeRoles,
       extra_metadata: domain.extraMetadata,
       llm_model_type: domain.llmModelType ?? LLMModelType.SOON,
+      ignored_entity_ids:
+        domain.ignoredEntityIds === undefined
+          ? undefined
+          : domain.ignoredEntityIds
+              .map((id) => id.trim())
+              .filter((id) => id.length > 0),
+      ignore_off_state: domain.ignoreOffState,
       last_triggered_service: domain.lastTriggeredService ?? null,
       active: domain.active,
       created_at: domain.createdAt,

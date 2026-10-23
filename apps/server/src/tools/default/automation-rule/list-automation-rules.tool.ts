@@ -29,6 +29,7 @@ export class ListAutomationRulesTool extends ToolHandler<
         id: r.id,
         name: r.name,
         active: r.active,
+        disabled: r.disabled,
         trigger: r.trigger,
       })),
     };

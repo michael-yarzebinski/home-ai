@@ -29,6 +29,16 @@ const SendNotificationToolSchema = z.object({
   message: z
     .preprocess(preprocessNotificationMessage, z.string().min(1))
     .describe("The message content to send"),
+
+  filename: z
+    .preprocess((value) => {
+      if (typeof value !== "string") return undefined;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }, z.string().optional())
+    .describe(
+      "Optional snapshot file name to send with the message, such as front_door_20261012_163000.jpg. Use the same name passed to save-image.",
+    ),
 });
 
 export interface SendNotificationResult {
@@ -47,7 +57,9 @@ export class SendNotificationTool extends ToolHandler<
 
   readonly description =
     "Send a notification to a user via iMessage (BlueBubbles). " +
-    "Respects the user's quiet hours.";
+    "Pass filename to include a saved snapshot with the message. " +
+    "Respects the user's quiet hours. " +
+    "When the message depends on an image, send it on a later step, after you have received that image and saved it.";
 
   readonly parameters = SendNotificationToolSchema;
 
@@ -59,7 +71,9 @@ export class SendNotificationTool extends ToolHandler<
     params: z.infer<typeof SendNotificationToolSchema>,
     _context: ToolContext,
   ): Promise<SendNotificationResult> {
-    await this.notificationService.notifyUser(params.message, params.userId);
+    await this.notificationService.notifyUser(params.message, params.userId, {
+      fileName: params.filename,
+    });
 
     return {
       success: true,

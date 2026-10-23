@@ -24,6 +24,7 @@ import { UserSelectInput } from '@/components/form/fields/domain/user-select-inp
 import { DeviceSelectInput } from '@/components/form/fields/domain/device-select-input';
 import { ToolSelectInput } from '@/components/form/fields/domain/tool-select-input';
 import { CronInput } from '@/components/form/fields/general/cron-input';
+import { CheckboxInput } from '@/components/form/fields/general/checkbox-input';
 
 export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading }: EntityFormProps<InsertableAutomationRule, AutomationRule>) {
   const form = useForm<InsertableAutomationRule>({
@@ -32,6 +33,7 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
       name: '',
       userId: '',
       cooldownMinutes: 5,
+      disabled: false,
       trigger: { type: TriggerType.TIME, cron: '0 * * * *', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       actions: []
     },
@@ -61,6 +63,12 @@ export function AutomationRuleForm({ initialData, viewMode, onSubmit, isLoading 
           </div>
           <div className="space-y-4">
             <NumberInput name="cooldownMinutes" label="Cooldown (Minutes)" viewMode={viewMode} />
+            <CheckboxInput
+              name="disabled"
+              label="Disabled"
+              description="The rule stays saved and does not run."
+              viewMode={viewMode}
+            />
             <TextInput name="description" label="Description" placeholder="Optional notes on why this exists..." viewMode={viewMode} />
           </div>
         </div>
